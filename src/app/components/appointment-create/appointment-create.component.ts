@@ -1,0 +1,273 @@
+// appointment-create.component.ts
+import { Component, OnInit } from '@angular/core';
+import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { AppointmentService } from '../../services/appointment.service';
+import { AuthService } from '../../services/auth.service';
+import { PdfGeneratorUtil } from '../../utils/pdf-generator.util';
+import { UserService } from '../../services/user.service';
+import { ToastService } from '../../services/toast.service';
+
+@Component({
+  selector: 'app-appointment-create',
+  templateUrl: './appointment-create.component.html',
+  styleUrls: ['./appointment-create.component.css'],
+  standalone: false,
+})
+export class AppointmentCreateComponent implements OnInit {
+  availableTimes: string[] = [];
+  allTimes: string[] = [
+    '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
+    '12:00', '12:30', '13:00',
+    '15:00', '15:30', '16:00', '16:30', '17:00', '17:30', '18:00'
+  ];
+  appointmentForm!: FormGroup; // Usando el operador de aserción de asignación definida
+  specialties: any[] = [];
+  doctors: any[] = [];
+  minDate: string;
+  isDoctorAvailable: boolean = true;
+  loadingDoctors: boolean = false;
+  // UX flags
+  actionLoading: boolean = false;
+
+  constructor(
+    private fb: FormBuilder,
+    private appointmentService: AppointmentService,
+    private authService: AuthService,
+  private pdfGenerator: PdfGeneratorUtil,
+  private userService: UserService,
+  private toastService: ToastService
+  ) {
+    // Establecer fecha mínima como hoy
+    this.minDate = new Date().toISOString().split('T')[0];
+  }
+
+  ngOnInit(): void {
+    this.initForm();
+    this.loadSpecialties();
+    // Suscribirse a cambios en fecha y hora para verificar disponibilidad
+    this.appointmentForm?.get('date')?.valueChanges.subscribe(() => {
+      this.updateAvailableTimes();
+    });
+    this.appointmentForm?.get('doctor')?.valueChanges.subscribe(() => {
+      this.updateAvailableTimes();
+    });
+    // Subscribe to specialty changes via valueChanges (avoids timing issue with (change) event)
+    this.appointmentForm?.get('specialty')?.valueChanges.subscribe((val) => {
+      this.onSpecialtyChange(val);
+    });
+  }
+
+  initForm(): void {
+    this.appointmentForm = this.fb.group({
+      patientDpi: ['', [Validators.required, Validators.pattern('^[0-9]{13}$')]],
+      patientNames: [{ value: '', disabled: true }, Validators.required],
+      patientLastNames: [{ value: '', disabled: true }, Validators.required],
+      patientPhone: [{ value: '', disabled: true }, Validators.required],
+      patientEmail: [{ value: '', disabled: true }, [Validators.required, Validators.email]],
+      specialty: ['', Validators.required],
+      doctor: ['', Validators.required],
+      date: ['', Validators.required],
+      time: ['', Validators.required],
+      observations: ['']
+    });
+  }
+
+  onPatientDpiBlur(): void {
+    const dpi = this.appointmentForm.get('patientDpi')?.value;
+    console.log('[DPI Blur] Valor DPI:', dpi);
+    if (dpi && dpi.length === 13) {
+      // Consultar paciente por DPI
+      this.userService.getUserDetails(dpi, 'paciente').subscribe(
+        (data: any) => {
+          console.log('[DPI Blur] Respuesta paciente:', data);
+          const nombres = data.Nombres || data.nombres || '';
+          const apellidos = data.Apellidos || data.apellidos || '';
+          const telefono = data.Telefono || data.telefono || '';
+          const correo = data.Correo || data.correo || '';
+          this.appointmentForm.patchValue({
+            patientNames: nombres,
+            patientLastNames: apellidos,
+            patientPhone: telefono,
+            patientEmail: correo
+          });
+          // Mantener los campos deshabilitados para solo lectura
+          this.appointmentForm.get('patientNames')?.disable();
+          this.appointmentForm.get('patientLastNames')?.disable();
+          this.appointmentForm.get('patientPhone')?.disable();
+          this.appointmentForm.get('patientEmail')?.disable();
+        },
+        (error: any) => {
+          console.error('[DPI Blur] Error al buscar paciente:', error);
+          // Limpiar y deshabilitar campos si no se encuentra el paciente
+          this.appointmentForm.patchValue({
+            patientNames: '',
+            patientLastNames: '',
+            patientPhone: '',
+            patientEmail: ''
+          });
+          this.appointmentForm.get('patientNames')?.disable();
+          this.appointmentForm.get('patientLastNames')?.disable();
+          this.appointmentForm.get('patientPhone')?.disable();
+          this.appointmentForm.get('patientEmail')?.disable();
+        }
+      );
+    }
+  }
+
+  loadSpecialties(): void {
+    this.appointmentService.getSpecialties().subscribe(
+      (data: any) => {
+        let arr = Array.isArray(data) ? data : (data && Array.isArray(data.specialties) ? data.specialties : []);
+        // Normalize backend fields (idEspecialidad / nombre) to expected keys idEspecialidades / Nombre
+        this.specialties = arr.map((s: any) => ({
+          idEspecialidades: s.idEspecialidades || s.idEspecialidad || s.id || s.ID || null,
+          Nombre: s.Nombre || s.nombre || s.NombreEspecialidad || s.name || ''
+        }));
+      },
+      error => console.error('Error loading specialties:', error)
+    );
+  }
+
+  onSpecialtyChange(specialtyIdParam?: any): void {
+    const specialtyId = typeof specialtyIdParam !== 'undefined' ? specialtyIdParam : this.appointmentForm.get('specialty')?.value;
+    console.log('[Especialidad Change] ID:', specialtyId);
+    if (specialtyId) {
+      this.loadingDoctors = true;
+      this.appointmentService.getDoctorsBySpecialty(specialtyId).subscribe(
+        (data: any) => {
+          console.log('[Especialidad Change] Respuesta doctores:', data);
+          if (Array.isArray(data)) {
+            this.doctors = data;
+          } else if (data && Array.isArray(data.doctors)) {
+            this.doctors = data.doctors;
+          } else if (data && Array.isArray(data.data)) {
+            this.doctors = data.data;
+          } else {
+            this.doctors = [];
+          }
+          this.loadingDoctors = false;
+        },
+        error => {
+          console.error('[Especialidad Change] Error al cargar doctores:', error);
+          this.loadingDoctors = false;
+        }
+      );
+    }
+  }
+
+  checkAvailability(): void {
+    const doctorId = this.appointmentForm.get('doctor')?.value;
+    const date = this.appointmentForm.get('date')?.value;
+    const time = this.appointmentForm.get('time')?.value;
+
+    if (doctorId && date && time) {
+      this.appointmentService.checkDoctorAvailability(doctorId, date, time).subscribe(
+        isAvailable => {
+          this.isDoctorAvailable = isAvailable;
+          if (!isAvailable) {
+            this.appointmentForm.get('time')?.setErrors({ notAvailable: true });
+          }
+        },
+        error => console.error('Error checking availability:', error)
+      );
+    }
+  }
+
+  updateAvailableTimes(): void {
+    const doctorId = this.appointmentForm.get('doctor')?.value;
+    const date = this.appointmentForm.get('date')?.value;
+    if (doctorId && date) {
+      this.appointmentService.getCitasPorDoctor(doctorId).subscribe(
+        (response: any) => {
+          const citas = response.citas || response || [];
+          console.log('[updateAvailableTimes] Citas recibidas:', citas);
+          // Normalizar horas ocupadas a formato HH:mm
+          const ocupadas = citas
+            .filter((c: any) => {
+              let fechaCita = c.Fecha || c.fecha;
+              // Si la fecha viene en formato ISO, extraer solo YYYY-MM-DD
+              if (fechaCita && fechaCita.length > 10) {
+                fechaCita = fechaCita.slice(0, 10);
+              }
+              const estado = (c.Confirmado || c.confirmado || c.Estado || c.estado || '') as string;
+              const isCanceled = estado.toLowerCase() === 'cancelada';
+              const match = fechaCita === date;
+              if (!match) {
+                console.log(`[updateAvailableTimes] Cita ignorada por fecha:`, fechaCita, date);
+              }
+              if (isCanceled && match) {
+                console.log(`[updateAvailableTimes] Cita en estado 'Cancelada' liberando horario:`, c);
+              }
+              // Ocupada sólo si la fecha coincide y la cita NO está cancelada
+              return match && !isCanceled;
+            })
+            .map((c: any) => {
+              let hora = c.Hora || c.hora;
+              if (hora && hora.length >= 5) {
+                hora = hora.slice(0,5);
+              }
+              console.log(`[updateAvailableTimes] Hora ocupada:`, hora);
+              return hora;
+            });
+          console.log('[updateAvailableTimes] Horas ocupadas:', ocupadas);
+          this.availableTimes = this.allTimes.filter(t => !ocupadas.includes(t));
+          console.log('[updateAvailableTimes] Horas disponibles:', this.availableTimes);
+        },
+        error => {
+          console.error('Error obteniendo citas del doctor:', error);
+          this.availableTimes = [...this.allTimes];
+        }
+      );
+    } else {
+      this.availableTimes = [...this.allTimes];
+    }
+  }
+
+  onSubmit(): void {
+    if (this.appointmentForm.valid) {
+      this.actionLoading = true;
+      const doctorId = this.appointmentForm.get('doctor')?.value;
+      const date = this.appointmentForm.get('date')?.value;
+      const time = this.appointmentForm.get('time')?.value;
+      this.appointmentService.checkDoctorAvailability(doctorId, date, time).subscribe(
+        (isAvailable: any) => {
+          if (!isAvailable || isAvailable.available === false) {
+            this.toastService.show('El doctor no está disponible en la fecha y hora seleccionada.', 'error');
+            this.actionLoading = false;
+            return;
+          }
+          const appointmentData = {
+            ...this.appointmentForm.value,
+            // New appointments default to 'Pendiente'
+            Confirmado: 'Pendiente',
+            creatorId: this.authService.currentUserValue ? this.authService.currentUserValue.id : null,
+            creatorType: this.authService.currentUserValue ? this.authService.currentUserValue.tipo : null
+          };
+          this.appointmentService.createAppointment(appointmentData).subscribe(
+            response => {
+              this.toastService.show('Cita creada exitosamente', 'success');
+              try { this.generateAppointmentTicket(response.appointment); } catch(e) { console.warn('PDF generation failed', e); }
+              // Reset form but keep minDate and doctor/specialty selections cleared
+              this.appointmentForm.reset();
+              this.availableTimes = [...this.allTimes];
+              this.actionLoading = false;
+            },
+            error => {
+              console.error('Error creating appointment:', error);
+              this.toastService.show('Error al crear la cita. Intente nuevamente.', 'error');
+              this.actionLoading = false;
+            }
+          );
+        },
+        error => {
+          this.toastService.show('No se pudo validar la disponibilidad. Intente de nuevo.', 'error');
+          this.actionLoading = false;
+        }
+      );
+    }
+  }
+
+  generateAppointmentTicket(appointment: any): void {
+    this.pdfGenerator.generateAppointmentTicket(appointment);
+  }
+}

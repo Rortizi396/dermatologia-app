@@ -1,0 +1,51 @@
+<div class="doctor-schedule">
+  <!-- Hero banner (imagen de ejemplo) -->
+  <div class="hero-banner mb-3">
+    <img src="/assets/images/hero-banner.svg" alt="Centro Dermatológico" style="width:100%;height:auto;border-radius:6px;" />
+  </div>
+
+  <div class="schedule-header" style="display:flex;align-items:center;gap:16px;">
+    <div style="display:flex;flex-direction:column;">
+      <h2 style="margin:0;">Agenda de Citas</h2>
+    </div>
+    <!-- Avatares de ejemplo -->
+    <div style="margin-left:auto;display:flex;gap:10px;align-items:center;">
+      <img src="/assets/images/doctor-avatar-1.svg" alt="Dr. Ejemplo" width="56" height="56" style="border-radius:6px;" />
+      <img src="/assets/images/doctor-avatar-2.svg" alt="Dr. Ejemplo 2" width="56" height="56" style="border-radius:6px;" />
+    </div>
+  </div>
+
+  <div class="calendar-container" *ngIf="selectedDoctorId">
+    <mwl-calendar-month-view
+      [viewDate]="viewDate"
+      [events]="events"
+      (eventClicked)="handleEventClick($event.event)"
+      [activeDayIsOpen]="true"
+    >
+    </mwl-calendar-month-view>
+  </div>
+
+  <!-- Detalles de la cita debajo del calendario -->
+  <div *ngIf="selectedAppointment" class="appointment-details mt-4">
+    <div class="card">
+      <div class="card-header">
+        <h4>{{ selectedAppointment.title }}</h4>
+  <span>{{ selectedAppointment.start | date:'fullDate':'':'es' }} {{ selectedAppointment.start | date:'shortTime':'':'es' }}</span>
+      </div>
+      <div class="card-body">
+        <p><strong>Paciente:</strong> {{ selectedAppointment.paciente }}</p>
+        <p><strong>Especialidad:</strong> {{ selectedAppointment.especialidad }}</p>
+        <p><strong>Detalles:</strong> {{ selectedAppointment.detalles }}</p>
+        <p><strong>Teléfono:</strong> {{ selectedAppointment.telefono }}</p>
+        <p><strong>Confirmación:</strong>
+          <i [ngClass]="selectedAppointment.confirmadoIconClass" class="confirm-icon" aria-hidden="true"></i>
+          <span [ngClass]="selectedAppointment.confirmadoClass" aria-label="Estado de confirmación">{{ selectedAppointment.confirmadoLabel }}</span>
+        </p>
+        <button class="btn btn-danger mt-2" (click)="selectedAppointment = null">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mover el div de eventos abiertos fuera del contenedor principal -->
+</div>
+<div role="application" class="cal-open-day-events"></div>

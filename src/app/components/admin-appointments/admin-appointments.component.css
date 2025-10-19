@@ -1,0 +1,251 @@
+.fichas-grid {
+	display: grid;
+	grid-template-columns: 1fr;
+	gap: 1rem;
+}
+
+:root {
+	/* Empresa: tonos de verde claro únicos */
+	--brand-50: #eaf7ed;   /* fondo muy claro */
+	--brand-100: #d4f0d9;
+	--brand-300: #9fe0a9;
+	--brand-500: #53c06f;  /* verde principal */
+	--brand-600: #45b665;  /* verde ligeramente más oscuro */
+	--brand-700: #3a9e55;
+	--muted-600: #6b8f76;
+	--success-500: var(--brand-500);
+	--danger-500: #ef4444; /* usar rojo para cancelar */
+}
+
+@media (min-width: 900px) {
+	.fichas-grid {
+		grid-template-columns: repeat(2, 1fr);
+	}
+}
+
+.ficha-card {
+	background: #ffffff;
+	border-radius: 8px;
+	padding: 1rem;
+	box-shadow: 0 6px 18px rgba(16,24,40,0.06);
+	border: 1px solid rgba(16,24,40,0.04);
+	display: flex;
+	flex-direction: column;
+	min-height: 120px;
+}
+
+.ficha-header {
+	display:flex;
+	align-items:center;
+	justify-content:space-between;
+	gap: 0.75rem;
+	margin-bottom: 0.5rem;
+}
+
+.ficha-card h3 {
+	margin: 0;
+	font-size: 1.05rem;
+	color: #111827;
+}
+
+.ficha-sub {
+	color: #6b7280;
+	font-size: 0.85rem;
+}
+
+.table-wrapper {
+	overflow: auto;
+}
+
+table.app-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 0.95rem;
+}
+
+table.app-table th, table.app-table td {
+	padding: 0.8rem 0.9rem; /* increased padding for more vertical space */
+	text-align: left;
+	border-bottom: 1px solid rgba(15,23,42,0.06);
+	vertical-align: middle; /* center content vertically */
+}
+
+/* ensure rows have a comfortable minimum height */
+table.app-table tbody tr {
+	min-height: 56px;
+}
+
+/* make cell text slightly more airy */
+table.app-table td, table.app-table th {
+	line-height: 1.4;
+}
+
+.patient-cell {
+	font-weight: 600;
+	color: #0f172a;
+}
+
+
+.table-actions {
+	display:flex;
+	gap:0.5rem;
+}
+
+/* Primary action button (Confirmar) */
+.btn-accept {
+  background: linear-gradient(180deg,var(--brand-500),var(--brand-600));
+  color: #fff;
+  border: none;
+  padding: 0.35rem 0.6rem;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.btn-accept:active { transform: translateY(1px); }
+
+/* Cancel action uses red->white gradient per request; styling applied with high specificity below */
+.btn-cancel {
+  padding: 0.35rem 0.6rem;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.btn-ghost {
+	background: transparent;
+	border: 1px solid rgba(15,23,42,0.06);
+	padding: 0.35rem 0.6rem;
+	border-radius: 6px;
+}
+
+.modal-backdrop {
+	position: fixed;
+	inset:0;
+	background: rgba(2,6,23,0.5);
+	display:flex;
+	align-items:center;
+	justify-content:center;
+	z-index: 1100;
+}
+
+.modal {
+	background:#fff;
+	padding:1rem;
+	border-radius:8px;
+	width: 420px;
+	max-width: calc(100% - 32px);
+	box-shadow: 0 12px 32px rgba(2,6,23,0.16);
+}
+
+/* Compatibility with existing template classes */
+.grid { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+@media (min-width: 900px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+.card.ficha { padding: 0; border-radius: 8px; overflow: hidden; }
+.card-header { padding: 0.8rem 1rem; background: linear-gradient(180deg,#f8fafc,#f1f5f9); font-weight:600; display:flex; align-items:center; justify-content:space-between; }
+.card-body { padding: 0.6rem 0.9rem; }
+
+/* Table enhancements for table.table (Bootstrap-like) */
+table.table {
+	width: 100%;
+	border-collapse: collapse;
+}
+
+table.table thead th {
+	position: sticky;
+	top: 0;
+	background: #f8fafc;
+	z-index: 5;
+	padding: 0.8rem 0.9rem;
+	text-align: left;
+	border-bottom: 1px solid rgba(15,23,42,0.08);
+}
+
+table.table tbody td {
+	padding: 0.8rem 0.9rem;
+	vertical-align: middle;
+	border-bottom: 1px solid rgba(15,23,42,0.04);
+}
+
+/* zebra rows and hover */
+table.table tbody tr:nth-child(odd) { background: rgba(15,23,42,0.02); }
+table.table tbody tr:hover { background: rgba(2,6,23,0.04); }
+
+/* compact badge */
+.badge { display:inline-block; background:var(--brand-50); color:var(--brand-500); padding:0.18rem 0.5rem; border-radius:999px; font-size:0.82rem; font-weight:600; }
+
+/* small adjustments for action buttons inside table */
+.btn-sm { padding: 0.28rem 0.5rem; font-size: 0.82rem; }
+.btn-accept, .btn-cancel, .btn-ghost { border-radius:6px; }
+
+/* buttons using company palette */
+.admin-appointments .btn-accept { background: linear-gradient(180deg, var(--brand-500), var(--brand-600)); color: #fff; border: none; }
+/* Cancel button: white -> red gradient with visible red border; higher specificity to override Bootstrap */
+.admin-appointments .btn-cancel {
+	background: linear-gradient(180deg, #ffffff 0%, var(--danger-500) 100%);
+	color: #7f1d1d; /* dark red text for contrast on white */
+	border: 1px solid rgba(239,68,68,0.85);
+	box-shadow: 0 1px 0 rgba(0,0,0,0.03);
+}
+.admin-appointments .btn-accept { background: linear-gradient(180deg, var(--brand-500), var(--brand-600)) !important; color: #fff !important; }
+.admin-appointments .btn-cancel { background: linear-gradient(180deg, var(--danger-500) 0%, #ffffff 100%) !important; color: var(--danger-500) !important; border: 1px solid rgba(239,68,68,0.95) !important; box-shadow: 0 1px 0 rgba(0,0,0,0.03) !important; }
+.btn-ghost { background: transparent; border: 1px solid rgba(15,23,42,0.06); }
+
+/* Responsive: turn table into cards on small screens */
+@media (max-width: 720px) {
+	table.table thead { display: none; }
+	table.table, table.table tbody, table.table tr, table.table td { display: block; width: 100%; }
+	table.table tr { margin-bottom: 0.75rem; background: #fff; border-radius: 8px; box-shadow: 0 6px 14px rgba(2,6,23,0.04); padding: 0.6rem; }
+	table.table td { padding: 0.45rem 0.6rem; border-bottom: none; }
+	table.table td:before { content: attr(data-label); display: block; font-weight: 700; color: var(--muted-600); margin-bottom: 0.18rem; }
+}
+
+/* make modal header/body/footer consistent */
+.modal.card .card-header { padding: 0.6rem 0.8rem; font-weight: 700; }
+.modal.card .card-body { padding: 0.8rem; }
+.modal.card .card-footer { display:flex; justify-content:flex-end; gap:0.6rem; padding-top:0.6rem; }
+
+/* Strong overrides using host selector to ensure styles apply over global frameworks */
+:host .btn-accept {
+	background: linear-gradient(180deg, var(--brand-500), var(--brand-600)) !important;
+	color: #fff !important;
+	border: 1px solid rgba(0,0,0,0.06) !important;
+}
+:host .btn-cancel {
+	background: linear-gradient(180deg, #ffffff 0%, var(--danger-500) 100%) !important;
+	color: #7f1d1d !important;
+	border: 1px solid rgba(239,68,68,0.9) !important;
+}
+:host .badge {
+	background: var(--brand-50) !important;
+	color: var(--brand-700) !important;
+}
+
+/* Deep override for global frameworks (if Bootstrap still overrides backgrounds) */
+:host ::ng-deep .btn-cancel {
+	background-image: linear-gradient(180deg, #ffffff 0%, var(--danger-500) 100%) !important;
+	background-color: transparent !important;
+	color: #7f1d1d !important;
+	border: 1px solid rgba(239,68,68,0.95) !important;
+}
+
+:host ::ng-deep .btn-accept {
+	background-image: linear-gradient(180deg, var(--brand-500), var(--brand-600)) !important;
+	color: #fff !important;
+}
+
+/* Strong overrides: solid fills for headers and buttons (fill color, white text) */
+table.table thead th {
+	background: #45b665 !important; /* header background requested */
+	color: #ffffff !important;
+}
+
+:host .btn-accept, :host ::ng-deep .btn-accept {
+	background: var(--brand-300) !important; /* verde claro relleno */
+	color: #fff !important;
+	border: none !important;
+}
+
+:host .btn-cancel, :host ::ng-deep .btn-cancel {
+	background: var(--danger-500) !important; /* rojo sólido */
+	color: #fff !important;
+	border: none !important;
+}

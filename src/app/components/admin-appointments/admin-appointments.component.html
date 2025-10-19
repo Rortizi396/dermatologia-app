@@ -1,0 +1,145 @@
+<div class="admin-appointments p-2">
+  <h3>Administración de citas</h3>
+  
+  <div class="grid">
+    <!-- Hoy -->
+    <section class="card ficha" style="background:#fff !important;border-radius:8px;box-shadow:0 6px 18px rgba(16,24,40,0.06) !important;border:1px solid rgba(16,24,40,0.04) !important;">
+      <header class="card-header" style="padding:.6rem .9rem;background:linear-gradient(180deg,#f8fafc,#f1f5f9) !important;font-weight:600;display:flex;align-items:center;justify-content:space-between;">Hoy <small class="muted">({{ today | date:'dd/MM/yyyy' }})</small> <span class="badge" style="background:var(--brand-50) !important;color:var(--brand-700) !important;padding:.18rem .5rem;border-radius:999px;font-weight:600">{{ totalHoy }}</span></header>
+      <div class="card-body">
+        <table class="table table-sm mb-1">
+          <thead>
+            <tr><th>Paciente</th><th>Especialidad</th><th>Doctor</th><th>Estado</th><th>Acciones</th></tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let c of citasHoy">
+              <td class="patient-cell" data-label="Paciente">{{ (c.pacienteInfo?.nombres ? (c.pacienteInfo.nombres + ' ' + (c.pacienteInfo.apellidos||'')) : (c.pacienteNombre || c.paciente || c.pacienteInfo?.nombre || c.pacienteInfo?.fullName)) || '-' }}</td>
+              <td data-label="Especialidad">{{ c.especialidadInfo?.Nombre || c.consulta_Especialidad || '-' }}</td>
+              <td data-label="Doctor">{{ c.doctorInfo?.nombres ? (c.doctorInfo.nombres + ' ' + (c.doctorInfo.apellidos||'')) : (c.profesional_Responsable || '-') }}</td>
+              <td data-label="Estado">{{ formatEstado(c) }}</td>
+              <td>
+                <button *ngIf="isPendiente(c)" class="btn btn-sm btn-accept me-1" (click)="openActionModal('confirm', c)" style="background:#9fe0a9 !important;color:#fff !important;border:none !important;">Confirmar</button>
+                <button *ngIf="isPendiente(c)" class="btn btn-sm btn-cancel" (click)="openActionModal('cancel', c)" style="background:#ef4444 !important;color:#fff !important;border:none !important;">Cancelar</button>
+              </td>
+            </tr>
+            <tr *ngIf="citasHoy.length === 0"><td colspan="5" class="text-center text-muted">No hay citas hoy</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Próximas 7 días -->
+    <section class="card ficha" style="background:#fff !important;border-radius:8px;box-shadow:0 6px 18px rgba(16,24,40,0.06) !important;border:1px solid rgba(16,24,40,0.04) !important;">
+      <header class="card-header" style="padding:.6rem .9rem;background:linear-gradient(180deg,#f8fafc,#f1f5f9) !important;font-weight:600;display:flex;align-items:center;justify-content:space-between;">Próximas 7 días <span class="badge" style="background:var(--brand-50) !important;color:var(--brand-700) !important;padding:.18rem .5rem;border-radius:999px;font-weight:600">{{ totalProx }}</span></header>
+      <div class="card-body">
+        <table class="table table-sm mb-1">
+          <thead>
+            <tr><th>Fecha</th><th>Número</th><th>Paciente</th><th>Especialidad</th><th>Doctor</th><th>Estado</th><th>Acciones</th></tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let c of citasProximas">
+              <td data-label="Fecha">{{ c.fecha | date:'dd/MM/yyyy' }}</td>
+              <td data-label="Número">{{ c.numero || c.CitaNumero || '-' }}</td>
+              <td class="patient-cell" data-label="Paciente">{{ (c.pacienteInfo?.nombres ? (c.pacienteInfo.nombres + ' ' + (c.pacienteInfo.apellidos||'')) : (c.pacienteNombre || c.paciente || c.pacienteInfo?.nombre || c.pacienteInfo?.fullName)) || '-' }}</td>
+              <td data-label="Especialidad">{{ c.especialidadInfo?.Nombre || '-' }}</td>
+              <td data-label="Doctor">{{ c.doctorInfo?.nombres ? (c.doctorInfo.nombres + ' ' + (c.doctorInfo.apellidos||'')) : (c.profesional_Responsable || '-') }}</td>
+              <td data-label="Estado">{{ formatEstado(c) }}</td>
+              <td>
+                <button *ngIf="isPendiente(c)" class="btn btn-sm btn-accept me-1" (click)="openActionModal('confirm', c)" style="background:#9fe0a9 !important;color:#fff !important;border:none !important;">Confirmar</button>
+                <button *ngIf="isPendiente(c)" class="btn btn-sm btn-cancel" (click)="openActionModal('cancel', c)" style="background:#ef4444 !important;color:#fff !important;border:none !important;">Cancelar</button>
+              </td>
+            </tr>
+            <tr *ngIf="citasProximas.length === 0"><td colspan="7" class="text-center text-muted">No hay citas próximas</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Pendientes -->
+    <section class="card ficha" style="background:#fff !important;border-radius:8px;box-shadow:0 6px 18px rgba(16,24,40,0.06) !important;border:1px solid rgba(16,24,40,0.04) !important;">
+      <header class="card-header" style="padding:.6rem .9rem;background:linear-gradient(180deg,#f8fafc,#f1f5f9) !important;font-weight:600;display:flex;align-items:center;justify-content:space-between;">Pendientes <span class="badge" style="background:var(--brand-50) !important;color:var(--brand-700) !important;padding:.18rem .5rem;border-radius:999px;font-weight:600">{{ totalPendientes }}</span></header>
+      <div class="card-body">
+        <table class="table table-sm mb-1">
+          <thead>
+            <tr><th>Fecha</th><th>Número</th><th>Paciente</th><th>Doctor</th><th>Especialidad</th><th>Estado</th><th>Acciones</th></tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let c of citasPendientes">
+              <td data-label="Fecha">{{ c.fecha ? (c.fecha | date:'dd/MM/yyyy') : '-' }}</td>
+              <td data-label="Número">{{ c.numero || c.CitaNumero || '-' }}</td>
+              <td class="patient-cell" data-label="Paciente">{{ (c.pacienteInfo?.nombres ? (c.pacienteInfo.nombres + ' ' + (c.pacienteInfo.apellidos||'')) : (c.pacienteNombre || c.paciente || c.pacienteInfo?.nombre || c.pacienteInfo?.fullName)) || '-' }}</td>
+              <td data-label="Doctor">{{ c.doctorInfo?.nombres ? (c.doctorInfo.nombres + ' ' + (c.doctorInfo.apellidos||'')) : (c.profesional_Responsable || '-') }}</td>
+              <td data-label="Especialidad">{{ c.especialidadInfo?.Nombre || '-' }}</td>
+              <td data-label="Estado">{{ formatEstado(c) }}</td>
+              <td>
+                <button class="btn btn-sm btn-accept me-1" (click)="openActionModal('confirm', c)" style="background:#9fe0a9 !important;color:#fff !important;border:none !important;">Confirmar</button>
+                <button class="btn btn-sm btn-cancel" (click)="openActionModal('cancel', c)" style="background:#ef4444 !important;color:#fff !important;border:none !important;">Cancelar</button>
+              </td>
+            </tr>
+            <tr *ngIf="citasPendientes.length === 0"><td colspan="7" class="text-center text-muted">No hay citas pendientes</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Confirmadas -->
+    <section class="card ficha" style="background:#fff !important;border-radius:8px;box-shadow:0 6px 18px rgba(16,24,40,0.06) !important;border:1px solid rgba(16,24,40,0.04) !important;">
+      <header class="card-header" style="padding:.6rem .9rem;background:linear-gradient(180deg,#f8fafc,#f1f5f9) !important;font-weight:600;display:flex;align-items:center;justify-content:space-between;">Confirmadas <span class="badge" style="background:var(--brand-50) !important;color:var(--brand-700) !important;padding:.18rem .5rem;border-radius:999px;font-weight:600">{{ totalConfirmadas }}</span></header>
+      <div class="card-body">
+        <table class="table table-sm mb-1">
+          <thead>
+            <tr><th>Fecha</th><th>Número</th><th>Paciente</th><th>Doctor</th><th>Especialidad</th><th>Estado</th></tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let c of citasConfirmadas">
+              <td data-label="Fecha">{{ c.fecha ? (c.fecha | date:'dd/MM/yyyy') : '-' }}</td>
+              <td data-label="Número">{{ c.numero || c.CitaNumero || '-' }}</td>
+              <td class="patient-cell" data-label="Paciente">{{ (c.pacienteInfo?.nombres ? (c.pacienteInfo.nombres + ' ' + (c.pacienteInfo.apellidos||'')) : (c.pacienteNombre || c.paciente || c.pacienteInfo?.nombre || c.pacienteInfo?.fullName)) || '-' }}</td>
+              <td data-label="Doctor">{{ c.doctorInfo?.nombres ? (c.doctorInfo.nombres + ' ' + (c.doctorInfo.apellidos||'')) : (c.profesional_Responsable || '-') }}</td>
+              <td data-label="Especialidad">{{ c.especialidadInfo?.Nombre || '-' }}</td>
+              <td data-label="Estado">{{ formatEstado(c) }}</td>
+            </tr>
+            <tr *ngIf="citasConfirmadas.length === 0"><td colspan="6" class="text-center text-muted">No hay citas confirmadas</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Canceladas -->
+    <section class="card ficha" style="background:#fff !important;border-radius:8px;box-shadow:0 6px 18px rgba(16,24,40,0.06) !important;border:1px solid rgba(16,24,40,0.04) !important;">
+      <header class="card-header" style="padding:.6rem .9rem;background:linear-gradient(180deg,#f8fafc,#f1f5f9) !important;font-weight:600;display:flex;align-items:center;justify-content:space-between;">Canceladas <span class="badge" style="background:var(--brand-50) !important;color:var(--brand-700) !important;padding:.18rem .5rem;border-radius:999px;font-weight:600">{{ totalCanceladas }}</span></header>
+      <div class="card-body">
+        <table class="table table-sm mb-1">
+          <thead>
+            <tr><th>Fecha</th><th>Número</th><th>Paciente</th><th>Doctor</th><th>Especialidad</th><th>Estado</th></tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let c of citasCanceladas">
+              <td>{{ c.fecha ? (c.fecha | date:'dd/MM/yyyy') : '-' }}</td>
+              <td>{{ c.numero || c.CitaNumero || '-' }}</td>
+              <td class="patient-cell">{{ (c.pacienteInfo?.nombres ? (c.pacienteInfo.nombres + ' ' + (c.pacienteInfo.apellidos||'')) : (c.pacienteNombre || c.paciente || c.pacienteInfo?.nombre || c.pacienteInfo?.fullName)) || '-' }}</td>
+              <td>{{ c.doctorInfo?.nombres ? (c.doctorInfo.nombres + ' ' + (c.doctorInfo.apellidos||'')) : (c.profesional_Responsable || '-') }}</td>
+              <td>{{ c.especialidadInfo?.Nombre || '-' }}</td>
+              <td>{{ formatEstado(c) }}</td>
+            </tr>
+            <tr *ngIf="citasCanceladas.length === 0"><td colspan="6" class="text-center text-muted">No hay citas canceladas</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <!-- simple action modal -->
+  <div *ngIf="actionModalOpen" class="modal-overlay">
+    <div class="modal card">
+      <div class="card-header">Confirmar acción</div>
+      <div class="card-body">
+  <p>Vas a <strong>{{ actionType === 'confirm' ? 'confirmar' : 'cancelar' }}</strong> la cita <strong>#{{ actionTarget?.idCitas || actionTarget?.numero || actionTarget?.CitaNumero || actionTarget?.id }}</strong>.</p>
+        <div class="card-footer">
+          <button class="btn btn-sm btn-accept me-2" (click)="performAction()" [disabled]="actionLoading">Aceptar</button>
+          <button class="btn btn-sm btn-secondary" (click)="closeActionModal()" [disabled]="actionLoading">Cerrar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
