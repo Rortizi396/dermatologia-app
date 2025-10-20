@@ -44,6 +44,7 @@
     "start:dev": "concurrently \"npm run start:backend\" \"npm run start:frontend\"",
     "dev": "npm run start:dev",
     "install-deps": "npm install && npm install -g @angular/cli",
-    "serve:ssr:dermatologia-app": "node dist/dermatologia-app/server/server.mjs"
+    "serve:ssr:dermatologia-app": "node dist/dermatologia-app/server/server.mjs",
+    "build:prod": "ng build --configuration production"
   }
 }
