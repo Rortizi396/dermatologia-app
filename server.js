@@ -1,6 +1,39 @@
+// Startup diagnostics: print current working directory and presence of key files
+// This helps pinpoint Render misconfiguration (wrong Service Root Directory
+// or missing `node_modules`) when the server fails early with module errors.
+try {
+  const fs = require('fs');
+  console.log('[STARTUP] process.cwd():', process.cwd());
+  console.log('[STARTUP] __dirname:', __dirname);
+  console.log('[STARTUP] package.json in cwd?:', fs.existsSync(require('path').join(process.cwd(), 'package.json')));
+  console.log('[STARTUP] package-lock.json in cwd?:', fs.existsSync(require('path').join(process.cwd(), 'package-lock.json')));
+  console.log('[STARTUP] package.json in __dirname?:', fs.existsSync(require('path').join(__dirname, 'package.json')));
+  console.log('[STARTUP] package-lock.json in __dirname?:', fs.existsSync(require('path').join(__dirname, 'package-lock.json')));
+  console.log('[STARTUP] node_modules exists in cwd?:', fs.existsSync(require('path').join(process.cwd(), 'node_modules')));
+  console.log('[STARTUP] node_modules exists in __dirname?:', fs.existsSync(require('path').join(__dirname, 'node_modules')));
+  console.log('[STARTUP] node_modules/cors exists in cwd?:', fs.existsSync(require('path').join(process.cwd(), 'node_modules', 'cors')));
+  console.log('[STARTUP] node_modules/cors exists in __dirname?:', fs.existsSync(require('path').join(__dirname, 'node_modules', 'cors')));
+} catch (diagErr) {
+  // If diagnostics fail, still continue — don't block startup.
+  try { console.warn('[STARTUP] diagnostics failed:', String(diagErr)); } catch (_) {}
+}
+
 const express = require('express');
 const mysql = require('mysql2');
-const cors = require('cors');
+let cors;
+try {
+  cors = require('cors');
+} catch (e) {
+  // Log a descriptive error so Render logs show the missing module and the
+  // current working dir; provide a harmless fallback middleware so the
+  // process doesn't crash immediately and logs remain visible.
+  console.error('[STARTUP] failed to require("cors"): ', e && e.message ? e.message : e);
+  console.error('[STARTUP] This usually means `node_modules` is not present in the directory where Render started the process.');
+  cors = function /* fallback-cors */(opts) {
+    console.warn('[STARTUP] using fallback CORS middleware (no-op)');
+    return (req, res, next) => next();
+  };
+}
 // ...existing code...
 
 // ...existing code...
@@ -9,7 +42,45 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const app = express();
 
-const PORT = 3000;
+const PORT = process.env.PORT ? Number(process.env.PORT) : 3000;
+
+// Configurable CORS origins via environment variable CORS_ORIGINS (comma-separated).
+// We apply CORS early (before body parsing) so that preflight responses and
+// any JSON parse errors still include the proper CORS headers.
+// If not set, default to localhost:4200 for development. Use '*' to allow all origins (not recommended for production).
+const corsOriginsEnv = process.env.CORS_ORIGINS || 'http://localhost:4200';
+const allowedOrigins = corsOriginsEnv.split(',').map(o => o.trim()).filter(Boolean);
+
+// Build a reusable CORS options object so we can apply it to both the
+// regular middleware and the preflight (OPTIONS) handler. We explicitly
+// allow the Authorization header so browser preflights won't block
+// requests that include the Bearer token.
+const corsOptions = {
+  origin: function(origin, callback) {
+    // Allow non-browser (server-to-server) requests with no origin
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes('*') || allowedOrigins.includes(origin)) return callback(null, true);
+    console.warn('[CORS] Rejected origin:', origin);
+    return callback(new Error('CORS policy: origin not allowed'), false);
+  },
+  credentials: true,
+  methods: ['GET','HEAD','PUT','PATCH','POST','DELETE','OPTIONS'],
+  allowedHeaders: ['Content-Type','Authorization','X-Requested-With','Accept'],
+  // Expose Authorization and other headers to the browser if needed
+  exposedHeaders: ['Authorization']
+};
+
+app.use(cors(corsOptions));
+// Ensure a global handler for OPTIONS preflight requests uses the same options
+// Avoid registering an explicit options route pattern (some path-to-regexp
+// variants reject '*' or '/*'). Instead, handle OPTIONS requests with a
+// small middleware that invokes the CORS handler directly.
+app.use((req, res, next) => {
+  if (req.method === 'OPTIONS') {
+    return cors(corsOptions)(req, res, next);
+  }
+  next();
+});
 
 // Middleware para parsear JSON antes de los endpoints
 app.use(express.json());
@@ -32,64 +103,168 @@ app.use((req, res, next) => {
 
 
 
-// Middleware
-// Permitir solo localhost en desarrollo
-app.use(cors({
-  origin: ['http://localhost:4200'],
-  credentials: true
-}));
 
-// Conexión a MySQL
-const db = mysql.createConnection({
-  host: 'localhost',
-  user: 'root',
-  password: 'root',
-  database: 'dermatologico'
-});
+// Database adapter (supports mysql and postgres)
+const db = require('./db/connection');
 
-db.connect((err) => {
-  if (err) {
-    console.error('Error de conexión a MySQL:', err);
-    process.exit(1);
-  } else {
-    console.log('✅ Conectado a la base de datos MySQL dermatologico');
-  // Asegurar que la tabla site_settings exista (clave, valor)
-    const createSettings = `
+// Connect with retry/backoff to avoid exiting when DB is still initializing.
+function connectWithRetry(attempt = 0) {
+  return db.connectWithRetry(attempt).then(() => {
+    console.log(`✅ Conectado a la base de datos (${db.dbType}) ${db.config.database}`);
+
+    const skipInit = (process.env.SKIP_DB_INIT || '').toString().toLowerCase() === 'true';
+    if (skipInit) {
+      console.log('[DB INIT] SKIP_DB_INIT=true -> skipping database initialization and seeding');
+      return;
+    }
+
+    // Ensure required tables exist (only when SKIP_DB_INIT is not set)
+    if (db.dbType === 'mysql') {
+      const createSettings = `
       CREATE TABLE IF NOT EXISTS site_settings (
-        \`key\` VARCHAR(100) PRIMARY KEY,
-        \`value\` TEXT
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-    `;
-    db.query(createSettings, (err) => {
-      if (err) console.warn('Warning: could not ensure site_settings table:', err);
-    });
-  // Asegurar que la tabla site_settings_audit exista para auditar cambios
-    const createSettingsAudit = `
+        ` + "`key`" + ` VARCHAR(100) PRIMARY KEY,
+        value TEXT
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;`;
+      db.query(createSettings, (err) => { if (err) console.warn('Warning: could not ensure site_settings table:', err); });
+
+      const createSettingsAudit = `
       CREATE TABLE IF NOT EXISTS site_settings_audit (
         id BIGINT AUTO_INCREMENT PRIMARY KEY,
-        \`key\` VARCHAR(100),
+        ` + "`key`" + ` VARCHAR(100),
         old_value TEXT,
         new_value TEXT,
         changed_by VARCHAR(255),
         changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-    `;
-    db.query(createSettingsAudit, (err) => {
-      if (err) console.warn('Warning: could not ensure site_settings_audit table:', err);
-    });
-  // Asegurar que la tabla user_preferences exista (userId, clave, valor)
-    const createUserPrefs = `
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;`;
+      db.query(createSettingsAudit, (err) => { if (err) console.warn('Warning: could not ensure site_settings_audit table:', err); });
+
+      const createUserPrefs = `
       CREATE TABLE IF NOT EXISTS user_preferences (
         userId VARCHAR(100),
-        \`key\` VARCHAR(100),
-        \`value\` TEXT,
-        PRIMARY KEY (userId, \`key\`)
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-    `;
-    db.query(createUserPrefs, (err) => {
-      if (err) console.warn('Warning: could not ensure user_preferences table:', err);
-    });
-  // Asegurar que la tabla general audit_log exista
+        key_name VARCHAR(100),
+        value TEXT,
+        PRIMARY KEY (userId, key_name)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;`;
+      db.query(createUserPrefs, (err) => { if (err) console.warn('Warning: could not ensure user_preferences table:', err); });
+
+      const createAuditLog = `
+      CREATE TABLE IF NOT EXISTS audit_log (
+        id BIGINT AUTO_INCREMENT PRIMARY KEY,
+        event_type VARCHAR(100),
+        resource_type VARCHAR(100),
+        resource_id VARCHAR(255),
+        old_value TEXT,
+        new_value TEXT,
+        changed_by VARCHAR(255),
+        ip VARCHAR(100),
+        user_agent TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;`;
+      db.query(createAuditLog, (err) => { if (err) console.warn('Warning: could not ensure audit_log table:', err); });
+
+      const createUsuarios = `
+      CREATE TABLE IF NOT EXISTS Usuarios (
+        idUsuarios INT AUTO_INCREMENT PRIMARY KEY,
+        correo VARCHAR(255) UNIQUE,
+        contrasenia VARCHAR(255),
+        Tipo VARCHAR(50),
+        Nombres VARCHAR(255),
+        Apellidos VARCHAR(255),
+        Activo VARCHAR(5) DEFAULT 'SI'
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;`;
+      db.query(createUsuarios, (err) => {
+        if (err) { console.warn('[DB INIT] could not ensure Usuarios table:', err); return; }
+        // If table empty, insert a seeded user for testing
+        db.query('SELECT COUNT(*) AS cnt FROM Usuarios', (e, rows) => {
+          if (e) return console.warn('[DB INIT] count Usuarios failed:', e);
+          const cnt = (rows && rows[0] && rows[0].cnt) ? Number(rows[0].cnt) : 0;
+          if (cnt === 0) {
+            const seedEmail = 'carlos@ejemplo.com';
+            const seedPassword = 'admin123';
+            bcrypt.hash(seedPassword, 10, (hashErr, hash) => {
+              if (hashErr) return console.warn('[DB INIT] bcrypt hash failed:', hashErr);
+              db.query('INSERT INTO Usuarios (correo, contrasenia, Tipo, Nombres, Apellidos, Activo) VALUES (?,?,?,?,?,?)', [seedEmail, hash, 'Administrador', 'Carlos', 'Ejemplo', 'SI'], (insErr) => {
+                if (insErr) return console.warn('[DB INIT] insert seed user failed:', insErr);
+                console.log(`[DB INIT] Seed user created: ${seedEmail} / ${seedPassword}`);
+              });
+            });
+          }
+        });
+      });
+    } else {
+      // Postgres DDL variants
+      const createSettings = `
+      CREATE TABLE IF NOT EXISTS site_settings (
+        key VARCHAR(100) PRIMARY KEY,
+        value TEXT
+      );`;
+      db.query(createSettings, (err) => { if (err) console.warn('Warning: could not ensure site_settings table (pg):', err); });
+
+      const createSettingsAudit = `
+      CREATE TABLE IF NOT EXISTS site_settings_audit (
+        id BIGSERIAL PRIMARY KEY,
+        key VARCHAR(100),
+        old_value TEXT,
+        new_value TEXT,
+        changed_by VARCHAR(255),
+        changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );`;
+      db.query(createSettingsAudit, (err) => { if (err) console.warn('Warning: could not ensure site_settings_audit table (pg):', err); });
+
+      const createUserPrefs = `
+      CREATE TABLE IF NOT EXISTS user_preferences (
+        userId VARCHAR(100),
+        key_name VARCHAR(100),
+        value TEXT,
+        PRIMARY KEY (userId, key_name)
+      );`;
+      db.query(createUserPrefs, (err) => { if (err) console.warn('Warning: could not ensure user_preferences table (pg):', err); });
+
+      const createAuditLog = `
+      CREATE TABLE IF NOT EXISTS audit_log (
+        id BIGSERIAL PRIMARY KEY,
+        event_type VARCHAR(100),
+        resource_type VARCHAR(100),
+        resource_id VARCHAR(255),
+        old_value TEXT,
+        new_value TEXT,
+        changed_by VARCHAR(255),
+        ip VARCHAR(100),
+        user_agent TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );`;
+      db.query(createAuditLog, (err) => { if (err) console.warn('Warning: could not ensure audit_log table (pg):', err); });
+
+      const createUsuarios = `
+      CREATE TABLE IF NOT EXISTS Usuarios (
+        idUsuarios SERIAL PRIMARY KEY,
+        correo VARCHAR(255) UNIQUE,
+        contrasenia VARCHAR(255),
+        Tipo VARCHAR(50),
+        Nombres VARCHAR(255),
+        Apellidos VARCHAR(255),
+        Activo VARCHAR(5) DEFAULT 'SI'
+      );`;
+      db.query(createUsuarios, (err) => {
+        if (err) { console.warn('[DB INIT] could not ensure Usuarios table (pg):', err); return; }
+        db.query('SELECT COUNT(*) AS cnt FROM Usuarios', (e, rows) => {
+          if (e) return console.warn('[DB INIT] count Usuarios failed (pg):', e);
+          const cnt = (rows && rows[0] && (rows[0].cnt || rows[0].count)) ? Number(rows[0].cnt || rows[0].count) : 0;
+          if (cnt === 0) {
+            const seedEmail = 'carlos@ejemplo.com';
+            const seedPassword = 'admin123';
+            bcrypt.hash(seedPassword, 10, (hashErr, hash) => {
+              if (hashErr) return console.warn('[DB INIT] bcrypt hash failed (pg):', hashErr);
+              db.query('INSERT INTO Usuarios (correo, contrasenia, Tipo, Nombres, Apellidos, Activo) VALUES ($1, $2, $3, $4, $5, $6)', [seedEmail, hash, 'Administrador', 'Carlos', 'Ejemplo', 'SI'], (insErr) => {
+                if (insErr) return console.warn('[DB INIT] insert seed user failed (pg):', insErr);
+                console.log(`[DB INIT] Seed user created: ${seedEmail} / ${seedPassword}`);
+              });
+            });
+          }
+        });
+      });
+    }
+
     const createAuditLog = `
       CREATE TABLE IF NOT EXISTS audit_log (
         id BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -107,8 +282,49 @@ db.connect((err) => {
     db.query(createAuditLog, (err) => {
       if (err) console.warn('Warning: could not ensure audit_log table:', err);
     });
-  }
-});
+
+    // Ensure a minimal Usuarios table exists for authentication; if it does
+    // not exist, create a minimal schema and insert a seeded test user so
+    // QA/testers can log in without a full DB import. This is safe for a
+    // development/testing environment but should be removed or guarded in
+    // production.
+    const createUsuarios = `
+      CREATE TABLE IF NOT EXISTS Usuarios (
+        idUsuarios INT AUTO_INCREMENT PRIMARY KEY,
+        correo VARCHAR(255) UNIQUE,
+        contrasenia VARCHAR(255),
+        Tipo VARCHAR(50),
+        Nombres VARCHAR(255),
+        Apellidos VARCHAR(255),
+        Activo VARCHAR(5) DEFAULT 'SI'
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `;
+    db.query(createUsuarios, (err) => {
+      if (err) {
+        console.warn('[DB INIT] could not ensure Usuarios table:', err);
+        return;
+      }
+      // If table empty, insert a seeded user for testing
+      db.query('SELECT COUNT(*) AS cnt FROM Usuarios', (e, rows) => {
+        if (e) return console.warn('[DB INIT] count Usuarios failed:', e);
+        const cnt = (rows && rows[0] && rows[0].cnt) ? Number(rows[0].cnt) : 0;
+        if (cnt === 0) {
+          const seedEmail = 'carlos@ejemplo.com';
+          const seedPassword = 'admin123';
+          bcrypt.hash(seedPassword, 10, (hashErr, hash) => {
+            if (hashErr) return console.warn('[DB INIT] bcrypt hash failed:', hashErr);
+            db.query('INSERT INTO Usuarios (correo, contrasenia, Tipo, Nombres, Apellidos, Activo) VALUES (?,?,?,?,?,?)', [seedEmail, hash, 'Administrador', 'Carlos', 'Ejemplo', 'SI'], (insErr) => {
+              if (insErr) return console.warn('[DB INIT] insert seed user failed:', insErr);
+              console.log(`[DB INIT] Seed user created: ${seedEmail} / ${seedPassword}`);
+            });
+          });
+        }
+      });
+    });
+  });
+}
+
+connectWithRetry();
 
 // Función auxiliar para insertar registros de auditoría
 function insertAudit(req, eventType, resourceType, resourceId, oldValue, newValue, cb) {
@@ -282,6 +498,18 @@ function resolveProfessional(req, doctorIdentifier, cb) {
   });
 }
 
+// Error handler for invalid JSON (body parser SyntaxError). Must be registered
+// after express.json() so that JSON parse errors are forwarded here. Returning
+// a JSON response avoids the HTML error page and ensures CORS headers are
+// present (CORS middleware runs earlier).
+app.use((err, req, res, next) => {
+  if (err && err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+    console.warn('[JSON PARSE ERROR]', err.message);
+    return res.status(400).json({ success: false, message: 'JSON parse error', error: err.message });
+  }
+  return next(err);
+});
+
 // Obtener todos los pacientes
 app.get('/api/pacientes', (req, res) => {
   db.query("SELECT * FROM pacientes WHERE Activo = 'SI'", (err, results) => {
@@ -305,100 +533,122 @@ app.get('/api/secretarias', (req, res) => {
 // (Handler duplicado de creación de citas eliminado - usar el handler canónico más abajo que resuelve el identificador del doctor)
 
 app.post('/api/auth/login', (req, res) => {
-  const { email, password } = req.body;
-  db.query('SELECT * FROM Usuarios WHERE correo = ?', [email], (err, results) => {
-    if (err) {
-      return res.status(500).json({ success: false, message: 'Error de servidor', error: err });
+  try {
+    const { email, password } = req.body || {};
+    if (!email || !password) {
+      return res.status(400).json({ success: false, message: 'email y password son requeridos' });
     }
-    if (results.length === 0) {
-      return res.status(401).json({ success: false, message: 'Credenciales incorrectas' });
-    }
-    const user = results[0];
-    // Verificar contraseña con bcrypt
-    bcrypt.compare(password, user.contrasenia, (err, isMatch) => {
-      if (err || !isMatch) {
-        return res.status(401).json({ success: false, message: 'Credenciales incorrectas' });
-      }
-      // Obtener datos completos según tipo
-      let query = '';
-      let idField = '';
-      let idValue = null;
-      if (user.Tipo === 'Paciente') {
-        query = 'SELECT * FROM pacientes WHERE Correo = ?';
-        idValue = user.correo;
-      } else if (user.Tipo === 'Doctor') {
-        query = 'SELECT * FROM doctores WHERE Correo = ?';
-        idValue = user.correo;
-      } else if (user.Tipo === 'Secretaria') {
-        query = 'SELECT * FROM secretarias WHERE Correo = ?';
-        idValue = user.correo;
-      } else if (user.Tipo === 'Administrador') {
-        query = 'SELECT * FROM administradores WHERE Correo = ?';
-        idValue = user.correo;
-      }
-      if (query) {
-        db.query(query, [idValue], (err2, results2) => {
-          if (err2 || results2.length === 0) {
-            return res.status(500).json({ success: false, message: 'No se pudo obtener datos completos', error: err2 });
-          }
-          const fullData = results2[0];
-          // Mapear campos para frontend
-          const mappedUser = {
-            id: user.idUsuarios,
-            nombres: fullData.Nombres || fullData.nombres,
-            apellidos: fullData.Apellidos || fullData.apellidos,
-            correo: user.correo,
-            telefono: fullData.Telefono || fullData.telefono || '',
-            activo: (fullData.Activo || fullData.activo || 'SI') === 'SI',
-            tipo: (user.Tipo || '').toLowerCase(),
-            dpi: fullData.DPI || fullData.dpi,
-            colegiado: fullData.Colegiado || fullData.colegiado,
-            idAdministrador: fullData.idAdministrador,
-            idSecretaria: fullData.idSecretaria
-          };
-          const token = jwt.sign(
-            { userId: user.idUsuarios, email: user.correo },
-            process.env.JWT_SECRET || 'secreto',
-            { expiresIn: '24h' }
-          );
-          res.json({
-            success: true,
-            message: 'Login exitoso',
-            data: {
-              user: mappedUser,
-              tipo: mappedUser.tipo,
-              token: token
+
+    db.query('SELECT * FROM Usuarios WHERE correo = ?', [email], (err, results) => {
+      try {
+        if (err) {
+          console.error('[LOGIN] DB error:', err);
+          return res.status(500).json({ success: false, message: 'Error de servidor', error: err });
+        }
+        if (!results || results.length === 0) {
+          return res.status(401).json({ success: false, message: 'Credenciales incorrectas' });
+        }
+        const user = results[0];
+
+        // Verificar contraseña con bcrypt
+        bcrypt.compare(password, user.contrasenia, (errB, isMatch) => {
+          try {
+            if (errB) {
+              console.error('[LOGIN] bcrypt error:', errB);
+              return res.status(500).json({ success: false, message: 'Error de servidor', error: errB });
             }
-          });
-        });
-      } else {
-        // Si no hay tabla extra, solo devolver datos básicos
-        const mappedUser = {
-          id: user.idUsuarios,
-          nombres: user.Nombres || user.nombres,
-          apellidos: user.Apellidos || user.apellidos,
-          correo: user.correo,
-          telefono: user.Telefono || user.telefono || '',
-          activo: (user.Activo || 'SI') === 'SI',
-          tipo: (user.Tipo || '').toLowerCase(),
-        };
-        const token = jwt.sign(
-          { userId: user.idUsuarios, email: user.correo },
-          process.env.JWT_SECRET || 'secreto',
-          { expiresIn: '24h' }
-        );
-        res.json({
-          success: true,
-          message: 'Login exitoso',
-          data: {
-            user: mappedUser,
-            tipo: mappedUser.tipo,
-            token: token
+            if (!isMatch) {
+              return res.status(401).json({ success: false, message: 'Credenciales incorrectas' });
+            }
+
+            // Obtener datos completos según tipo
+            let query = '';
+            let idValue = null;
+            if (user.Tipo === 'Paciente') {
+              query = 'SELECT * FROM pacientes WHERE Correo = ?';
+              idValue = user.correo;
+            } else if (user.Tipo === 'Doctor') {
+              query = 'SELECT * FROM doctores WHERE Correo = ?';
+              idValue = user.correo;
+            } else if (user.Tipo === 'Secretaria') {
+              query = 'SELECT * FROM secretarias WHERE Correo = ?';
+              idValue = user.correo;
+            } else if (user.Tipo === 'Administrador') {
+              query = 'SELECT * FROM administradores WHERE Correo = ?';
+              idValue = user.correo;
+            }
+
+            const sendBasicUser = () => {
+              const mappedUser = {
+                id: user.idUsuarios,
+                nombres: user.Nombres || user.nombres,
+                apellidos: user.Apellidos || user.apellidos,
+                correo: user.correo,
+                telefono: user.Telefono || user.telefono || '',
+                activo: (user.Activo || 'SI') === 'SI',
+                tipo: (user.Tipo || '').toLowerCase(),
+              };
+              const token = jwt.sign({ userId: user.idUsuarios, email: user.correo }, process.env.JWT_SECRET || 'secreto', { expiresIn: '24h' });
+              return res.json({ success: true, message: 'Login exitoso', data: { user: mappedUser, tipo: mappedUser.tipo, token } });
+            };
+
+            if (!query) {
+              // No detalle extra, devolver básicos
+              return sendBasicUser();
+            }
+
+            db.query(query, [idValue], (err2, results2) => {
+              try {
+                if (err2) {
+                  console.error('[LOGIN] DB error fetching full data:', err2);
+                  // If the table simply doesn't exist (seeded minimal DB), fallback
+                  // to returning the basic user instead of failing with 500.
+                  if (err2 && (err2.code === 'ER_NO_SUCH_TABLE' || err2.errno === 1146)) {
+                    console.warn('[LOGIN] Detail table missing, returning basic user instead of 500');
+                    return sendBasicUser();
+                  }
+                  return res.status(500).json({ success: false, message: 'No se pudo obtener datos completos', error: err2 });
+                }
+                if (!results2 || results2.length === 0) {
+                  // Return basic user if no detail record found (avoid 500)
+                  console.warn('[LOGIN] No detail record found for user, returning basic data');
+                  return sendBasicUser();
+                }
+                const fullData = results2[0];
+                const mappedUser = {
+                  id: user.idUsuarios,
+                  nombres: fullData.Nombres || fullData.nombres,
+                  apellidos: fullData.Apellidos || fullData.apellidos,
+                  correo: user.correo,
+                  telefono: fullData.Telefono || fullData.telefono || '',
+                  activo: (fullData.Activo || fullData.activo || 'SI') === 'SI',
+                  tipo: (user.Tipo || '').toLowerCase(),
+                  dpi: fullData.DPI || fullData.dpi,
+                  colegiado: fullData.Colegiado || fullData.colegiado,
+                  idAdministrador: fullData.idAdministrador,
+                  idSecretaria: fullData.idSecretaria
+                };
+                const token = jwt.sign({ userId: user.idUsuarios, email: user.correo }, process.env.JWT_SECRET || 'secreto', { expiresIn: '24h' });
+                return res.json({ success: true, message: 'Login exitoso', data: { user: mappedUser, tipo: mappedUser.tipo, token } });
+              } catch (exInner) {
+                console.error('[LOGIN] unexpected inner error:', exInner);
+                return res.status(500).json({ success: false, message: 'Error interno', error: exInner && exInner.message });
+              }
+            });
+          } catch (exB) {
+            console.error('[LOGIN] unexpected error in bcrypt callback:', exB);
+            return res.status(500).json({ success: false, message: 'Error interno', error: exB && exB.message });
           }
         });
+      } catch (exCb) {
+        console.error('[LOGIN] unexpected error in DB callback:', exCb);
+        return res.status(500).json({ success: false, message: 'Error interno', error: exCb && exCb.message });
       }
     });
-  });
+  } catch (ex) {
+    console.error('[LOGIN] unexpected error:', ex);
+    return res.status(500).json({ success: false, message: 'Error interno', error: ex && ex.message });
+  }
 });
 
   // Restablecer contraseña sin restricciones (buscar usuario por correo y establecer nueva contraseña)
@@ -2054,6 +2304,14 @@ app.get('/api/audit', (req, res) => {
   const LISTEN_HOST = process.env.LISTEN_HOST || '0.0.0.0';
   app.listen(PORT, LISTEN_HOST, () => {
     console.log(`✅ Servidor backend ejecutándose en http://${LISTEN_HOST}:${PORT} (process.env.LISTEN_HOST=${process.env.LISTEN_HOST})`);
+  });
+
+  // Global handlers to log otherwise-silent errors (helps debug 500s)
+  process.on('uncaughtException', (err) => {
+    console.error('[uncaughtException]', err && err.stack ? err.stack : err);
+  });
+  process.on('unhandledRejection', (reason) => {
+    console.error('[unhandledRejection]', reason && reason.stack ? reason.stack : reason);
   });
 
   module.exports = app;
