@@ -57,11 +57,10 @@ jobs:
           fi
 
       - name: Run endpoint tests and capture output
-        working-directory: dermatologia-app
         run: |
           set -o pipefail
-          echo "Running node ./scripts/test_endpoints.js from $(pwd) ...";
-          node ./scripts/test_endpoints.js https://dermatologia-backend-th09.onrender.com 2>&1 | tee test-output.log
+          echo "Running node dermatologia-app/scripts/test_endpoints.js from $(pwd) ...";
+          node dermatologia-app/scripts/test_endpoints.js https://dermatologia-backend-th09.onrender.com 2>&1 | tee test-output.log
 
       - name: Upload test logs
         uses: actions/upload-artifact@v4
