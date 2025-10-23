@@ -265,62 +265,10 @@ function connectWithRetry(attempt = 0) {
       });
     }
 
-    const createAuditLog = `
-      CREATE TABLE IF NOT EXISTS audit_log (
-        id BIGINT AUTO_INCREMENT PRIMARY KEY,
-        event_type VARCHAR(100),
-        resource_type VARCHAR(100),
-        resource_id VARCHAR(255),
-        old_value TEXT,
-        new_value TEXT,
-        changed_by VARCHAR(255),
-        ip VARCHAR(100),
-        user_agent TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-    `;
-    db.query(createAuditLog, (err) => {
-      if (err) console.warn('Warning: could not ensure audit_log table:', err);
-    });
-
-    // Ensure a minimal Usuarios table exists for authentication; if it does
-    // not exist, create a minimal schema and insert a seeded test user so
-    // QA/testers can log in without a full DB import. This is safe for a
-    // development/testing environment but should be removed or guarded in
-    // production.
-    const createUsuarios = `
-      CREATE TABLE IF NOT EXISTS Usuarios (
-        idUsuarios INT AUTO_INCREMENT PRIMARY KEY,
-        correo VARCHAR(255) UNIQUE,
-        contrasenia VARCHAR(255),
-        Tipo VARCHAR(50),
-        Nombres VARCHAR(255),
-        Apellidos VARCHAR(255),
-        Activo VARCHAR(5) DEFAULT 'SI'
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-    `;
-    db.query(createUsuarios, (err) => {
-      if (err) {
-        console.warn('[DB INIT] could not ensure Usuarios table:', err);
-        return;
-      }
-      // If table empty, insert a seeded user for testing
-      db.query('SELECT COUNT(*) AS cnt FROM Usuarios', (e, rows) => {
-        if (e) return console.warn('[DB INIT] count Usuarios failed:', e);
-        const cnt = (rows && rows[0] && rows[0].cnt) ? Number(rows[0].cnt) : 0;
-        if (cnt === 0) {
-          const seedEmail = 'carlos@ejemplo.com';
-          const seedPassword = 'admin123';
-          bcrypt.hash(seedPassword, 10, (hashErr, hash) => {
-            if (hashErr) return console.warn('[DB INIT] bcrypt hash failed:', hashErr);
-            db.query('INSERT INTO Usuarios (correo, contrasenia, Tipo, Nombres, Apellidos, Activo) VALUES (?,?,?,?,?,?)', [seedEmail, hash, 'Administrador', 'Carlos', 'Ejemplo', 'SI'], (insErr) => {
-              if (insErr) return console.warn('[DB INIT] insert seed user failed:', insErr);
-              console.log(`[DB INIT] Seed user created: ${seedEmail} / ${seedPassword}`);
-            });
-          });
-        }
-      });
-    });
+    // NOTE: MySQL-specific DDL blocks (AUTO_INCREMENT/ENGINE) were removed here
+    // because the DB-type-specific branches above already ensure the tables
+    // for both MySQL and Postgres. Leaving MySQL-only CREATE statements here
+    // caused syntax errors when running against Postgres (e.g. AUTO_INCREMENT).
   });
 }
 
