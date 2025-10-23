@@ -24,8 +24,9 @@ if (DB_URL && DB_URL.startsWith('postgres')) {
   try {
     // Use URL parser to be more robust
     const u = new URL(DB_URL);
-    DB_USER = DB_USER || decodeURIComponent(u.username || u.username);
-    DB_PASSWORD = DB_PASSWORD || decodeURIComponent(u.password || '');
+  // Prefer credentials from DATABASE_URL when available
+  if (u.username) DB_USER = decodeURIComponent(u.username);
+  if (u.password) DB_PASSWORD = decodeURIComponent(u.password);
     DB_HOST = decodeURIComponent(u.hostname || DB_HOST);
     DB_PORT = u.port ? Number(u.port) : DB_PORT;
     DB_NAME = (u.pathname || '').replace(/^\//, '') || DB_NAME;
