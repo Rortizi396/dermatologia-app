@@ -1,0 +1,28 @@
+# Ignore node_modules and build artifacts
+node_modules
+npm-debug.log
+package-lock.json
+
+# Ignore the frontend build and source (Angular app) to reduce context size
+dist
+dermatologia-app/dist
+dermatologia-app/node_modules
+dermatologia-app/.angular
+dermatologia-app/src
+dermatologia-app/public
+
+# Ignore Git and editor metadata
+.git
+.vscode
+.idea
+
+# Large files and docs not needed for backend image
+*.docx
+*.doc
+*.pdf
+*.mp4
+*.zip
+
+# OS files
+.DS_Store
+Thumbs.db

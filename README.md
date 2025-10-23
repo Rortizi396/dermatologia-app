@@ -5,8 +5,10 @@
  
  Resumen
  - Frontend: Angular (aplicación en `src/`)
+ - ng serve --proxy-config proxy.conf.json    --Sentencia (debe de ejecutarse sobre dermatologia-app, ejemplo:PS C:\Users\Roberto\Desktop\UMG\8vo. Semestre 2025\Analisis de Sistemas II\Proyecto Dermatologia\dermatologia-app> ng serve --proxy-config proxy.conf.json)
 
  - Backend: Node.js + Express (`server.js`) con base de datos MySQL (driver `mysql2`).
+ - PS C:\Users\Roberto\Desktop\UMG\8vo. Semestre 2025\Analisis de Sistemas II\Proyecto Dermatologia\dermatologia-app> node .\server.js --Sentencia
  
  Requisitos previos
 

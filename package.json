@@ -18,12 +18,15 @@
     "@fullcalendar/timegrid": "^6.1.19",
     "angular-calendar": "^0.32.0",
     "bcryptjs": "^3.0.2",
+    "cors": "^2.8.5",
     "date-fns": "^4.1.0",
     "dotenv": "^17.2.2",
     "express": "^5.1.0",
+    "iconv-lite": "^0.7.0",
     "jsonwebtoken": "^9.0.2",
     "jspdf": "^3.0.3",
     "mysql2": "^3.15.0",
+    "pg": "^8.10.0",
     "zone.js": "^0.15.1"
   },
   "devDependencies": {
@@ -33,8 +36,8 @@
     "@types/jasmine": "^5.1.9",
     "@types/jspdf": "^1.3.3",
     "@types/node": "^24.5.2",
-    "typescript": "^5.9.2",
-    "concurrently": "^8.2.0"
+    "concurrently": "^8.2.0",
+    "typescript": "^5.9.2"
   },
   "scripts": {
     "start": "ng serve --proxy-config proxy.conf.json",
@@ -45,6 +48,9 @@
     "dev": "npm run start:dev",
     "install-deps": "npm install && npm install -g @angular/cli",
     "serve:ssr:dermatologia-app": "node dist/dermatologia-app/server/server.mjs",
-    "build:prod": "ng build --configuration production"
+    "build:prod": "ng build --configuration production",
+    "build:prod:pages": "ng build --configuration production --base-href /dermatologia-app/",
+    "build:local": "ng build --configuration production --output-path=dist-local && node ./scripts/write-env.js --dist=dist-local --apiUrl=http://localhost:3000",
+    "build:web": "ng build --configuration production --base-href /dermatologia-app/ --output-path=dist-web && node ./scripts/write-env.js --dist=dist-web --apiUrl=https://nonbotanically-studentless-kasey.ngrok-free.dev/api"
   }
 }

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 300">
+  <defs>
+    <linearGradient id="g" x1="0" x2="1">
+      <stop offset="0" stop-color="#f7f1ff" />
+      <stop offset="1" stop-color="#ffeef6" />
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="300" fill="url(#g)" />
+  <g transform="translate(60,40)">
+    <text x="0" y="60" font-family="Segoe UI, Roboto, Arial" font-size="48" fill="#2a2a2a">Centro Dermatológico</text>
+    <text x="0" y="110" font-family="Segoe UI, Roboto, Arial" font-size="26" fill="#444">Agenda de citas — Atención especializada en piel</text>
+    <g transform="translate(980,20)">
+      <circle cx="40" cy="40" r="38" fill="#fff" stroke="#f1c0d6" stroke-width="6" />
+      <g transform="translate(24,24) scale(0.9)" fill="#e85b8d">
+        <path d="M8 0a8 8 0 1 0 0 16 8 8 0 0 0 0-16zm0 6a2 2 0 1 1 0-4 2 2 0 0 1 0 4z" />
+      </g>
+    </g>
+  </g>
+</svg>

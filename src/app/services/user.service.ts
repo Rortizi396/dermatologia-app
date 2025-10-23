@@ -76,7 +76,9 @@ export class UserService {
     }
     return this.http.get<any>(`${this.apiUrl}${endpoint}`);
   }
-  private apiUrl = '/api';
+  // Runtime-configurable API base URL. When deployed to GitHub Pages, set
+  // window.__env.apiUrl to the public backend URL (e.g. https://mi-backend.com)
+  private apiUrl = (window as any).__env?.apiUrl || '/api';
 
   constructor(private http: HttpClient) { }
 
