@@ -6,29 +6,37 @@ const { Pool } = require('pg');
 
 // Support standard DATABASE_URL (Render) and fall back to individual vars
 const DB_URL = process.env.DATABASE_URL || process.env.DATABASE_URL_STRING || null;
-const DB_TYPE = (process.env.DB_TYPE || (DB_URL && DB_URL.startsWith('postgres')) ? 'postgres' : 'mysql').toString().toLowerCase();
+// Determine DB type: explicit DB_TYPE env var wins; otherwise inspect DATABASE_URL
+let DB_TYPE = 'mysql';
+if (process.env.DB_TYPE) DB_TYPE = process.env.DB_TYPE.toString().toLowerCase();
+else if (DB_URL && DB_URL.startsWith('postgres')) DB_TYPE = 'postgres';
 
 // Default values; may be overridden by DATABASE_URL parsing below
 let DB_HOST = process.env.DB_HOST || 'localhost';
 let DB_PORT = process.env.DB_PORT ? Number(process.env.DB_PORT) : (DB_TYPE === 'postgres' ? 5432 : 3306);
 let DB_USER = process.env.DB_USER || (DB_TYPE === 'postgres' ? 'postgres' : 'root');
-let DB_PASSWORD = process.env.DB_PASSWORD || 'root';
+let DB_PASSWORD = process.env.DB_PASSWORD || '';
 let DB_NAME = process.env.DB_NAME || 'dermatologico';
+let PG_SSL = false; // when true, pass ssl: { rejectUnauthorized: false } to pg Pool
 
 // If DATABASE_URL is present, parse it and override host/port/user/password/database
 if (DB_URL && DB_URL.startsWith('postgres')) {
   try {
-    // simple parse: postgres://user:pass@host:port/dbname
-    const m = DB_URL.match(/^postgres:\/\/(.+?):(.+?)@(.+?):(\d+)\/(.+)$/);
-    if (m) {
-      DB_USER = DB_USER || decodeURIComponent(m[1]);
-      DB_PASSWORD = DB_PASSWORD || decodeURIComponent(m[2]);
-      DB_HOST = decodeURIComponent(m[3]);
-      DB_PORT = Number(m[4]);
-      DB_NAME = decodeURIComponent(m[5]);
+    // Use URL parser to be more robust
+    const u = new URL(DB_URL);
+    DB_USER = DB_USER || decodeURIComponent(u.username || u.username);
+    DB_PASSWORD = DB_PASSWORD || decodeURIComponent(u.password || '');
+    DB_HOST = decodeURIComponent(u.hostname || DB_HOST);
+    DB_PORT = u.port ? Number(u.port) : DB_PORT;
+    DB_NAME = (u.pathname || '').replace(/^\//, '') || DB_NAME;
+
+    // Check queryparams for sslmode (e.g., ?sslmode=require)
+    const sslmode = u.searchParams.get('sslmode') || process.env.PGSSLMODE || null;
+    if (sslmode && (sslmode === 'require' || sslmode === 'true' || sslmode === '1')) {
+      PG_SSL = true;
     }
   } catch (ex) {
-    console.warn('Failed to parse DATABASE_URL, falling back to individual env vars');
+    console.warn('Failed to parse DATABASE_URL, falling back to individual env vars', ex && ex.message ? ex.message : ex);
   }
 }
 
@@ -75,14 +83,20 @@ let adapter = {
 
     if (DB_TYPE === 'postgres') {
       try {
-        nativeConn = new Pool({
+        const poolOptions = {
           host: DB_HOST,
           port: DB_PORT,
           user: DB_USER,
           password: DB_PASSWORD,
           database: DB_NAME,
           max: 10
-        });
+        };
+        if (PG_SSL || process.env.PGSSLMODE === 'require' || process.env.PGSSLMODE === 'true') {
+          poolOptions.ssl = { rejectUnauthorized: false };
+        }
+        nativeConn = new Pool(poolOptions);
+        // Log target host/port/db (do not log password)
+        console.log(`Postgres: attempting connection to ${DB_HOST}:${DB_PORT} database=${DB_NAME} user=${DB_USER} ssl=${!!poolOptions.ssl}`);
         // Test connection
         return nativeConn.query('SELECT 1').then(() => {
           adapter.config = { database: DB_NAME };
@@ -93,7 +107,7 @@ let adapter = {
           return new Promise(res => setTimeout(res, delay)).then(() => adapter.connectWithRetry(attempt+1));
         });
       } catch (ex) {
-        console.error('Postgres connect exception', ex);
+        console.error('Postgres connect exception', ex && ex.message ? ex.message : ex);
         return new Promise(res => setTimeout(res, delay)).then(() => adapter.connectWithRetry(attempt+1));
       }
     }

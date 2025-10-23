@@ -977,118 +977,6 @@ app.post('/api/users', (req, res) => {
       return res.status(400).json({ success: false, message: 'Faltan nombres, apellidos o DPI para paciente' });
     }
   }
-  // Hash de la contraseña
-  bcrypt.hash(password, 10, (err, hash) => {
-    if (err) {
-      console.error('Error al encriptar contraseña:', err);
-      return res.status(500).json({ success: false, message: 'Error al encriptar contraseña', error: err });
-    }
-    // Insertar en Usuarios
-    const queryUsuarios = `INSERT INTO Usuarios (correo, contrasenia, Tipo) VALUES (?, ?, ?)`;
-  const valuesUsuarios = [correo, hash, tipo.toLowerCase()];
-    console.log('Query Usuarios:', queryUsuarios);
-    console.log('Values Usuarios:', valuesUsuarios);
-    db.query(queryUsuarios, valuesUsuarios, (err, result) => {
-      if (err) {
-        console.error('Error al crear usuario en Usuarios:', err);
-        return res.status(500).json({ success: false, message: 'Error al crear usuario', error: err });
-      }
-  const idUsuario = result.insertId;
-      // Si es paciente, insertar en Pacientes
-  if (tipo.toLowerCase() === 'paciente') {
-        const queryPacientes = `INSERT INTO Pacientes (DPI, Nombres, Apellidos, Telefono, Correo, Activo) VALUES (?, ?, ?, ?, ?, ?)`;
-        const valuesPacientes = [dpi, nombres, apellidos, telefono || '', correo, activo ? 'SI' : 'NO'];
-        console.log('Query Pacientes:', queryPacientes);
-        console.log('Values Pacientes:', valuesPacientes);
-          db.query(queryPacientes, valuesPacientes, (err2) => {
-          if (err2) {
-            console.error('Error al crear paciente en Pacientes:', err2);
-            return res.status(500).json({ success: false, message: 'Error al crear paciente', error: err2 });
-          }
-          console.log('Paciente creado exitosamente en Pacientes');
-          // Leer la fila de paciente creada para auditoría
-          db.query('SELECT * FROM pacientes WHERE DPI = ?', [dpi], (errSel, rowsSel) => {
-            const created = (rowsSel && rowsSel.length > 0) ? rowsSel[0] : { tipo: 'paciente', correo };
-            insertAudit(req, 'user_create', 'user', idUsuario, null, JSON.stringify(created), (errAudit, auditId) => {
-              if (errAudit) console.warn('Audit insert failed for user_create', errAudit);
-              return res.json({ success: true, message: 'Paciente creado exitosamente', userId: idUsuario, tipo: 'paciente' });
-            });
-          });
-        });
-  } else if (tipo.toLowerCase() === 'doctor') {
-        if (!colegiado) {
-          return res.status(400).json({ success: false, message: 'Colegiado es obligatorio para doctores' });
-        }
-        // Insertar doctor con campo especialidad (nombres separados por comas)
-        const queryDoctor = `INSERT INTO doctores (Colegiado, Nombres, Apellidos, Telefono, Correo, Activo, Especialidad) VALUES (?, ?, ?, ?, ?, ?, ?)`;
-        const valuesDoctor = [colegiado, nombres, apellidos, telefono || '', correo, activo ? 'SI' : 'NO', especialidad || ''];
-          db.query(queryDoctor, valuesDoctor, (err2, resultDoctor) => {
-          if (err2) {
-            return res.status(500).json({ success: false, message: 'Error al crear doctor', error: err2 });
-          }
-          // Guardar relación en especialidades_has_doctores
-          const idDoctor = resultDoctor.insertId;
-          if (Array.isArray(especialidades) && especialidades.length > 0) {
-            const valuesRel = especialidades.map(idEsp => [colegiado, idEsp]);
-            // Construir la consulta VALUES (?, ?), (?, ?), ...
-            const placeholders = valuesRel.map(() => '(?, ?)').join(', ');
-            const flatValues = valuesRel.flat();
-            const queryRel = `INSERT INTO especialidades_has_doctores (Doctores_Colegiado, Especialidades_idEspecialidades) VALUES ${placeholders}`;
-            console.log('Query especialidades_has_doctores:', queryRel);
-            console.log('Valores especialidades_has_doctores:', flatValues);
-            db.query(queryRel, flatValues, (errRel) => {
-              if (errRel) {
-                console.error('Error en especialidades_has_doctores:', errRel);
-                return res.status(500).json({ success: false, message: 'Doctor creado pero error en especialidades_has_doctores', error: errRel });
-              }
-              // Leer la fila de doctor creada para auditoría
-              db.query('SELECT * FROM doctores WHERE Colegiado = ?', [colegiado], (errSel, rowsSel) => {
-                const created = (rowsSel && rowsSel.length > 0) ? rowsSel[0] : { tipo: 'doctor', correo };
-                insertAudit(req, 'user_create', 'user', idUsuario, null, JSON.stringify(created), (errAudit) => {
-                  if (errAudit) console.warn('Audit insert failed for user_create', errAudit);
-                  return res.json({ success: true, message: 'Doctor creado exitosamente', userId: idUsuario, tipo: 'doctor' });
-                });
-              });
-            });
-          } else {
-            return res.json({ success: true, message: 'Doctor creado exitosamente', userId: idUsuario, tipo: 'doctor' });
-          }
-        });
-  } else if (tipo.toLowerCase() === 'secretaria') {
-        const querySecretaria = `INSERT INTO secretarias (Nombres, Apellidos, Telefono, Correo, Activo) VALUES (?, ?, ?, ?, ?)`;
-        const valuesSecretaria = [nombres, apellidos, telefono || '', correo, activo ? 'SI' : 'NO'];
-        db.query(querySecretaria, valuesSecretaria, (err2) => {
-          if (err2) {
-            return res.status(500).json({ success: false, message: 'Error al crear secretaria', error: err2 });
-          }
-          db.query('SELECT * FROM secretarias WHERE Correo = ?', [correo], (errSel, rowsSel) => {
-            const created = (rowsSel && rowsSel.length > 0) ? rowsSel[0] : { tipo: 'secretaria', correo };
-            insertAudit(req, 'user_create', 'user', idUsuario, null, JSON.stringify(created), (errAudit) => {
-              if (errAudit) console.warn('Audit insert failed for user_create', errAudit);
-              return res.json({ success: true, message: 'Secretaria creada exitosamente', userId: idUsuario, tipo: 'secretaria' });
-            });
-          });
-        });
-  } else if (tipo.toLowerCase() === 'administrador') {
-        const queryAdmin = `INSERT INTO administradores (Nombres, Apellidos, Correo, Activo) VALUES (?, ?, ?, ?)`;
-        const valuesAdmin = [nombres, apellidos, correo, activo ? 'SI' : 'NO'];
-        db.query(queryAdmin, valuesAdmin, (err2) => {
-          if (err2) {
-            return res.status(500).json({ success: false, message: 'Error al crear administrador', error: err2 });
-          }
-          db.query('SELECT * FROM administradores WHERE Correo = ?', [correo], (errSel, rowsSel) => {
-            const created = (rowsSel && rowsSel.length > 0) ? rowsSel[0] : { tipo: 'administrador', correo };
-            insertAudit(req, 'user_create', 'user', idUsuario, null, JSON.stringify(created), (errAudit) => {
-              if (errAudit) console.warn('Audit insert failed for user_create', errAudit);
-              return res.json({ success: true, message: 'Administrador creado exitosamente', userId: idUsuario, tipo: 'administrador' });
-            });
-          });
-        });
-      } else {
-        return res.json({ success: true, message: 'Usuario creado exitosamente', userId: idUsuario });
-      }
-    });
-  });
 });
 // Crear especialidad
 app.post('/api/specialties', (req, res) => {
@@ -1305,7 +1193,6 @@ app.get('/api/users', (req, res) => {
 
 // Ruta por defecto
 app.get('/', (req, res) => {
-  res.send('Backend de Dermatología funcionando');
   res.send('Backend de Dermatología funcionando');
 });
 
