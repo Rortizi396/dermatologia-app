@@ -1,0 +1,34 @@
+name: CI - Run endpoint smoke tests
+
+on:
+  push:
+    branches:
+      - 'ci/test-endpoints'
+
+jobs:
+  run-tests:
+    name: Run endpoint smoke tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run endpoint tests and capture output
+        run: |
+          set -o pipefail
+          node scripts/test_endpoints.js https://dermatologia-backend-th09.onrender.com 2>&1 | tee test-output.log
+
+      - name: Upload test logs
+        uses: actions/upload-artifact@v4
+        with:
+          name: endpoint-test-output
+          path: test-output.log
