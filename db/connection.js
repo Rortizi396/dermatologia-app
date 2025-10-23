@@ -40,6 +40,22 @@ if (DB_URL && DB_URL.startsWith('postgres')) {
   }
 }
 
+// If the host looks like a managed provider (for example Render's dpg-*.render.com),
+// enable SSL by default unless explicitly disabled. Also allow forcing via env var
+// FORCE_PG_SSL=true for edge cases.
+try {
+  const hostLower = (DB_HOST || '').toString().toLowerCase();
+  if (!PG_SSL) {
+    if (process.env.FORCE_PG_SSL === 'true' || (process.env.PGSSLMODE && (process.env.PGSSLMODE === 'require' || process.env.PGSSLMODE === 'true'))) {
+      PG_SSL = true;
+    } else if (hostLower.includes('render.com') || hostLower.includes('amazonaws.com') || hostLower.includes('rds.amazonaws.com') || hostLower.includes('db.elephantsql.com')) {
+      PG_SSL = true;
+    }
+  }
+} catch (ex) {
+  // ignore
+}
+
 let nativeConn = null; // mysql connection or pg pool
 let adapter = {
   config: { database: DB_NAME },
