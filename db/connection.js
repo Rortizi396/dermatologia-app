@@ -57,6 +57,31 @@ try {
   // ignore
 }
 
+// Safety: allow an explicit local-DB override for short-lived internal testing.
+// To enable, set DB_USE_LOCAL=true AND ALLOW_LOCAL_DB=true and provide LOCAL_DB_* env vars.
+// This prevents accidentally connecting a deployed service to an arbitrary host.
+try {
+  const useLocal = (process.env.DB_USE_LOCAL || '').toString().toLowerCase() === 'true';
+  const allowLocal = (process.env.ALLOW_LOCAL_DB || '').toString().toLowerCase() === 'true';
+  if (useLocal) {
+    if (!allowLocal) {
+      console.warn('[DB ADAPTER] DB_USE_LOCAL=true detected but ALLOW_LOCAL_DB is not true — ignoring local DB override for safety.');
+    } else {
+      console.warn('[DB ADAPTER] DB_USE_LOCAL=true and ALLOW_LOCAL_DB=true -> overriding DB host/creds from LOCAL_DB_* env vars (for internal testing only).');
+      DB_HOST = process.env.LOCAL_DB_HOST || DB_HOST;
+      DB_PORT = process.env.LOCAL_DB_PORT ? Number(process.env.LOCAL_DB_PORT) : DB_PORT;
+      DB_USER = process.env.LOCAL_DB_USER || DB_USER;
+      DB_PASSWORD = process.env.LOCAL_DB_PASSWORD || DB_PASSWORD;
+      DB_NAME = process.env.LOCAL_DB_NAME || DB_NAME;
+      if (process.env.LOCAL_DB_TYPE) DB_TYPE = process.env.LOCAL_DB_TYPE.toString().toLowerCase();
+      // When explicitly using a local DB for quick tests, do not force PG SSL.
+      if (DB_TYPE === 'postgres') PG_SSL = false;
+    }
+  }
+} catch (ex) {
+  console.warn('[DB ADAPTER] error while processing local DB override env vars', ex && ex.message ? ex.message : ex);
+}
+
 let nativeConn = null; // mysql connection or pg pool
 let adapter = {
   config: { database: DB_NAME },

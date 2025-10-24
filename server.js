@@ -952,7 +952,10 @@ app.get('/api/specialties', (req, res) => {
 });
 
 // Endpoint de health para comprobaciones rápidas
-app.get('/api/health', (req, res) => {
+// Expose both /health and /api/health because some platforms (Render)
+// probe /health by default. Returning a lightweight JSON ensures the
+// deploy healthchecks succeed when the server process is reachable.
+app.get(['/health', '/api/health'], (req, res) => {
   res.json({ success: true, status: 'ok', timestamp: new Date().toISOString() });
 });
 
