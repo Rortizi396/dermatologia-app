@@ -9,12 +9,12 @@
   <!-- Runtime configuration: set API base URL for environments like GitHub Pages -->
   <script>
     window.__env = window.__env || {};
-  // Configura aquí la URL pública de tu backend (sin sufijo /api).
-  // He puesto la URL pública del backend que me indicaste para GitHub Pages.
-  // Si en algún despliegue quieres usar otra URL, reemplaza este valor
-  // o usa un paso de reemplazo en el pipeline de CI/CD.
-  // Ejemplo: https://mi-backend.example.com
-  // Include the /api suffix because backend routes are mounted under /api
+  // Configura aquí la URL pública de tu backend. En despliegues públicos
+  // (p. ej. GitHub Pages) preferimos incluir el sufijo /api porque
+  // el backend monta sus rutas bajo /api (ej: /api/auth/login).
+  // He puesto la URL pública del backend que me indicaste y añadí /api.
+  // Si prefieres otra forma, el script `scripts/write-env.js` puede
+  // sobrescribir este valor durante el pipeline de CI/CD.
   window.__env.apiUrl = window.__env.apiUrl || 'https://dermatologia-backend-th09.onrender.com/api';
   </script>
   <!-- Chart.js CDN for dashboards -->
