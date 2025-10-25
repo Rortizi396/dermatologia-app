@@ -16,6 +16,46 @@
   // Si prefieres otra forma, el script `scripts/write-env.js` puede
   // sobrescribir este valor durante el pipeline de CI/CD.
   window.__env.apiUrl = window.__env.apiUrl || 'https://dermatologia-backend-th09.onrender.com/api';
+  // Runtime shim: rewrite client-side requests to '/api/...' so that components
+  // using relative '/api' endpoints still work when the frontend is served from
+  // a different origin (e.g. GitHub Pages). This avoids editing many components.
+  (function(){
+    try {
+      var env = window.__env || {};
+      var apiUrl = (env.apiUrl || '/api').toString();
+      // Derive backend root (remove trailing /api if present)
+      var backendRoot = apiUrl.replace(/\/api\/?$/i, '');
+
+      // Patch fetch
+      if (window.fetch) {
+        var _origFetch = window.fetch.bind(window);
+        window.fetch = function(input, init){
+          try {
+            if (typeof input === 'string' && input.indexOf('/api') === 0) {
+              input = backendRoot + input;
+            } else if (input && input.url && typeof input.url === 'string' && input.url.indexOf('/api') === 0) {
+              input = new Request(backendRoot + input.url, input);
+            }
+          } catch (e) { /* swallow */ }
+          return _origFetch(input, init);
+        };
+      }
+
+      // Patch XMLHttpRequest.open
+      var _origXhrOpen = XMLHttpRequest.prototype.open;
+      XMLHttpRequest.prototype.open = function(method, url){
+        try {
+          if (typeof url === 'string' && url.indexOf('/api') === 0) {
+            arguments[1] = backendRoot + url;
+            url = arguments[1];
+          }
+        } catch(e) { /* swallow */ }
+        return _origXhrOpen.apply(this, arguments);
+      };
+    } catch(ex) {
+      console.warn('runtime api rewrite shim failed', ex);
+    }
+  })();
   </script>
   <!-- Chart.js CDN for dashboards -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
