@@ -18,7 +18,8 @@ export class AppointmentService {
   confirmAppointment(id: number): Observable<any> {
     return this.http.put(`${this.apiUrl}/appointments/${id}/confirm`, {});
   }
-  private apiUrl = '/api';
+  // Use runtime-configurable API base (falls back to '/api' for local dev)
+  private apiUrl = (window as any).__env?.apiUrl || '/api';
 
   constructor(private http: HttpClient) { }
 

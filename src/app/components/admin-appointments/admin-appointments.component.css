@@ -24,7 +24,7 @@
 }
 
 .ficha-card {
-	background: #ffffff;
+	background: rgb(255, 255, 255);
 	border-radius: 8px;
 	padding: 1rem;
 	box-shadow: 0 6px 18px rgba(16,24,40,0.06);
