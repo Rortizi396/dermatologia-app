@@ -2099,10 +2099,18 @@ app.put('/api/usuarios/:id', (req, res) => {
 // Settings endpoints
 app.get('/api/settings/:key', (req, res) => {
   const key = req.params.key;
-  db.query('SELECT `value` FROM site_settings WHERE `key` = ?', [key], (err, results) => {
+  // Use DB-specific quoting to avoid syntax issues across MySQL/Postgres
+  const isPg = (db && db.dbType === 'postgres');
+  const selectSql = isPg
+    ? 'SELECT value FROM site_settings WHERE key = ?'
+    : 'SELECT `value` FROM site_settings WHERE `key` = ?';
+  db.query(selectSql, [key], (err, results) => {
     if (err) return res.status(500).json({ success: false, message: 'Error reading setting', error: err });
     if (!results || results.length === 0) return res.json({ success: true, value: null });
-    return res.json({ success: true, value: results[0].value });
+    // For Postgres adapter, db.query returns rows array directly
+    const row = Array.isArray(results) ? results[0] : results && results.rows ? results.rows[0] : null;
+    const val = row ? (row.value ?? null) : null;
+    return res.json({ success: true, value: val });
   });
 });
 
@@ -2116,16 +2124,22 @@ app.put('/api/settings/:key', (req, res) => {
       console.warn('[SETTINGS PUT] Missing "value" in request body');
       return res.status(400).json({ success: false, message: 'Missing "value" in request body' });
     }
-    // Read old value first for audit
-    db.query('SELECT `value` FROM site_settings WHERE `key` = ?', [key], (errSel, resultsSel) => {
+  // Read old value first for audit (use DB-specific quoting)
+  const isPg = (db && db.dbType === 'postgres');
+  const selectSql = isPg ? 'SELECT value FROM site_settings WHERE key = ?' : 'SELECT `value` FROM site_settings WHERE `key` = ?';
+  db.query(selectSql, [key], (errSel, resultsSel) => {
       if (errSel) {
         console.error('[SETTINGS PUT] Error selecting old value:', errSel);
         return res.status(500).json({ success: false, message: 'Error reading old setting', error: errSel });
       }
       const oldValue = (resultsSel && resultsSel[0] && resultsSel[0].value) ? resultsSel[0].value : null;
 
-      // Upsert new value
-      db.query('INSERT INTO site_settings (`key`,`value`) VALUES (?, ?) ON DUPLICATE KEY UPDATE `value` = ?', [key, value, value], (errUp) => {
+      // Upsert new value (use DB-specific UPSERT syntax)
+      const upsertSql = isPg
+        ? 'INSERT INTO site_settings (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value'
+        : 'INSERT INTO site_settings (`key`,`value`) VALUES (?, ?) ON DUPLICATE KEY UPDATE `value` = ?';
+      const upsertParams = isPg ? [key, value] : [key, value, value];
+      db.query(upsertSql, upsertParams, (errUp) => {
         if (errUp) {
           console.error('[SETTINGS PUT] DB error on upsert:', errUp);
           return res.status(500).json({ success: false, message: 'Error saving setting', error: errUp });
@@ -2150,7 +2164,10 @@ app.put('/api/settings/:key', (req, res) => {
         }
 
         // Insert audit record
-        db.query('INSERT INTO site_settings_audit (`key`, old_value, new_value, changed_by) VALUES (?, ?, ?, ?)', [key, oldValue, value, changedBy], (errAudit) => {
+        const auditSql = isPg
+          ? 'INSERT INTO site_settings_audit (key, old_value, new_value, changed_by) VALUES (?, ?, ?, ?)'
+          : 'INSERT INTO site_settings_audit (`key`, old_value, new_value, changed_by) VALUES (?, ?, ?, ?)';
+        db.query(auditSql, [key, oldValue, value, changedBy], (errAudit) => {
           if (errAudit) {
             console.error('[SETTINGS PUT] Failed to insert audit record:', errAudit);
             // continue and return success for the upsert, but inform in logs
@@ -2171,10 +2188,15 @@ app.put('/api/settings/:key', (req, res) => {
 // User preferences endpoints
 app.get('/api/users/:id/preferences', (req, res) => {
   const id = req.params.id;
-  db.query('SELECT `key`,`value` FROM user_preferences WHERE userId = ?', [id], (err, results) => {
+  // Column in schema is key_name; quote identifiers per-DB to avoid reserved word issues
+  const isPg = (db && db.dbType === 'postgres');
+  const sql = isPg
+    ? 'SELECT key_name AS key, value FROM user_preferences WHERE userId = ?'
+    : 'SELECT `key_name` AS `key`, `value` FROM user_preferences WHERE userId = ?';
+  db.query(sql, [id], (err, results) => {
     if (err) return res.status(500).json({ success: false, message: 'Error reading preferences', error: err });
     const prefs = {};
-      results.forEach(r => prefs[r.key] = r.value);
+    (results || []).forEach(r => { if (r && Object.prototype.hasOwnProperty.call(r, 'key')) prefs[r.key] = r.value; });
     return res.json({ success: true, preferences: prefs });
   });
 });
@@ -2184,11 +2206,25 @@ app.put('/api/users/:id/preferences', (req, res) => {
   const prefs = req.body || {};
   const entries = Object.entries(prefs);
   if (entries.length === 0) return res.status(400).json({ success: false, message: 'No preferences provided' });
-  // Build multi-row insert ON DUPLICATE KEY UPDATE
-  const placeholders = entries.map(() => '(?,?,?)').join(',');
-  const sql = `INSERT INTO user_preferences (userId, ` + '\`key\`' + `, \'value\') VALUES ${placeholders} ON DUPLICATE KEY UPDATE \`value\` = VALUES(\`value\`)`;
+
+  const isPg = (db && db.dbType === 'postgres');
   const params = [];
-  entries.forEach(([k,v]) => { params.push(id, k, String(v)); });
+
+  if (isPg) {
+    // Postgres: use INSERT ... ON CONFLICT (userId, key_name) DO UPDATE SET value = EXCLUDED.value
+    const placeholders = entries.map((_, i) => `($${i*3+1}, $${i*3+2}, $${i*3+3})`).join(',');
+    const sql = `INSERT INTO user_preferences (userId, key_name, value) VALUES ${placeholders} ON CONFLICT (userId, key_name) DO UPDATE SET value = EXCLUDED.value`;
+    entries.forEach(([k, v]) => { params.push(id, k, String(v)); });
+    return db.query(sql, params, (err) => {
+      if (err) return res.status(500).json({ success: false, message: 'Error saving preferences', error: err });
+      return res.json({ success: true, message: 'Preferences saved' });
+    });
+  }
+
+  // MySQL: use INSERT ... ON DUPLICATE KEY UPDATE
+  const placeholders = entries.map(() => '(?,?,?)').join(',');
+  const sql = `INSERT INTO user_preferences (userId, \`key_name\`, \`value\`) VALUES ${placeholders} ON DUPLICATE KEY UPDATE \`value\` = VALUES(\`value\`)`;
+  entries.forEach(([k, v]) => { params.push(id, k, String(v)); });
   db.query(sql, params, (err) => {
     if (err) return res.status(500).json({ success: false, message: 'Error saving preferences', error: err });
     return res.json({ success: true, message: 'Preferences saved' });
