@@ -1101,7 +1101,7 @@ app.get('/api/metrics/users/new/month', (req, res) => {
     const q = queries[i];
     db.query(q.sql, q.params, (err, results) => {
       if (err) {
-        if (err.code === 'ER_BAD_FIELD_ERROR') {
+        if (err.code === 'ER_BAD_FIELD_ERROR' || err.code === '42703') {
           // try next possible query
           return tryQuery(i + 1);
         }
@@ -1152,7 +1152,7 @@ app.get('/api/metrics/users/deactivated/month', (req, res) => {
     const q = queries[i];
     db.query(q.sql, q.params, (err, results) => {
       if (err) {
-        if (err.code === 'ER_BAD_FIELD_ERROR') return tryQuery(i + 1);
+        if (err.code === 'ER_BAD_FIELD_ERROR' || err.code === '42703') return tryQuery(i + 1);
         console.error('Unexpected SQL error while obtaining deactivated users metrics:', err);
         return res.status(500).json({ success: false, message: 'Error al obtener métricas de usuarios dados de baja', error: err });
       }
