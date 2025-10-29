@@ -74,13 +74,17 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-// Ensure a global handler for OPTIONS preflight requests uses the same options
-// Avoid registering an explicit options route pattern (some path-to-regexp
-// variants reject '*' or '/*'). Instead, handle OPTIONS requests with a
-// small middleware that invokes the CORS handler directly.
+// Explicitly handle OPTIONS preflight with same CORS options and end with 204
+// This ensures browsers receive Access-Control-Allow-* headers even if no
+// downstream route matches the OPTIONS method.
+app.options('*', cors(corsOptions));
 app.use((req, res, next) => {
   if (req.method === 'OPTIONS') {
-    return cors(corsOptions)(req, res, next);
+    try {
+      return cors(corsOptions)(req, res, () => res.sendStatus(204));
+    } catch (_) {
+      return res.sendStatus(204);
+    }
   }
   next();
 });
