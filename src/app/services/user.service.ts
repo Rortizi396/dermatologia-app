@@ -48,6 +48,11 @@ export class UserService {
     return this.http.get<any>(`${this.apiUrl}/doctores`);
   }
 
+  // Obtener todos los pacientes
+  getAllPacientes(): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/pacientes`);
+  }
+
   // Obtener todos los administradores
   getAllAdministradores(): Observable<any> {
     return this.http.get<any>(`${this.apiUrl}/administradores`);

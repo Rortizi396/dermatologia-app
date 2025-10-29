@@ -78,8 +78,28 @@ export class UserManagementComponent implements OnInit {
     const apellidos = (u.apellidos || u.Apellidos || '').toString().trim();
     const full = `${nombres} ${apellidos}`.trim();
     if (full) return full;
-    // No hacer fallback al correo para evitar mostrar email en la columna de Nombres
+    // Fallback elegante: derivar nombre desde el correo ("carlos.lopez" -> "Carlos Lopez")
+    const correo = (u.correo || u.Correo || '').toString().trim();
+    if (correo) {
+      const derived = this.deriveNameFromEmail(correo);
+      const fallbackFull = `${derived.nombres} ${derived.apellidos}`.trim();
+      if (fallbackFull) return fallbackFull;
+    }
     return 'Sin nombre';
+  }
+
+  private deriveNameFromEmail(email: string): { nombres: string; apellidos: string } {
+    try {
+      const local = (email.split('@')[0] || '').replace(/\d+/g, '');
+      if (!local) return { nombres: '', apellidos: '' };
+      const parts = local.split(/[._-]+/).filter(Boolean);
+      const cap = (s: string) => s ? (s.charAt(0).toUpperCase() + s.slice(1).toLowerCase()) : '';
+      if (parts.length === 1) return { nombres: cap(parts[0]), apellidos: '' };
+      if (parts.length >= 2) return { nombres: cap(parts[0]), apellidos: cap(parts[1]) };
+      return { nombres: '', apellidos: '' };
+    } catch {
+      return { nombres: '', apellidos: '' };
+    }
   }
   darDeAlta(user: User): void {
     let id = user.id || user.dpi || user.colegiado || user.idSecretaria || user.idAdministrador;
@@ -260,23 +280,83 @@ export class UserManagementComponent implements OnInit {
     try {
       const targets = all.filter(u => !((u.nombres && u.nombres.trim()) || (u.Nombres && String(u.Nombres).trim())));
       if (targets.length === 0) return;
-      if (this.byEmailEndpointAvailable === false) return; // ya sabemos que no existe, evitar más intentos
-      await Promise.all(targets.map(async (u) => {
-        const correo = (u.correo || u.Correo || '').toString();
-        if (!correo) return;
-        try {
-          const resp = await this.userService.getUsuarioByCorreo(correo).toPromise();
-          if (resp && resp.success && resp.data) {
-            u.nombres = resp.data.nombres || u.nombres || u.Nombres || '';
-            u.apellidos = resp.data.apellidos || u.apellidos || u.Apellidos || '';
-            if (this.byEmailEndpointAvailable === null) this.byEmailEndpointAvailable = true;
+
+      // 1) Intentar completar desde listados por tipo (endpoints existentes en backend)
+      try {
+        const [pacRes, docRes, secRes] = await Promise.all([
+          this.userService.getAllPacientes().toPromise(),
+          this.userService.getAllDoctores().toPromise(),
+          this.userService.getAllSecretarias().toPromise()
+        ]);
+        const mapByEmail = new Map<string, { nombres: string; apellidos: string }>();
+        const addAll = (arr: any[], correoKey = 'Correo') => {
+          (arr || []).forEach((r: any) => {
+            const correo = (r[correoKey] || r.correo || '').toString();
+            if (!correo) return;
+            const nombres = (r.Nombres || r.nombres || '').toString();
+            const apellidos = (r.Apellidos || r.apellidos || '').toString();
+            if (nombres || apellidos) mapByEmail.set(correo, { nombres, apellidos });
+          });
+        };
+        addAll((pacRes && pacRes.data) || []);
+        addAll((docRes && docRes.data) || []);
+        addAll((secRes && secRes.data) || []);
+
+        targets.forEach(u => {
+          const correo = (u.correo || u.Correo || '').toString();
+          if (!correo) return;
+          const found = mapByEmail.get(correo);
+          if (found) {
+            u.nombres = found.nombres || u.nombres || u.Nombres || '';
+            u.apellidos = found.apellidos || u.apellidos || u.Apellidos || '';
           }
-        } catch (e: any) {
-          // Si el backend desplegado no tiene el endpoint (404), marca bandera para no reintentar
-          if (e && e.status === 404) this.byEmailEndpointAvailable = false;
-          // Silenciar otros errores de enriquecimiento
+        });
+      } catch { /* ignorar si algún endpoint falla */ }
+
+      // 2) Si aún faltan, probar endpoint by-email una sola vez; si 404, no insistir
+      const stillMissing = all.filter(u => !((u.nombres && u.nombres.trim()) || (u.Nombres && String(u.Nombres).trim())));
+      if (stillMissing.length === 0) return;
+      if (this.byEmailEndpointAvailable === false) return;
+
+      if (this.byEmailEndpointAvailable === null) {
+        const probe = stillMissing[0];
+        const correoProbe = (probe.correo || probe.Correo || '').toString();
+        if (correoProbe) {
+          try {
+            const r = await this.userService.getUsuarioByCorreo(correoProbe).toPromise();
+            if (r && r.success) {
+              this.byEmailEndpointAvailable = true;
+              if (r.data) {
+                probe.nombres = r.data.nombres || probe.nombres || probe.Nombres || '';
+                probe.apellidos = r.data.apellidos || probe.apellidos || probe.Apellidos || '';
+              }
+            } else {
+              this.byEmailEndpointAvailable = false;
+            }
+          } catch (e: any) {
+            if (e && e.status === 404) this.byEmailEndpointAvailable = false; else this.byEmailEndpointAvailable = false;
+          }
+        } else {
+          this.byEmailEndpointAvailable = false;
         }
-      }));
+      }
+
+      if (this.byEmailEndpointAvailable === true) {
+        for (let i = 1; i < stillMissing.length; i++) {
+          const u = stillMissing[i];
+          const correo = (u.correo || u.Correo || '').toString();
+          if (!correo) continue;
+          try {
+            const resp = await this.userService.getUsuarioByCorreo(correo).toPromise();
+            if (resp && resp.success && resp.data) {
+              u.nombres = resp.data.nombres || u.nombres || u.Nombres || '';
+              u.apellidos = resp.data.apellidos || u.apellidos || u.Apellidos || '';
+            }
+          } catch (e: any) {
+            if (e && e.status === 404) { this.byEmailEndpointAvailable = false; break; }
+          }
+        }
+      }
     } catch {
       // ignore
     }
