@@ -77,8 +77,8 @@ app.use(cors(corsOptions));
 // Explicitly handle OPTIONS preflight with same CORS options and end with 204
 // This ensures browsers receive Access-Control-Allow-* headers even if no
 // downstream route matches the OPTIONS method.
-// Express 5 no longer supports '*' in paths (path-to-regexp v8). Use '(.*)' to match all.
-app.options('(.*)', cors(corsOptions));
+// Note: We avoid app.options catch-all routes in Express 5 (path-to-regexp v8)
+// to prevent pattern parsing errors. Instead, handle OPTIONS below via middleware.
 app.use((req, res, next) => {
   if (req.method === 'OPTIONS') {
     try {
