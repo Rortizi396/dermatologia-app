@@ -1177,11 +1177,27 @@ app.get('/api/metrics/users/deactivated/month', (req, res) => {
 
 app.get('/api/users', (req, res) => {
   // Devuelve todos los usuarios (tanto activos como inactivos).
-  // Incluimos Nombres y Apellidos de la tabla Usuarios como fallback
-  db.query("SELECT idUsuarios AS id, correo, Tipo, Estado, Nombres, Apellidos FROM usuarios", async (err, usuarios) => {
-    if (err) {
-      return res.status(500).json({ success: false, message: 'Error de servidor', error: err });
+  // Intentar leer Estado; si la columna no existe (error de campo), caer a Activo como Estado.
+  const tryQueries = [
+    // Primer intento: usar columna Estado si existe
+    { sql: "SELECT idUsuarios AS id, correo, Tipo, Nombres, Apellidos, Estado FROM usuarios" },
+    // Segundo intento: mapear Activo como Estado (muchos esquemas usan Activo en Usuarios)
+    { sql: "SELECT idUsuarios AS id, correo, Tipo, Nombres, Apellidos, Activo AS Estado FROM usuarios" }
+  ];
+
+  const run = (i = 0) => {
+    if (i >= tryQueries.length) {
+      return res.status(500).json({ success: false, message: 'Error de servidor al leer usuarios (Estado/Activo no disponible)' });
     }
+    db.query(tryQueries[i].sql, async (err, usuarios) => {
+      if (err) {
+        // MySQL undefined column -> ER_BAD_FIELD_ERROR, Postgres -> 42703
+        const code = (err && (err.code || err.sqlState)) || '';
+        if (code === 'ER_BAD_FIELD_ERROR' || code === '42703') {
+          return run(i + 1);
+        }
+        return res.status(500).json({ success: false, message: 'Error de servidor', error: err });
+      }
     // Obtener datos completos según tipo
     const usuariosCompletos = await Promise.all(usuarios.map(user => {
       return new Promise((resolve) => {
@@ -1216,12 +1232,15 @@ app.get('/api/users', (req, res) => {
         }
       });
     }));
-    res.json({
-      success: true,
-      message: 'Usuarios obtenidos exitosamente',
-      data: usuariosCompletos
+      res.json({
+        success: true,
+        message: 'Usuarios obtenidos exitosamente',
+        data: usuariosCompletos
+      });
     });
-  });
+  };
+
+  run(0);
 });
 
 // Obtener datos básicos de Usuarios por correo (para completar nombres/apellidos en frontend)
