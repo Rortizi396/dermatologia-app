@@ -47,8 +47,11 @@ const PORT = process.env.PORT ? Number(process.env.PORT) : 3000;
 // Configurable CORS origins via environment variable CORS_ORIGINS (comma-separated).
 // We apply CORS early (before body parsing) so that preflight responses and
 // any JSON parse errors still include the proper CORS headers.
-// If not set, default to localhost:4200 for development. Use '*' to allow all origins (not recommended for production).
-const corsOriginsEnv = process.env.CORS_ORIGINS || 'http://localhost:4200';
+// If not set, default to localhost:4200 for development. We also include the
+// typical GitHub Pages origin used for frontend hosting so the publicly
+// deployed UI can call this API without editing Render env vars locally.
+// Use '*' to allow all origins (not recommended for production).
+const corsOriginsEnv = process.env.CORS_ORIGINS || 'http://localhost:4200,https://rortizi396.github.io';
 const allowedOrigins = corsOriginsEnv.split(',').map(o => o.trim()).filter(Boolean);
 
 // Build a reusable CORS options object so we can apply it to both the
@@ -541,8 +544,53 @@ app.post('/api/auth/login', (req, res) => {
             };
 
             if (!query) {
-              // No detalle extra, devolver básicos
-              return sendBasicUser();
+              // No detalle extra declared on Usuarios.Tipo: try to discover the user's
+              // detail row by searching the common detail tables (pacientes, doctores,
+              // secretarias, administradores). This helps when Usuarios.Tipo is empty
+              // but the information exists in the entity tables.
+              const detailChecks = [
+                { type: 'Paciente', table: 'pacientes' },
+                { type: 'Doctor', table: 'doctores' },
+                { type: 'Secretaria', table: 'secretarias' },
+                { type: 'Administrador', table: 'administradores' }
+              ];
+
+              let idx = 0;
+              const tryNextDetail = () => {
+                if (idx >= detailChecks.length) {
+                  // Nothing found; fall back to basic user
+                  return sendBasicUser();
+                }
+                const chk = detailChecks[idx++];
+                const sql = `SELECT * FROM ${chk.table} WHERE Correo = ? LIMIT 1`;
+                db.query(sql, [idValue], (errChk, rowsChk) => {
+                  try {
+                    if (!errChk && rowsChk && rowsChk.length > 0) {
+                      const fullData = rowsChk[0];
+                      const mappedUser = {
+                        id: user.idUsuarios,
+                        nombres: fullData.Nombres || fullData.nombres || user.Nombres || user.nombres || '',
+                        apellidos: fullData.Apellidos || fullData.apellidos || user.Apellidos || user.apellidos || '',
+                        correo: user.correo,
+                        telefono: fullData.Telefono || fullData.telefono || user.Telefono || user.telefono || '',
+                        activo: (fullData.Activo || fullData.activo || user.Activo || 'SI') === 'SI',
+                        tipo: (chk.type || '').toString().toLowerCase()
+                      };
+                      const token = jwt.sign({ userId: user.idUsuarios, email: user.correo }, process.env.JWT_SECRET || 'secreto', { expiresIn: '24h' });
+                      return res.json({ success: true, message: 'Login exitoso', data: { user: mappedUser, tipo: mappedUser.tipo, token } });
+                    }
+                  } catch (exTry) {
+                    console.error('[LOGIN] error probing detail table', chk.table, exTry);
+                    // continue to next
+                  }
+                  // not found or error -> try next
+                  tryNextDetail();
+                });
+              };
+
+              // start probing
+              tryNextDetail();
+              return;
             }
 
             db.query(query, [idValue], (err2, results2) => {
@@ -710,7 +758,7 @@ app.get('/api/doctores/:colegiado', (req, res) => {
           }
           // Map rows to include nested info objects
           try { console.log('[CITAS] returned rows:', (dataRows || []).length); } catch(e) {}
-          const mapped = (dataRows || []).map(r => ({
+          let mapped = (dataRows || []).map(r => ({
             ...r,
             // provide lowercase aliases expected by frontend templates
             Fecha: r.Fecha,
@@ -725,8 +773,36 @@ app.get('/api/doctores/:colegiado', (req, res) => {
             profesional_Responsable: r.Profesional_Responsable,
             pacienteInfo: { nombres: r.pacienteNombres, apellidos: r.pacienteApellidos },
             doctorInfo: { nombres: r.doctorNombres, apellidos: r.doctorApellidos },
-            especialidadInfo: { Nombre: r.especialidadNombre }
+            especialidadInfo: { Nombre: r.especialidadnombre }
           }));
+
+          // If some rows are missing Fecha/Hora, fetch them directly from the citas table by id
+          try {
+            const missing = mapped.filter(m => !m.Fecha && !m.hora && (m.idCitas || m.idcitas || m.id)).map(m => m.idCitas || m.idcitas || m.id);
+            if (missing.length > 0) {
+              const placeholders = missing.map(() => '?').join(',');
+              const dateQ = `SELECT idCitas, Fecha, Hora FROM citas WHERE idCitas IN (${placeholders})`;
+              db.query(dateQ, missing, (errDates, dateRows) => {
+                if (!errDates && Array.isArray(dateRows)) {
+                  const dateMap = {};
+                  dateRows.forEach(d => { dateMap[d.idCitas] = d; });
+                  mapped = mapped.map(m => {
+                    const id = m.idCitas || m.idcitas || m.id;
+                    if (id && dateMap[id]) {
+                      m.Fecha = m.Fecha || dateMap[id].Fecha;
+                      m.fecha = m.fecha || dateMap[id].Fecha;
+                      m.Hora = m.Hora || dateMap[id].Hora;
+                      m.hora = m.hora || dateMap[id].Hora;
+                    }
+                    return m;
+                  });
+                }
+                return res.json({ success: true, data: mapped, meta: { total, page, limit } });
+              });
+              return; // response sent in callback
+            }
+          } catch (ex) { console.warn('[CITAS] could not fetch missing dates:', ex); }
+
           res.json({ success: true, data: mapped, meta: { total, page, limit } });
         });
       });
@@ -1096,7 +1172,8 @@ app.get('/api/metrics/users/deactivated/month', (req, res) => {
 
 app.get('/api/users', (req, res) => {
   // Devuelve todos los usuarios (tanto activos como inactivos).
-  db.query("SELECT idUsuarios AS id, correo, Tipo, Estado FROM usuarios", async (err, usuarios) => {
+  // Incluimos Nombres y Apellidos de la tabla Usuarios como fallback
+  db.query("SELECT idUsuarios AS id, correo, Tipo, Estado, Nombres, Apellidos FROM usuarios", async (err, usuarios) => {
     if (err) {
       return res.status(500).json({ success: false, message: 'Error de servidor', error: err });
     }
@@ -1139,6 +1216,17 @@ app.get('/api/users', (req, res) => {
       message: 'Usuarios obtenidos exitosamente',
       data: usuariosCompletos
     });
+  });
+});
+
+// Obtener datos básicos de Usuarios por correo (para completar nombres/apellidos en frontend)
+app.get('/api/usuarios/by-email/:correo', (req, res) => {
+  const correo = req.params.correo;
+  if (!correo) return res.status(400).json({ success: false, message: 'correo requerido' });
+  db.query('SELECT Nombres, Apellidos FROM Usuarios WHERE correo = ? LIMIT 1', [correo], (err, rows) => {
+    if (err) return res.status(500).json({ success: false, message: 'Error de servidor', error: err });
+    if (!rows || rows.length === 0) return res.json({ success: true, data: null });
+    return res.json({ success: true, data: { nombres: rows[0].Nombres || '', apellidos: rows[0].Apellidos || '' } });
   });
 });
 
@@ -2011,10 +2099,18 @@ app.put('/api/usuarios/:id', (req, res) => {
 // Settings endpoints
 app.get('/api/settings/:key', (req, res) => {
   const key = req.params.key;
-  db.query('SELECT `value` FROM site_settings WHERE `key` = ?', [key], (err, results) => {
+  // Use DB-specific quoting to avoid syntax issues across MySQL/Postgres
+  const isPg = (db && db.dbType === 'postgres');
+  const selectSql = isPg
+    ? 'SELECT value FROM site_settings WHERE key = ?'
+    : 'SELECT `value` FROM site_settings WHERE `key` = ?';
+  db.query(selectSql, [key], (err, results) => {
     if (err) return res.status(500).json({ success: false, message: 'Error reading setting', error: err });
     if (!results || results.length === 0) return res.json({ success: true, value: null });
-    return res.json({ success: true, value: results[0].value });
+    // For Postgres adapter, db.query returns rows array directly
+    const row = Array.isArray(results) ? results[0] : results && results.rows ? results.rows[0] : null;
+    const val = row ? (row.value ?? null) : null;
+    return res.json({ success: true, value: val });
   });
 });
 
@@ -2028,16 +2124,22 @@ app.put('/api/settings/:key', (req, res) => {
       console.warn('[SETTINGS PUT] Missing "value" in request body');
       return res.status(400).json({ success: false, message: 'Missing "value" in request body' });
     }
-    // Read old value first for audit
-    db.query('SELECT `value` FROM site_settings WHERE `key` = ?', [key], (errSel, resultsSel) => {
+  // Read old value first for audit (use DB-specific quoting)
+  const isPg = (db && db.dbType === 'postgres');
+  const selectSql = isPg ? 'SELECT value FROM site_settings WHERE key = ?' : 'SELECT `value` FROM site_settings WHERE `key` = ?';
+  db.query(selectSql, [key], (errSel, resultsSel) => {
       if (errSel) {
         console.error('[SETTINGS PUT] Error selecting old value:', errSel);
         return res.status(500).json({ success: false, message: 'Error reading old setting', error: errSel });
       }
       const oldValue = (resultsSel && resultsSel[0] && resultsSel[0].value) ? resultsSel[0].value : null;
 
-      // Upsert new value
-      db.query('INSERT INTO site_settings (`key`,`value`) VALUES (?, ?) ON DUPLICATE KEY UPDATE `value` = ?', [key, value, value], (errUp) => {
+      // Upsert new value (use DB-specific UPSERT syntax)
+      const upsertSql = isPg
+        ? 'INSERT INTO site_settings (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value'
+        : 'INSERT INTO site_settings (`key`,`value`) VALUES (?, ?) ON DUPLICATE KEY UPDATE `value` = ?';
+      const upsertParams = isPg ? [key, value] : [key, value, value];
+      db.query(upsertSql, upsertParams, (errUp) => {
         if (errUp) {
           console.error('[SETTINGS PUT] DB error on upsert:', errUp);
           return res.status(500).json({ success: false, message: 'Error saving setting', error: errUp });
@@ -2062,7 +2164,10 @@ app.put('/api/settings/:key', (req, res) => {
         }
 
         // Insert audit record
-        db.query('INSERT INTO site_settings_audit (`key`, old_value, new_value, changed_by) VALUES (?, ?, ?, ?)', [key, oldValue, value, changedBy], (errAudit) => {
+        const auditSql = isPg
+          ? 'INSERT INTO site_settings_audit (key, old_value, new_value, changed_by) VALUES (?, ?, ?, ?)'
+          : 'INSERT INTO site_settings_audit (`key`, old_value, new_value, changed_by) VALUES (?, ?, ?, ?)';
+        db.query(auditSql, [key, oldValue, value, changedBy], (errAudit) => {
           if (errAudit) {
             console.error('[SETTINGS PUT] Failed to insert audit record:', errAudit);
             // continue and return success for the upsert, but inform in logs
@@ -2083,10 +2188,15 @@ app.put('/api/settings/:key', (req, res) => {
 // User preferences endpoints
 app.get('/api/users/:id/preferences', (req, res) => {
   const id = req.params.id;
-  db.query('SELECT `key`,`value` FROM user_preferences WHERE userId = ?', [id], (err, results) => {
+  // Column in schema is key_name; quote identifiers per-DB to avoid reserved word issues
+  const isPg = (db && db.dbType === 'postgres');
+  const sql = isPg
+    ? 'SELECT key_name AS key, value FROM user_preferences WHERE userId = ?'
+    : 'SELECT `key_name` AS `key`, `value` FROM user_preferences WHERE userId = ?';
+  db.query(sql, [id], (err, results) => {
     if (err) return res.status(500).json({ success: false, message: 'Error reading preferences', error: err });
     const prefs = {};
-      results.forEach(r => prefs[r.key] = r.value);
+    (results || []).forEach(r => { if (r && Object.prototype.hasOwnProperty.call(r, 'key')) prefs[r.key] = r.value; });
     return res.json({ success: true, preferences: prefs });
   });
 });
@@ -2096,11 +2206,25 @@ app.put('/api/users/:id/preferences', (req, res) => {
   const prefs = req.body || {};
   const entries = Object.entries(prefs);
   if (entries.length === 0) return res.status(400).json({ success: false, message: 'No preferences provided' });
-  // Build multi-row insert ON DUPLICATE KEY UPDATE
-  const placeholders = entries.map(() => '(?,?,?)').join(',');
-  const sql = `INSERT INTO user_preferences (userId, ` + '\`key\`' + `, \'value\') VALUES ${placeholders} ON DUPLICATE KEY UPDATE \`value\` = VALUES(\`value\`)`;
+
+  const isPg = (db && db.dbType === 'postgres');
   const params = [];
-  entries.forEach(([k,v]) => { params.push(id, k, String(v)); });
+
+  if (isPg) {
+    // Postgres: use INSERT ... ON CONFLICT (userId, key_name) DO UPDATE SET value = EXCLUDED.value
+    const placeholders = entries.map((_, i) => `($${i*3+1}, $${i*3+2}, $${i*3+3})`).join(',');
+    const sql = `INSERT INTO user_preferences (userId, key_name, value) VALUES ${placeholders} ON CONFLICT (userId, key_name) DO UPDATE SET value = EXCLUDED.value`;
+    entries.forEach(([k, v]) => { params.push(id, k, String(v)); });
+    return db.query(sql, params, (err) => {
+      if (err) return res.status(500).json({ success: false, message: 'Error saving preferences', error: err });
+      return res.json({ success: true, message: 'Preferences saved' });
+    });
+  }
+
+  // MySQL: use INSERT ... ON DUPLICATE KEY UPDATE
+  const placeholders = entries.map(() => '(?,?,?)').join(',');
+  const sql = `INSERT INTO user_preferences (userId, \`key_name\`, \`value\`) VALUES ${placeholders} ON DUPLICATE KEY UPDATE \`value\` = VALUES(\`value\`)`;
+  entries.forEach(([k, v]) => { params.push(id, k, String(v)); });
   db.query(sql, params, (err) => {
     if (err) return res.status(500).json({ success: false, message: 'Error saving preferences', error: err });
     return res.json({ success: true, message: 'Preferences saved' });
