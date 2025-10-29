@@ -1,0 +1,118 @@
+<!-- components/dashboard/dashboard.component.html -->
+<div class="container-fluid">
+  <!-- Admin header & metrics -->
+  <div *ngIf="currentUser?.tipo === 'administrador'" class="col-12">
+    <div class="card admin-dashboard-card">
+      <div class="card-body">
+        <div class="row">
+          <div class="col-12 mb-2 text-right">
+            <button *ngIf="currentUser?.tipo === 'administrador'" class="btn btn-outline-primary btn-sm" (click)="renderAdminCharts()">Mostrar gráficas</button>
+          </div>
+          <div class="col-12 col-md-4 mb-3">
+            <div class="card metric-card">
+              <div class="card-body text-center">
+                <div class="metric-icon"><i class="fas fa-users"></i></div>
+                <div class="metric-title">Total usuarios</div>
+                <div class="metric-value">{{ adminMetrics.totalUsers }}</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-md-4 mb-3">
+            <div class="card metric-card">
+              <div class="card-body text-center">
+                <div class="metric-icon"><i class="fas fa-user-check"></i></div>
+                <div class="metric-title">Usuarios activos</div>
+                <div class="metric-value">{{ adminMetrics.totalActiveUsers ?? 0 }}</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-md-4 mb-3">
+            <div class="card metric-card">
+              <div class="card-body text-center">
+                <div class="metric-icon"><i class="fas fa-user-slash"></i></div>
+                <div class="metric-title">Usuarios inactivos</div>
+                <div class="metric-value">{{ adminMetrics.totalInactiveUsers ?? 0 }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+                <!-- Reloj y Misión/Visión para Paciente / Doctor / Secretaria -->
+                <div *ngIf="currentUser && (currentUser.tipo === 'paciente' || currentUser.tipo === 'doctor' || currentUser.tipo === 'secretaria')" class="row mt-4">
+                  <div class="col-12 col-md-4 mb-3">
+                    <div class="card dashboard-clock">
+                      <div class="card-body clock-face">
+                        <div class="d-flex justify-content-between align-items-start">
+                          <div>
+                            <div class="time">{{ timeString }}</div>
+                            <div class="date">{{ dateString }}</div>
+                          </div>
+                          <div>
+                            <button class="btn btn-sm btn-outline-secondary" (click)="toggleClockFormat()" title="Alternar 12/24h">
+                              {{ use24Hour ? '24h' : '12h' }}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="col-12 col-md-8 mb-3">
+                    <div class="card">
+                      <div class="card-header">Nuestra Misión y Visión</div>
+                      <div class="card-body">
+                        <div class="row">
+                          <div class="col-12 col-lg-6">
+                            <h5>Misión</h5>
+                            <p class="text-muted">Brindar atención dermatológica integral, humana y basada en evidencia, con enfoque en la prevención y tratamiento de enfermedades de la piel para mejorar la calidad de vida de nuestros pacientes.</p>
+                          </div>
+                          <div class="col-12 col-lg-6">
+                            <h5>Visión</h5>
+                            <p class="text-muted">Ser un centro de referencia regional en dermatología, reconocido por la excelencia clínica, la innovación y el compromiso social, promoviendo la salud cutánea en nuestras comunidades.</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Patient dashboard component (standalone) -->
+                <app-patient-dashboard *ngIf="currentUser?.tipo === 'paciente'"
+                  [timeString]="timeString"
+                  [dateString]="dateString"
+                  [use24Hour]="use24Hour"
+                  (toggleClock)="toggleClockFormat()">
+                </app-patient-dashboard>
+
+          <div class="row mt-3">
+            <div *ngIf="renderingCharts" class="col-12 mb-3 text-center">
+              <div class="spinner-border text-success" role="status">
+                <span class="sr-only">Cargando gráficas...</span>
+              </div>
+              <div class="mt-2">Preparando gráficas, por favor espere...</div>
+            </div>
+          <div class="col-12 col-lg-6 mb-4">
+            <div class="card">
+              <div class="card-header">Citas por día (semana actual)</div>
+              <div class="card-body">
+                <div id="appointmentsWeekChart" class="svg-chart" aria-hidden="true"></div>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-lg-6 mb-4">
+            <div class="card mb-3">
+              <div class="card-header">Usuarios nuevos este mes</div>
+              <div class="card-body">
+                <div id="newUsersMonthChart" class="svg-chart" aria-hidden="true"></div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header">Usuarios dados de baja este mes</div>
+              <div class="card-body">
+                <div id="deactivatedUsersMonthChart" class="svg-chart" aria-hidden="true"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>

@@ -1,0 +1,40 @@
+<div class="doctor-dashboard container py-3">
+  <div class="hero d-flex justify-content-center mb-3">
+    <div class="clock-large text-center">
+      <div class="time">{{ timeString }}</div>
+      <div class="date small text-muted">{{ dateString }}</div>
+    </div>
+  </div>
+
+  <h4>Agenda de Hoy</h4>
+  <div *ngIf="loading">Cargando...</div>
+  <div *ngIf="!loading && appointments.length === 0" class="text-muted">No hay citas hoy.</div>
+
+  <div class="appointments-summary mt-4 d-flex justify-content-center">
+    <div class="card summary-card p-4 text-center">
+      <div class="summary-title mb-2">Citas programadas hoy</div>
+      <div class="summary-count display-1 mb-2">{{ appointments.length }}</div>
+      <div class="summary-sub small text-muted">(Total de citas para la fecha de hoy)</div>
+    </div>
+  </div>
+  
+  <!-- Mission & Vision cards (same style as secretary) -->
+  <div class="mission-vision row g-3 mt-4">
+    <div class="col-md-6 mb-3">
+      <div class="card p-3">
+        <div class="card-header pb-2"><strong>Misión</strong></div>
+        <div class="card-body pt-1">
+          <p class="mb-0">{{ missionText || 'No definida' }}</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6 mb-3">
+      <div class="card p-3">
+        <div class="card-header pb-2"><strong>Visión</strong></div>
+        <div class="card-body pt-1">
+          <p class="mb-0">{{ visionText || 'No definida' }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

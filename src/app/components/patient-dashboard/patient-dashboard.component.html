@@ -1,0 +1,55 @@
+<div class="patient-hero d-flex flex-column align-items-center justify-content-center py-4">
+  <div class="hero-clock w-100 d-flex justify-content-center">
+    <div class="clock-wrapper d-flex align-items-center flex-column flex-sm-row">
+      <div class="clock-time">{{ timeString }}</div>
+      <div class="clock-date mt-2 mt-sm-0 ms-sm-3">{{ dateString }}</div>
+    </div>
+  </div>
+</div>
+
+<!-- Separate section for mission and vision cards placed below the hero -->
+<div class="mission-section w-100 mt-4 d-flex justify-content-center">
+  <div class="mission-cards w-100 d-flex flex-column align-items-center">
+    <!-- Each card wrapped in its own container so they always stack vertically -->
+    <div class="mission-item w-100">
+      <div class="card mission-card w-100 mb-3">
+      <div class="card-header d-flex align-items-center gap-2">
+        <span class="mission-icon" aria-hidden="true">
+          <!-- Inline SVG: target / bullseye style for mission -->
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" focusable="false" role="img">
+            <circle cx="12" cy="12" r="10" stroke="white" stroke-width="0" fill="rgba(255,255,255,0.15)"/>
+            <circle cx="12" cy="12" r="5" fill="white"/>
+          </svg>
+        </span>
+        <span class="card-title">Misión</span>
+      </div>
+      <div class="card-body">
+        <p class="lead text-muted mb-0">{{ missionText || 'Nuestra misión no está disponible en este momento.' }}</p>
+      </div>
+      </div>
+    </div>
+
+    <div class="mission-item w-100">
+      <div class="card vision-card w-100 mb-3">
+      <div class="card-header d-flex align-items-center gap-2">
+        <span class="vision-icon" aria-hidden="true">
+          <!-- Inline SVG: eye icon for vision -->
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" focusable="false" role="img">
+            <path d="M12 5C7 5 3.2 8.3 1 12c2.2 3.7 6 7 11 7s8.8-3.3 11-7c-2.2-3.7-6-7-11-7zm0 11a4 4 0 1 1 0-8 4 4 0 0 1 0 8z" fill="white" />
+            <circle cx="12" cy="12" r="2" fill="rgba(255,255,255,0.9)"/>
+          </svg>
+        </span>
+        <span class="card-title">Visión</span>
+      </div>
+      <div class="card-body">
+        <p class="lead text-muted mb-0">{{ visionText || 'Nuestra visión no está disponible en este momento.' }}</p>
+      </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CTA below the cards -->
+<div class="cta-wrapper w-100 d-flex justify-content-center mt-4 mb-5">
+  <a class="btn btn-lg cta-btn" routerLink="/appointments/create">Reservar nueva cita</a>
+</div>

@@ -1,0 +1,47 @@
+<div *ngIf="selectedItem" class="details-card">
+  <div class="card mt-4">
+    <div class="card-header">
+      <h4>Ficha de Detalles</h4>
+      <button class="btn btn-sm btn-danger float-right" (click)="selectedItem = null">Cerrar</button>
+    </div>
+    <div class="card-body">
+      <table class="table table-bordered">
+        <tbody>
+          <tr *ngFor="let key of selectedItem | keyvalue">
+            <th>{{ key.key?.toString() | titlecase }}</th>
+            <td>{{ key.value }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+<div *ngIf="entity">
+  <h3>Listado de {{ entity | titlecase }}</h3>
+  <div *ngIf="loading" class="text-center">
+    <div class="spinner-border" role="status">
+      <span class="sr-only">Cargando...</span>
+    </div>
+  </div>
+  <div *ngIf="!loading && items.length === 0" class="text-center">
+    <p>No hay datos para mostrar.</p>
+  </div>
+  <div *ngIf="!loading && items.length > 0" class="table-responsive">
+    <table class="entity-table">
+      <thead>
+        <tr>
+          <th *ngFor="let key of items[0] | keyvalue">{{ key.key?.toString() | titlecase }}</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let item of items">
+          <td *ngFor="let key of item | keyvalue">{{ key.value }}</td>
+          <td>
+            <button class="details-btn" (click)="$event.stopPropagation(); showDetails(item)">Más detalles</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

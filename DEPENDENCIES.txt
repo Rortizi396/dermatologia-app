@@ -1,0 +1,23 @@
+Frontend (Angular):
+- @angular/animations
+- @angular/common
+- @angular/compiler
+- @angular/core
+- @angular/forms
+- @angular/platform-browser
+- @angular/router
+- angular-calendar
+
+Backend (Node):
+- express
+- mysql2
+- cors
+- bcryptjs
+- jsonwebtoken
+- dotenv
+
+Instalar dependencias (root del proyecto):
+
+npm install
+
+Nota: revisa package.json para versiones exactas.

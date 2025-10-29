@@ -1,0 +1,4 @@
+# Este proyecto es Node/Angular y no requiere un requirements.txt de Python.
+# Mantengo este archivo por compatibilidad si se desea usar herramientas Python (opcional):
+
+# (Ninguna dependencia Python requerida por defecto)

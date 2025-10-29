@@ -1,0 +1,61 @@
+<!-- components/login/login.component.html -->
+<div class="login-hero">
+  <div class="hero-left">
+    <div class="brand">
+  <img src="/assets/images/hero-banner.svg" alt="Logo Centro Dermatológico" class="brand-logo"/>
+      <h1 class="brand-title">Centro Dermatológico</h1>
+      <p class="brand-sub">Cuidado profesional de la piel — citas y gestión en un solo lugar</p>
+    </div>
+    <div class="hero-illustration" aria-hidden="true">
+      <!-- optional decorative svg or image -->
+  <img src="/assets/images/hero-banner.svg" alt=""/>
+    </div>
+  </div>
+
+  <div class="hero-right">
+    <div class="card form-card">
+      <div class="card-header">
+        <h2>Iniciar sesión</h2>
+        <small class="muted">Accede a tu panel</small>
+      </div>
+      <div class="card-body">
+        <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+          <div class="input-group">
+            <label for="email" class="input-label">Correo electrónico</label>
+            <div class="input-with-icon">
+              <i class="fas fa-envelope icon"></i>
+              <input type="email" id="email" formControlName="email" class="input" placeholder="tu@correo.com" />
+            </div>
+            <div *ngIf="loginForm.get('email')?.invalid && loginForm.get('email')?.touched" class="input-error">
+              <div *ngIf="loginForm.get('email')?.errors?.['required']">El correo es requerido</div>
+              <div *ngIf="loginForm.get('email')?.errors?.['email']">Formato inválido</div>
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label for="password" class="input-label">Contraseña</label>
+            <div class="input-with-icon">
+              <i class="fas fa-lock icon"></i>
+              <input type="password" id="password" formControlName="password" class="input" placeholder="Contraseña" />
+            </div>
+            <div *ngIf="loginForm.get('password')?.invalid && loginForm.get('password')?.touched" class="input-error">
+              La contraseña es requerida
+            </div>
+          </div>
+
+          <div *ngIf="error" class="form-error">{{ error }}</div>
+
+          <button type="submit" class="primary-btn" [disabled]="loginForm.invalid || loading">
+            <span *ngIf="loading" class="spinner-border spinner-border-sm mr-2"></span>
+            Iniciar sesión
+          </button>
+
+          <div class="form-footer">
+            <a routerLink="/register" class="link">¿No tienes cuenta? Regístrate</a>
+            <a routerLink="/forgot-password" class="link muted">¿Olvidaste tu contraseña?</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>

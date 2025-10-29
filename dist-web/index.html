@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en" data-beasties-container>
+<head>
+  <meta charset="utf-8">
+  <title>DermatologiaApp</title>
+  <base href="/dermatologia-app/">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+  <!-- Runtime configuration: set API base URL for environments like GitHub Pages -->
+  <script>
+    window.__env = window.__env || {};
+  // Cambia este valor por la URL pública de tu backend (sin sufijo /api)
+  // Ejemplo: https://mi-backend.example.com
+  // En builds automáticos se reemplaza con la URL adecuada.
+  // Usando el túnel proporcionado por el usuario (ngrok)
+  window.__env.apiUrl = window.__env.apiUrl || 'https://nonbotanically-studentless-kasey.ngrok-free.dev/api';
+  </script>
+  <script>
+    // Runtime shim: rewrite client-side requests that use relative "/api" to the injected API URL.
+    (function(){
+      var base = (window.__env && window.__env.apiUrl) ? String(window.__env.apiUrl).replace(/\/+$/,'') : null;
+      if(!base) return;
+
+      function rewriteUrl(original) {
+        try {
+          if(typeof original === 'string') {
+            // Relative API path: /api/...
+            if(original.indexOf('/api') === 0) {
+              // Remove trailing /api from base if present, then append path
+              return base.replace(/\/api$/,'') + original;
+            }
+            // Absolute same-origin URL starting with /api
+            var abs = new URL(original, location.href);
+            if(abs.pathname.indexOf('/api') === 0 && abs.origin === location.origin) {
+              return base.replace(/\/api$/,'') + abs.pathname + abs.search;
+            }
+          }
+        } catch(e) {
+          // fallthrough
+        }
+        return original;
+      }
+
+      // Patch fetch
+      if(window.fetch) {
+        var _fetch = window.fetch.bind(window);
+        window.fetch = function(input, init) {
+          try {
+            if(typeof input === 'string') input = rewriteUrl(input);
+            else if(input && input.url) {
+              var req = input;
+              var newUrl = rewriteUrl(req.url);
+              if(newUrl !== req.url) return _fetch(new Request(newUrl, req), init);
+            }
+          } catch(e) {}
+          return _fetch(input, init);
+        };
+      }
+
+      // Patch XMLHttpRequest.open
+      if(window.XMLHttpRequest && XMLHttpRequest.prototype) {
+        var _open = XMLHttpRequest.prototype.open;
+        XMLHttpRequest.prototype.open = function(method, url) {
+          try {
+            var newUrl = rewriteUrl(url);
+            return _open.apply(this, [method, newUrl].concat(Array.prototype.slice.call(arguments,2)));
+          } catch(e) {
+            return _open.apply(this, arguments);
+          }
+        };
+      }
+    })();
+  </script>
+  <script>
+    // Debug shim: log responses for /api/citas so we can see what the app receives
+    (function(){
+      function shouldLog(url) {
+        try { return String(url).indexOf('/api/citas') !== -1; } catch(e){ return false; }
+      }
+
+      // wrap fetch to log responses
+      if(window.fetch) {
+        var _fetch_debug = window.fetch.bind(window);
+        window.fetch = function(input, init) {
+          var url = (typeof input === 'string') ? input : (input && input.url) ? input.url : '';
+          return _fetch_debug(input, init).then(function(resp){
+            try {
+              if(shouldLog(url)) {
+                resp.clone().text().then(function(t){
+                  try { console.log('[DEBUG] fetch response for', url, JSON.parse(t)); } catch(e) { console.log('[DEBUG] fetch response for', url, t); }
+                }).catch(function(){ /* ignore */ });
+              }
+            } catch(e) {}
+            return resp;
+          });
+        };
+      }
+
+      // wrap XMLHttpRequest to log responses
+      if(window.XMLHttpRequest && XMLHttpRequest.prototype) {
+        var _send = XMLHttpRequest.prototype.send;
+        var _open = XMLHttpRequest.prototype.open;
+        XMLHttpRequest.prototype.open = function(method, url) {
+          this.__debug_url = url;
+          return _open.apply(this, arguments);
+        };
+        XMLHttpRequest.prototype.send = function() {
+          var self = this;
+          var onload = function() {
+            try {
+              if(shouldLog(self.__debug_url)) {
+                try { console.log('[DEBUG] XHR response for', self.__debug_url, JSON.parse(self.responseText)); }
+                catch(e){ console.log('[DEBUG] XHR response for', self.__debug_url, self.responseText); }
+              }
+            } catch(e){}
+          };
+          this.addEventListener && this.addEventListener('load', onload);
+          return _send.apply(this, arguments);
+        };
+      }
+    })();
+  </script>
+  <!-- Chart.js CDN for dashboards -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Font Awesome for icons used in UI -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-pap6V...REDACTED..." crossorigin="anonymous" referrerpolicy="no-referrer">
+<style>:root{--verde-claro:#a8e6cf;--verde-medio:#56c596;--verde-oscuro:#379683;--gris-claro:#f7f7f7;--gris-medio:#e0e0e0;--texto:#333}:root{--primary-green:#4CAF50;--light-green:#8BC34A;--lighter-green:#C8E6C9;--dark-green:#388E3C;--accent-teal:#26A69A;--text-dark:#333333;--text-light:#666666;--background-light:#F8F9FA;--white:#FFFFFF;--success:#28a745;--warning:#ffc107;--danger:#dc3545;--info:#17a2b8}*{margin:0;padding:0;box-sizing:border-box}body{font-family:Segoe UI,Tahoma,Geneva,Verdana,sans-serif;background:linear-gradient(135deg,var(--lighter-green) 0%,var(--white) 100%);min-height:100vh;color:var(--text-dark)}:root{--derma-bg:#fbfcfd;--derma-accent:#6ab6a9;--derma-accent-dark:#2f8f7f;--derma-muted:#6b7c86;--card-bg:#ffffff;--max-width-hero:1100px}</style><link rel="stylesheet" href="styles.88f28129d501d0b3.css" media="print" onload="this.media='all'"><noscript><link rel="stylesheet" href="styles.88f28129d501d0b3.css"></noscript></head>
+<body>
+  <app-root></app-root>
+<script src="runtime.94c168dc45b613b6.js" type="module"></script><script src="polyfills.ed58b9237ace9f93.js" type="module"></script><script src="main.3c98a86bbb25513f.js" type="module"></script></body>
+</html>

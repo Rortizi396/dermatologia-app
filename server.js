@@ -758,7 +758,7 @@ app.get('/api/doctores/:colegiado', (req, res) => {
           }
           // Map rows to include nested info objects
           try { console.log('[CITAS] returned rows:', (dataRows || []).length); } catch(e) {}
-          const mapped = (dataRows || []).map(r => ({
+          let mapped = (dataRows || []).map(r => ({
             ...r,
             // provide lowercase aliases expected by frontend templates
             Fecha: r.Fecha,
@@ -773,8 +773,36 @@ app.get('/api/doctores/:colegiado', (req, res) => {
             profesional_Responsable: r.Profesional_Responsable,
             pacienteInfo: { nombres: r.pacienteNombres, apellidos: r.pacienteApellidos },
             doctorInfo: { nombres: r.doctorNombres, apellidos: r.doctorApellidos },
-            especialidadInfo: { Nombre: r.especialidadNombre }
+            especialidadInfo: { Nombre: r.especialidadnombre }
           }));
+
+          // If some rows are missing Fecha/Hora, fetch them directly from the citas table by id
+          try {
+            const missing = mapped.filter(m => !m.Fecha && !m.hora && (m.idCitas || m.idcitas || m.id)).map(m => m.idCitas || m.idcitas || m.id);
+            if (missing.length > 0) {
+              const placeholders = missing.map(() => '?').join(',');
+              const dateQ = `SELECT idCitas, Fecha, Hora FROM citas WHERE idCitas IN (${placeholders})`;
+              db.query(dateQ, missing, (errDates, dateRows) => {
+                if (!errDates && Array.isArray(dateRows)) {
+                  const dateMap = {};
+                  dateRows.forEach(d => { dateMap[d.idCitas] = d; });
+                  mapped = mapped.map(m => {
+                    const id = m.idCitas || m.idcitas || m.id;
+                    if (id && dateMap[id]) {
+                      m.Fecha = m.Fecha || dateMap[id].Fecha;
+                      m.fecha = m.fecha || dateMap[id].Fecha;
+                      m.Hora = m.Hora || dateMap[id].Hora;
+                      m.hora = m.hora || dateMap[id].Hora;
+                    }
+                    return m;
+                  });
+                }
+                return res.json({ success: true, data: mapped, meta: { total, page, limit } });
+              });
+              return; // response sent in callback
+            }
+          } catch (ex) { console.warn('[CITAS] could not fetch missing dates:', ex); }
+
           res.json({ success: true, data: mapped, meta: { total, page, limit } });
         });
       });
@@ -1144,7 +1172,8 @@ app.get('/api/metrics/users/deactivated/month', (req, res) => {
 
 app.get('/api/users', (req, res) => {
   // Devuelve todos los usuarios (tanto activos como inactivos).
-  db.query("SELECT idUsuarios AS id, correo, Tipo, Estado FROM usuarios", async (err, usuarios) => {
+  // Incluimos Nombres y Apellidos de la tabla Usuarios como fallback
+  db.query("SELECT idUsuarios AS id, correo, Tipo, Estado, Nombres, Apellidos FROM usuarios", async (err, usuarios) => {
     if (err) {
       return res.status(500).json({ success: false, message: 'Error de servidor', error: err });
     }
@@ -1187,6 +1216,17 @@ app.get('/api/users', (req, res) => {
       message: 'Usuarios obtenidos exitosamente',
       data: usuariosCompletos
     });
+  });
+});
+
+// Obtener datos básicos de Usuarios por correo (para completar nombres/apellidos en frontend)
+app.get('/api/usuarios/by-email/:correo', (req, res) => {
+  const correo = req.params.correo;
+  if (!correo) return res.status(400).json({ success: false, message: 'correo requerido' });
+  db.query('SELECT Nombres, Apellidos FROM Usuarios WHERE correo = ? LIMIT 1', [correo], (err, rows) => {
+    if (err) return res.status(500).json({ success: false, message: 'Error de servidor', error: err });
+    if (!rows || rows.length === 0) return res.json({ success: true, data: null });
+    return res.json({ success: true, data: { nombres: rows[0].Nombres || '', apellidos: rows[0].Apellidos || '' } });
   });
 });
 

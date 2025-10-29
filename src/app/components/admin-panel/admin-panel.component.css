@@ -1,0 +1,36 @@
+.admin-panel {
+  padding: 2rem;
+}
+.entity-selector {
+  margin-bottom: 1.5rem;
+}
+select {
+  padding: 0.5rem;
+  border-radius: 4px;
+  border: 1px solid #4caf50;
+}
+
+/* Sidebar box where admin quick actions live */
+.sidebar-box {
+  background: transparent;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.admin-sidebar h4 {
+  margin: 0 0 8px 0;
+}
+
+.list-group .list-group-item {
+  cursor: pointer;
+}
+
+.quick-actions .list-group-item {
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.quick-actions .list-group-item svg {
+  flex: 0 0 20px;
+}

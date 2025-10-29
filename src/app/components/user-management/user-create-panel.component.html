@@ -1,0 +1,160 @@
+<div class="user-create-panel">
+  <button class="toggle-panels-btn" (click)="showPanels = !showPanels" [attr.aria-expanded]="showPanels" aria-controls="user-create-panels">
+    <span class="icon" aria-hidden="true">{{ showPanels ? '−' : '+' }}</span>
+    <span class="toggle-label">{{ showPanels ? 'Ocultar panel' : 'Crear usuario' }}</span>
+  </button>
+  <div id="user-create-panels" class="panels" [class.open]="showPanels">
+    <div class="tabs">
+      <button [class.active]="selectedTab === 'paciente'" (click)="selectTab('paciente')">Paciente</button>
+      <button [class.active]="selectedTab === 'doctor'" (click)="selectTab('doctor')">Doctor</button>
+      <button [class.active]="selectedTab === 'secretaria'" (click)="selectTab('secretaria')">Secretaria</button>
+      <button [class.active]="selectedTab === 'administrador'" (click)="selectTab('administrador')">Administrador</button>
+      <button [class.active]="selectedTab === 'especialidad'" (click)="selectTab('especialidad')">Especialidad</button>
+    </div>
+
+  <div *ngIf="selectedTab === 'paciente'" class="form-container">
+      <h2 class="form-title">Crear Paciente</h2>
+      <form [formGroup]="pacienteForm" (ngSubmit)="submitPaciente()">
+        <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">DPI</label>
+          <input type="text" class="form-input" formControlName="dpi">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nombres</label>
+          <input type="text" class="form-input" formControlName="nombres">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Apellidos</label>
+          <input type="text" class="form-input" formControlName="apellidos">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Teléfono</label>
+          <input type="text" class="form-input" formControlName="telefono">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Correo</label>
+          <input type="email" class="form-input" formControlName="correo">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Contraseña</label>
+          <input type="password" class="form-input" formControlName="password">
+        </div>
+        </div>
+        <button class="form-button" type="submit" [disabled]="loading">Crear Paciente</button>
+        <div *ngIf="error" class="form-error">{{ error }}</div>
+        <div *ngIf="success" class="form-success">{{ success }}</div>
+      </form>
+    </div>
+
+  <div *ngIf="selectedTab === 'doctor'" class="form-container">
+      <h2 class="form-title">Crear Doctor</h2>
+      <form [formGroup]="doctorForm" (ngSubmit)="submitDoctor()">
+        <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Colegiado</label>
+          <input type="text" class="form-input" formControlName="colegiado">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nombres</label>
+          <input type="text" class="form-input" formControlName="nombres">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Apellidos</label>
+          <input type="text" class="form-input" formControlName="apellidos">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Teléfono</label>
+          <input type="text" class="form-input" formControlName="telefono">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Correo</label>
+          <input type="email" class="form-input" formControlName="correo">
+        </div>
+        <div class="form-group form-group--full">
+          <label class="form-label">Especialidades</label>
+          <div class="specialty-checkbox-list">
+            <div *ngFor="let specialty of specialties" class="specialty-checkbox-item">
+              <input type="checkbox"
+                     [value]="specialty.idEspecialidades"
+                     (change)="onSpecialtyCheckboxChange($event)"
+                     [checked]="doctorForm.value.especialidades.includes(specialty.idEspecialidades)" />
+              <span class="specialty-checkbox-label">{{ specialty.Nombre }}</span>
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Contraseña</label>
+          <input type="password" class="form-input" formControlName="password">
+        </div>
+        </div>
+        <button class="form-button" type="submit" [disabled]="loading">Crear Doctor</button>
+        <div *ngIf="error" class="form-error">{{ error }}</div>
+        <div *ngIf="success" class="form-success">{{ success }}</div>
+      </form>
+    </div>
+
+  <div *ngIf="selectedTab === 'secretaria'" class="form-container">
+      <h2 class="form-title">Crear Secretaria</h2>
+      <form [formGroup]="secretariaForm" (ngSubmit)="submitSecretaria()">
+        <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Nombres</label>
+          <input type="text" class="form-input" formControlName="nombres">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Apellidos</label>
+          <input type="text" class="form-input" formControlName="apellidos">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Teléfono</label>
+          <input type="text" class="form-input" formControlName="telefono">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Correo</label>
+          <input type="email" class="form-input" formControlName="correo">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Contraseña</label>
+          <input type="password" class="form-input" formControlName="password">
+        </div>
+        </div>
+        <button class="form-button" type="submit" [disabled]="loading">Crear Secretaria</button>
+        <div *ngIf="error" class="form-error">{{ error }}</div>
+        <div *ngIf="success" class="form-success">{{ success }}</div>
+      </form>
+    </div>
+
+  <div *ngIf="selectedTab === 'administrador'" class="form-container">
+      <h2 class="form-title">Crear Administrador</h2>
+      <form [formGroup]="adminForm" (ngSubmit)="submitAdmin()">
+        <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Nombres</label>
+          <input type="text" class="form-input" formControlName="nombres">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Apellidos</label>
+          <input type="text" class="form-input" formControlName="apellidos">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Correo</label>
+          <input type="email" class="form-input" formControlName="correo">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Contraseña</label>
+          <input type="password" class="form-input" formControlName="password">
+        </div>
+        </div>
+        <button class="form-button" type="submit" [disabled]="loading">Crear Administrador</button>
+        <div *ngIf="error" class="form-error">{{ error }}</div>
+        <div *ngIf="success" class="form-success">{{ success }}</div>
+      </form>
+    </div>
+    
+    <!-- Especialidad como formulario separado, igual que los otros módulos -->
+    <div *ngIf="selectedTab === 'especialidad'" class="form-container">
+      <app-specialty-create></app-specialty-create>
+    </div>
+  </div>
+</div>
