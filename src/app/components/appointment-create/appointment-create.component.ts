@@ -52,6 +52,12 @@ export class AppointmentCreateComponent implements OnInit {
     this.appointmentForm?.get('doctor')?.valueChanges.subscribe(() => {
       this.updateAvailableTimes();
     });
+    // También recalcular disponibilidad cuando cambie la hora seleccionada
+    this.appointmentForm?.get('time')?.valueChanges.subscribe(() => {
+      // Si la hora seleccionada no está en las disponibles, marcar no disponible
+      const t = this.appointmentForm?.get('time')?.value;
+      this.isDoctorAvailable = !t || this.availableTimes.includes(t);
+    });
     // Subscribe to specialty changes via valueChanges (avoids timing issue with (change) event)
     this.appointmentForm?.get('specialty')?.valueChanges.subscribe((val) => {
       this.onSpecialtyChange(val);
@@ -255,14 +261,19 @@ export class AppointmentCreateComponent implements OnInit {
           console.log('[updateAvailableTimes] Horas ocupadas:', ocupadas);
           this.availableTimes = this.allTimes.filter(t => !ocupadas.includes(t));
           console.log('[updateAvailableTimes] Horas disponibles:', this.availableTimes);
+          // Actualizar flag de disponibilidad con base en la hora actual seleccionada
+          const selected = this.appointmentForm.get('time')?.value;
+          this.isDoctorAvailable = !selected || this.availableTimes.includes(selected);
         },
         error => {
           console.error('Error obteniendo citas del doctor:', error);
           this.availableTimes = [...this.allTimes];
+          this.isDoctorAvailable = true;
         }
       );
     } else {
       this.availableTimes = [...this.allTimes];
+      this.isDoctorAvailable = true;
     }
   }
 
@@ -312,5 +323,14 @@ export class AppointmentCreateComponent implements OnInit {
 
   generateAppointmentTicket(appointment: any): void {
     this.pdfGenerator.generateAppointmentTicket(appointment);
+  }
+
+  // Habilita el botón sólo cuando los campos clave son válidos
+  get canSubmit(): boolean {
+    const specValid = this.appointmentForm.get('specialty')?.valid;
+    const docValid = this.appointmentForm.get('doctor')?.valid;
+    const dateValid = this.appointmentForm.get('date')?.valid;
+    const timeValid = this.appointmentForm.get('time')?.valid;
+    return !!(specValid && docValid && dateValid && timeValid && this.isDoctorAvailable);
   }
 }
