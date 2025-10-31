@@ -158,6 +158,17 @@ export class AppointmentCreateComponent implements OnInit {
             Apellidos: d.Apellidos || d.apellidos || d.lastName || d.Apellido || '',
             Colegiado: d.Colegiado || d.colegiado || d.idDoctor || d.id || d.ID || null,
           }));
+          // Eliminar duplicados por Colegiado en caso de repeticiones en la relación
+          const seen = new Set<any>();
+          this.doctors = this.doctors.filter((d: any) => {
+            const key = d.Colegiado ?? d.colegiado ?? d.id ?? d.idDoctor;
+            if (!key) return true;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          });
+          // Ordenar por nombre y apellido para mejor UX
+          this.doctors.sort((a: any, b: any) => `${a.Nombres} ${a.Apellidos}`.localeCompare(`${b.Nombres} ${b.Apellidos}`));
           // Flag for empty state
           this.noDoctorsForSpecialty = this.doctors.length === 0;
 
