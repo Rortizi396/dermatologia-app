@@ -64,8 +64,8 @@ export class AppointmentCreateComponent implements OnInit {
       patientLastNames: [{ value: '', disabled: true }, Validators.required],
       patientPhone: [{ value: '', disabled: true }, Validators.required],
       patientEmail: [{ value: '', disabled: true }, [Validators.required, Validators.email]],
-      specialty: ['', Validators.required],
-      doctor: ['', Validators.required],
+      specialty: [null, Validators.required],
+      doctor: [null, Validators.required],
       date: ['', Validators.required],
       time: ['', Validators.required],
       observations: ['']

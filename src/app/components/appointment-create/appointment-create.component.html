@@ -56,7 +56,7 @@
           <div class="col-md-6">
             <div class="form-group">
               <label>Especialidad</label>
-              <select class="form-control" formControlName="specialty">
+              <select class="form-control" formControlName="specialty" (change)="onSpecialtyChange($event.target.value)">
                 <option [ngValue]="null">Seleccione una especialidad</option>
                 <option *ngFor="let specialty of specialties" [ngValue]="specialty.idEspecialidades">
                   {{specialty.Nombre}}
@@ -69,7 +69,7 @@
               <label>Doctor</label>
               <select class="form-control" formControlName="doctor" [disabled]="!appointmentForm.get('specialty')?.value || loadingDoctors">
                 <option value="">Seleccione un doctor</option>
-                <option *ngFor="let doctor of doctors" [value]="doctor.Colegiado">
+                <option *ngFor="let doctor of doctors" [ngValue]="doctor.Colegiado">
                   Dr. {{doctor.Nombres}} {{doctor.Apellidos}}
                 </option>
               </select>
