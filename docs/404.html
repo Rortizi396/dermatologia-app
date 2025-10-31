@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en" data-beasties-container>
+<head>
+  <meta charset="utf-8">
+  <title>DermatologiaApp</title>
+  <base href="/dermatologia-app/">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+  <!-- Enforce hash routing on GitHub Pages: if path has no hash, rewrite to #/path -->
+  <script>
+    (function(){
+      try {
+        var base = (document.querySelector('base') && document.querySelector('base').getAttribute('href')) || '/';
+        var path = window.location.pathname || '/';
+        // Only act when served under a subpath (e.g. /dermatologia-app/) and no hash is present
+        if (base !== '/' && path.indexOf(base) === 0 && !window.location.hash) {
+          var rest = path.substring(base.length);
+          // Avoid redirect loop on root or index.html
+          if (rest && rest !== '' && rest !== 'index.html') {
+            var newUrl = base + '#/' + rest.replace(/^\/+/, '');
+            if (window.location.search) newUrl += window.location.search;
+            window.location.replace(newUrl);
+          }
+        }
+      } catch(e) { /* ignore */ }
+    })();
+  </script>
+  <!-- Runtime configuration: set API base URL for environments like GitHub Pages -->
+  <script>
+    window.__env = window.__env || {};
+  // Configura aquí la URL pública de tu backend. En despliegues públicos
+  // (p. ej. GitHub Pages) preferimos incluir el sufijo /api porque
+  // el backend monta sus rutas bajo /api (ej: /api/auth/login).
+  // He puesto la URL pública del backend que me indicaste y añadí /api.
+  // Si prefieres otra forma, el script `scripts/write-env.js` puede
+  // sobrescribir este valor durante el pipeline de CI/CD.
+  window.__env.apiUrl = window.__env.apiUrl || 'https://dermatologia-backend-th09.onrender.com/api';
+  // Runtime shim: rewrite client-side requests to '/api/...' so that components
+  // using relative '/api' endpoints still work when the frontend is served from
+  // a different origin (e.g. GitHub Pages). This avoids editing many components.
+  (function(){
+    try {
+      var env = window.__env || {};
+      var apiUrl = (env.apiUrl || '/api').toString();
+      // Derive backend root (remove trailing /api if present)
+      var backendRoot = apiUrl.replace(/\/api\/?$/i, '');
+
+      // Patch fetch
+      if (window.fetch) {
+        var _origFetch = window.fetch.bind(window);
+        window.fetch = function(input, init){
+          try {
+            if (typeof input === 'string' && input.indexOf('/api') === 0) {
+              input = backendRoot + input;
+            } else if (input && input.url && typeof input.url === 'string' && input.url.indexOf('/api') === 0) {
+              input = new Request(backendRoot + input.url, input);
+            }
+          } catch (e) { /* swallow */ }
+          return _origFetch(input, init);
+        };
+      }
+
+      // Patch XMLHttpRequest.open
+      var _origXhrOpen = XMLHttpRequest.prototype.open;
+      XMLHttpRequest.prototype.open = function(method, url){
+        try {
+          if (typeof url === 'string' && url.indexOf('/api') === 0) {
+            arguments[1] = backendRoot + url;
+            url = arguments[1];
+          }
+        } catch(e) { /* swallow */ }
+        return _origXhrOpen.apply(this, arguments);
+      };
+    } catch(ex) {
+      console.warn('runtime api rewrite shim failed', ex);
+    }
+  })();
+  </script>
+  <!-- Chart.js CDN for dashboards -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Font Awesome for icons used in UI -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-pap6V...REDACTED..." crossorigin="anonymous" referrerpolicy="no-referrer">
+<style>:root{--verde-claro:#a8e6cf;--verde-medio:#56c596;--verde-oscuro:#379683;--gris-claro:#f7f7f7;--gris-medio:#e0e0e0;--texto:#333}:root{--primary-green:#4CAF50;--light-green:#8BC34A;--lighter-green:#C8E6C9;--dark-green:#388E3C;--accent-teal:#26A69A;--text-dark:#333333;--text-light:#666666;--background-light:#F8F9FA;--white:#FFFFFF;--success:#28a745;--warning:#ffc107;--danger:#dc3545;--info:#17a2b8}*{margin:0;padding:0;box-sizing:border-box}body{font-family:Segoe UI,Tahoma,Geneva,Verdana,sans-serif;background:linear-gradient(135deg,var(--lighter-green) 0%,var(--white) 100%);min-height:100vh;color:var(--text-dark)}:root{--derma-bg:#fbfcfd;--derma-accent:#6ab6a9;--derma-accent-dark:#2f8f7f;--derma-muted:#6b7c86;--card-bg:#ffffff;--max-width-hero:1100px}</style><link rel="stylesheet" href="styles.88f28129d501d0b3.css" media="print" onload="this.media='all'"><noscript><link rel="stylesheet" href="styles.88f28129d501d0b3.css"></noscript></head>
+<body>
+  <app-root></app-root>
+<script src="runtime.4d694984e164d40c.js" type="module"></script><script src="polyfills.ed58b9237ace9f93.js" type="module"></script><script src="main.3c0f9375366da603.js" type="module"></script></body>
+</html>

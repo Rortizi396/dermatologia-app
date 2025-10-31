@@ -56,7 +56,7 @@
           <div class="col-md-6">
             <div class="form-group">
               <label>Especialidad</label>
-              <select class="form-control" formControlName="specialty" (change)="onSpecialtyChange($event.target.value)">
+              <select class="form-control" formControlName="specialty" (change)="onSpecialtyChange($any($event.target).value)">
                 <option [ngValue]="null">Seleccione una especialidad</option>
                 <option *ngFor="let specialty of specialties" [ngValue]="specialty.idEspecialidades">
                   {{specialty.Nombre}}
