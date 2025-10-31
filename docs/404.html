@@ -6,6 +6,25 @@
   <base href="/dermatologia-app/">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+  <!-- Enforce hash routing on GitHub Pages: if path has no hash, rewrite to #/path -->
+  <script>
+    (function(){
+      try {
+        var base = (document.querySelector('base') && document.querySelector('base').getAttribute('href')) || '/';
+        var path = window.location.pathname || '/';
+        // Only act when served under a subpath (e.g. /dermatologia-app/) and no hash is present
+        if (base !== '/' && path.indexOf(base) === 0 && !window.location.hash) {
+          var rest = path.substring(base.length);
+          // Avoid redirect loop on root or index.html
+          if (rest && rest !== '' && rest !== 'index.html') {
+            var newUrl = base + '#/' + rest.replace(/^\/+/, '');
+            if (window.location.search) newUrl += window.location.search;
+            window.location.replace(newUrl);
+          }
+        }
+      } catch(e) { /* ignore */ }
+    })();
+  </script>
   <!-- Runtime configuration: set API base URL for environments like GitHub Pages -->
   <script>
     window.__env = window.__env || {};
