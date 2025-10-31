@@ -62,7 +62,7 @@ export class AppointmentCreateComponent implements OnInit {
       this.isDoctorAvailable = !t || this.availableTimes.includes(t);
       this.recalcCanSubmit();
     });
-    // Subscribe to specialty changes via valueChanges (avoids timing issue with (change) event)
+    // Subscribe to specialty changes via valueChanges only (no template (change) to avoid duplicate/null events)
     this.appointmentForm?.get('specialty')?.valueChanges.subscribe((val) => {
       this.onSpecialtyChange(val);
       this.recalcCanSubmit();
