@@ -44,3 +44,14 @@ try {
 } catch (e) {
   console.warn('Could not create 404.html fallback:', e.message);
 }
+
+// Ensure GitHub Pages does not run Jekyll on the docs folder
+try {
+  const nojekyllPath = path.resolve(process.cwd(), dist, '.nojekyll');
+  if (!fs.existsSync(nojekyllPath)) {
+    fs.writeFileSync(nojekyllPath, '', 'utf8');
+    console.log('Created', nojekyllPath);
+  }
+} catch (e) {
+  console.warn('Could not create .nojekyll file:', e.message);
+}
