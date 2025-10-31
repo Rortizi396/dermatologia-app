@@ -62,6 +62,24 @@ export class AppointmentCreateComponent implements OnInit {
     this.appointmentForm?.get('specialty')?.valueChanges.subscribe((val) => {
       this.onSpecialtyChange(val);
     });
+
+    // Exponer util de depuración en consola (window.apptDbg())
+    (window as any).apptDbg = () => {
+      const f = this.appointmentForm;
+      return {
+        specialty: f.get('specialty')?.value,
+        specialtyValid: f.get('specialty')?.valid,
+        doctor: f.get('doctor')?.value,
+        doctorValid: f.get('doctor')?.valid,
+        date: f.get('date')?.value,
+        dateValid: f.get('date')?.valid,
+        time: f.get('time')?.value,
+        timeValid: f.get('time')?.valid,
+        isDoctorAvailable: this.isDoctorAvailable,
+        availableTimes: this.availableTimes,
+        canSubmit: this.canSubmit,
+      };
+    };
   }
 
   initForm(): void {
