@@ -1,9 +1,9 @@
-name: Build and deploy to GitHub Pages
+name: DISABLED - Build and deploy to GitHub Pages (using gh-pages branch)
 
+# This workflow is intentionally disabled because the project now deploys GitHub Pages
+# from the main/docs folder (Settings > Pages > Deploy from a branch).
+# You can still trigger it manually if needed.
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
 
 permissions:
@@ -11,6 +11,7 @@ permissions:
 
 jobs:
   build:
+    if: ${{ false }} # disabled — using Pages: branch main/docs
     name: Build and deploy
     runs-on: ubuntu-latest
 

@@ -1,12 +1,12 @@
-name: Build and deploy to GitHub Pages
+name: DISABLED - Build and deploy to GitHub Pages (gh-pages branch)
 
+# Disabled because we deploy via Pages from main/docs now.
 on:
-  push:
-    branches: [ main, ci/test-endpoints ]
   workflow_dispatch: {}
 
 jobs:
   build-and-deploy:
+    if: ${{ false }} # disabled — using Pages: branch main/docs
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
