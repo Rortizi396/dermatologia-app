@@ -51,8 +51,16 @@ const PORT = process.env.PORT ? Number(process.env.PORT) : 3000;
 // typical GitHub Pages origin used for frontend hosting so the publicly
 // deployed UI can call this API without editing Render env vars locally.
 // Use '*' to allow all origins (not recommended for production).
-const corsOriginsEnv = process.env.CORS_ORIGINS || 'http://localhost:4200,https://rortizi396.github.io';
+const corsOriginsEnv = process.env.CORS_ORIGINS || 'http://localhost:4200,https://rortizi396.github.io,https://*.github.io';
 const allowedOrigins = corsOriginsEnv.split(',').map(o => o.trim()).filter(Boolean);
+// Precompile wildcard patterns (e.g., https://*.github.io)
+const wildcardPatterns = allowedOrigins
+  .filter(o => o.includes('*'))
+  .map(pat => {
+    // Escape regex special chars except '*', then replace '*' with '.*'
+    const esc = pat.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*');
+    return new RegExp('^' + esc + '$');
+  });
 
 // Build a reusable CORS options object so we can apply it to both the
 // regular middleware and the preflight (OPTIONS) handler. We explicitly
@@ -63,6 +71,12 @@ const corsOptions = {
     // Allow non-browser (server-to-server) requests with no origin
     if (!origin) return callback(null, true);
     if (allowedOrigins.includes('*') || allowedOrigins.includes(origin)) return callback(null, true);
+    // Wildcard pattern matching (e.g., https://*.github.io)
+    if (wildcardPatterns.length > 0) {
+      for (const re of wildcardPatterns) {
+        if (re.test(origin)) return callback(null, true);
+      }
+    }
     console.warn('[CORS] Rejected origin:', origin);
     return callback(new Error('CORS policy: origin not allowed'), false);
   },
