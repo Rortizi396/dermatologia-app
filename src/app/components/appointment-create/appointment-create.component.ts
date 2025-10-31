@@ -169,9 +169,17 @@ export class AppointmentCreateComponent implements OnInit {
 
   onSpecialtyChange(specialtyIdParam?: any): void {
     const raw = typeof specialtyIdParam !== 'undefined' ? specialtyIdParam : this.appointmentForm.get('specialty')?.value;
-    // Coerce possible string values (e.g., '1', 'null') into a safe numeric ID
-    const specialtyId = (typeof raw === 'number') ? raw : (raw === null || typeof raw === 'undefined' ? null : parseInt(raw, 10));
-    console.log('[Especialidad Change] ID:', specialtyId);
+    // Coerce possible values (number, string, null) into a safe numeric ID, treating empty string or NaN as null
+    let specialtyId: number | null = null;
+    if (typeof raw === 'number') {
+      specialtyId = Number.isFinite(raw) ? raw : null;
+    } else if (typeof raw === 'string') {
+      const n = parseInt(raw, 10);
+      specialtyId = Number.isFinite(n) && n > 0 ? n : null;
+    } else {
+      specialtyId = null;
+    }
+    console.log('[Especialidad Change] raw:', raw, 'ID:', specialtyId);
     if (Number.isFinite(specialtyId) && (specialtyId as number) > 0) {
       this.loadingDoctors = true;
       // Reset current doctor selection and available times when specialty changes

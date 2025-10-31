@@ -57,8 +57,8 @@
             <div class="form-group">
               <label>Especialidad</label>
               <select class="form-control" formControlName="specialty">
-                <option value="">Seleccione una especialidad</option>
-                <option *ngFor="let specialty of specialties" [value]="specialty.idEspecialidades">
+                <option [ngValue]="null">Seleccione una especialidad</option>
+                <option *ngFor="let specialty of specialties" [ngValue]="specialty.idEspecialidades">
                   {{specialty.Nombre}}
                 </option>
               </select>
