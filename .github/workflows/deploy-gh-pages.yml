@@ -1,54 +1,57 @@
-name: DISABLED - Build and deploy to GitHub Pages (using gh-pages branch)
+name: Deploy to GitHub Pages
 
-# This workflow is intentionally disabled because the project now deploys GitHub Pages
-# from the main/docs folder (Settings > Pages > Deploy from a branch).
-# You can still trigger it manually if needed.
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
 
 jobs:
   build:
-    if: ${{ false }} # disabled — using Pages: branch main/docs
-    name: Build and deploy
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: Use Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Cache npm
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.npm
-            node_modules
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
+          node-version: 20
+          cache: npm
+          cache-dependency-path: dermatologia-app/package-lock.json
 
       - name: Install dependencies
+        working-directory: dermatologia-app
         run: npm ci
 
-      - name: Build (production for Pages)
-        run: npm run build:prod:pages
+      - name: Build Angular app for Pages (docs)
+        working-directory: dermatologia-app
+        run: npm run build:pages:docs
 
-      - name: Inject backend API URL into built index.html
-        # Set repository secret BACKEND_API_URL, e.g. https://dermatologia-backend-th09.onrender.com
-        run: node ./scripts/write-env.js --dist=dist/dermatologia-app --apiUrl=${{ secrets.BACKEND_API_URL }}
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
 
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v5
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist/dermatologia-app
+          path: dermatologia-app/docs
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
