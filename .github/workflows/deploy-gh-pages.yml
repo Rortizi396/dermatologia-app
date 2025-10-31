@@ -1,9 +1,10 @@
-name: Deploy to GitHub Pages
+name: DISABLED - Deploy to GitHub Pages (use branch-based Pages)
+
+# Esta acción está deshabilitada porque la cuenta tiene Actions bloqueado por billing
+# y actualmente estamos publicando con GitHub Pages desde main/docs directamente.
+# Si deseas reactivarla en el futuro, restaura los triggers de `push` y quita los `if: false`.
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
 
 permissions:
@@ -17,6 +18,7 @@ concurrency:
 
 jobs:
   build:
+    if: ${{ false }} # disabled
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -46,6 +48,7 @@ jobs:
           path: dermatologia-app/docs
 
   deploy:
+    if: ${{ false }} # disabled
     needs: build
     runs-on: ubuntu-latest
     environment:
