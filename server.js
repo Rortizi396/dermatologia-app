@@ -1179,10 +1179,10 @@ app.get('/api/users', (req, res) => {
   // Devuelve todos los usuarios (tanto activos como inactivos).
   // Intentar leer Estado; si la columna no existe (error de campo), caer a Activo como Estado.
   const tryQueries = [
-    // Primer intento: usar columna Estado si existe
-    { sql: "SELECT idUsuarios AS id, correo, Tipo, Nombres, Apellidos, Estado FROM usuarios" },
+    // Primer intento: usar columna Estado si existe (sin Nombres/Apellidos, pues muchos esquemas no los tienen en 'usuarios')
+    { sql: "SELECT idUsuarios AS id, correo, Tipo, Estado FROM usuarios" },
     // Segundo intento: mapear Activo como Estado (muchos esquemas usan Activo en Usuarios)
-    { sql: "SELECT idUsuarios AS id, correo, Tipo, Nombres, Apellidos, Activo AS Estado FROM usuarios" }
+    { sql: "SELECT idUsuarios AS id, correo, Tipo, Activo AS Estado FROM usuarios" }
   ];
 
   const run = (i = 0) => {
