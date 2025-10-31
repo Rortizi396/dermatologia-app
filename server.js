@@ -1243,6 +1243,38 @@ app.get('/api/users', (req, res) => {
   run(0);
 });
 
+// Get current user's profile using the Bearer token (email in JWT)
+app.get('/api/users/profile', authenticateToken, (req, res) => {
+  try {
+    const decoded = req.user || {};
+    const email = (decoded.email || decoded.correo || '').toString();
+    if (!email) {
+      return res.status(400).json({ success: false, message: 'Token sin email' });
+    }
+    const sql = 'SELECT idUsuarios, correo, Tipo, Nombres, Apellidos, COALESCE(Estado, Activo) AS Estado FROM Usuarios WHERE correo = ? LIMIT 1';
+    db.query(sql, [email], (err, rows) => {
+      if (err) return res.status(500).json({ success: false, message: 'Error de servidor', error: err });
+      if (!rows || rows.length === 0) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+      const u = rows[0] || {};
+      const tipoRaw = (u.Tipo || '').toString().toLowerCase();
+      const tipo = tipoRaw === 'paciente' || tipoRaw === 'doctor' || tipoRaw === 'secretaria' || tipoRaw === 'administrador' ? tipoRaw : tipoRaw;
+      const activoVal = (u.Estado || '').toString();
+      const activo = activoVal ? (activoVal.toString().toUpperCase() !== 'NO') : true;
+      const mapped = {
+        id: u.idUsuarios,
+        correo: u.correo,
+        tipo,
+        nombres: u.Nombres || '',
+        apellidos: u.Apellidos || '',
+        activo
+      };
+      return res.json({ success: true, message: 'Perfil obtenido', data: mapped });
+    });
+  } catch (ex) {
+    return res.status(500).json({ success: false, message: 'Error inesperado', error: ex && ex.message ? ex.message : ex });
+  }
+});
+
 // Obtener datos básicos de Usuarios por correo (para completar nombres/apellidos en frontend)
 app.get('/api/usuarios/by-email/:correo', (req, res) => {
   const correo = req.params.correo;

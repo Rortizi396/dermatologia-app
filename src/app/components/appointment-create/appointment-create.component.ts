@@ -129,11 +129,13 @@ export class AppointmentCreateComponent implements OnInit {
   }
 
   onSpecialtyChange(specialtyIdParam?: any): void {
-    const specialtyId = typeof specialtyIdParam !== 'undefined' ? specialtyIdParam : this.appointmentForm.get('specialty')?.value;
+    const raw = typeof specialtyIdParam !== 'undefined' ? specialtyIdParam : this.appointmentForm.get('specialty')?.value;
+    // Coerce possible string values (e.g., '1', 'null') into a safe numeric ID
+    const specialtyId = (typeof raw === 'number') ? raw : (raw === null || typeof raw === 'undefined' ? null : parseInt(raw, 10));
     console.log('[Especialidad Change] ID:', specialtyId);
-    if (specialtyId) {
+    if (Number.isFinite(specialtyId) && (specialtyId as number) > 0) {
       this.loadingDoctors = true;
-      this.appointmentService.getDoctorsBySpecialty(specialtyId).subscribe(
+      this.appointmentService.getDoctorsBySpecialty(specialtyId as number).subscribe(
         (data: any) => {
           console.log('[Especialidad Change] Respuesta doctores:', data);
           if (Array.isArray(data)) {
@@ -152,6 +154,10 @@ export class AppointmentCreateComponent implements OnInit {
           this.loadingDoctors = false;
         }
       );
+    } else {
+      // Valor inválido o no seleccionado: limpiar lista de doctores
+      this.doctors = [];
+      this.loadingDoctors = false;
     }
   }
 
