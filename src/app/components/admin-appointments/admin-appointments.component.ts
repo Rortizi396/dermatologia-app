@@ -9,7 +9,7 @@ import { ToastService } from '../../services/toast.service';
 @Component({
   selector: 'app-admin-appointments',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, NgIf, NgForOf],
   templateUrl: './admin-appointments.component.html',
   styleUrls: ['./admin-appointments.component.css']
 })
@@ -30,6 +30,13 @@ export class AdminAppointmentsComponent implements OnInit {
 
   page = 1;
   limit = 50;
+
+  // Paginación UI por sección
+  uiPageHoy = 1; uiLimitHoy = 10;
+  uiPageProx = 1; uiLimitProx = 10;
+  uiPagePend = 1; uiLimitPend = 10;
+  uiPageConf = 1; uiLimitConf = 10;
+  uiPageCanc = 1; uiLimitCanc = 10;
 
   actionModalOpen = false;
   actionType: 'confirm' | 'cancel' | null = null;
@@ -59,6 +66,7 @@ export class AdminAppointmentsComponent implements OnInit {
   this.citasHoy = (r?.data || []).map((c:any) => normalizeAppointment(c));
   this.fetchMissingDates(this.citasHoy);
         this.totalHoy = r?.meta?.total ?? this.citasHoy.length;
+        this.clampPage('hoy');
       },
       error: (e) => console.error('loadToday', e)
     });
@@ -72,6 +80,7 @@ export class AdminAppointmentsComponent implements OnInit {
   this.citasProximas = (r?.data || []).map((c:any) => normalizeAppointment(c));
   this.fetchMissingDates(this.citasProximas);
         this.totalProx = r?.meta?.total ?? this.citasProximas.length;
+        this.clampPage('prox');
       },
       error: (e) => console.error('loadProximas', e)
     });
@@ -82,9 +91,9 @@ export class AdminAppointmentsComponent implements OnInit {
       next: (r:any) => {
   const data = (r?.data || []).map((c:any) => normalizeAppointment(c));
   this.fetchMissingDates(data);
-        if(status === 'pendiente'){ this.citasPendientes = data; this.totalPendientes = r?.meta?.total ?? data.length; }
-        if(status === 'confirmada'){ this.citasConfirmadas = data; this.totalConfirmadas = r?.meta?.total ?? data.length; }
-        if(status === 'cancelada'){ this.citasCanceladas = data; this.totalCanceladas = r?.meta?.total ?? data.length; }
+        if(status === 'pendiente'){ this.citasPendientes = data; this.totalPendientes = r?.meta?.total ?? data.length; this.clampPage('pend'); }
+        if(status === 'confirmada'){ this.citasConfirmadas = data; this.totalConfirmadas = r?.meta?.total ?? data.length; this.clampPage('conf'); }
+        if(status === 'cancelada'){ this.citasCanceladas = data; this.totalCanceladas = r?.meta?.total ?? data.length; this.clampPage('canc'); }
       },
       error: (e) => console.error('loadByStatus', status, e)
     });
@@ -181,6 +190,84 @@ export class AdminAppointmentsComponent implements OnInit {
     return 'Pendiente';
   }
 
+  getStatusClass(c:any){
+    if(this.isConfirmada(c)) return 'status-confirmada';
+    if(this.isCancelada(c)) return 'status-cancelada';
+    return 'status-pendiente';
+  }
+
+  // Paginación UI (cliente)
+  private listLength(section: 'hoy'|'prox'|'pend'|'conf'|'canc'){
+    switch(section){
+      case 'hoy': return this.citasHoy.length;
+      case 'prox': return this.citasProximas.length;
+      case 'pend': return this.citasPendientes.length;
+      case 'conf': return this.citasConfirmadas.length;
+      case 'canc': return this.citasCanceladas.length;
+    }
+  }
+  getTotalPages(section: 'hoy'|'prox'|'pend'|'conf'|'canc'){
+    const limit = this.getUiLimit(section);
+    const len = this.listLength(section);
+    return Math.max(1, Math.ceil((len || 0) / (limit || 1)));
+  }
+  private getUiLimit(section: 'hoy'|'prox'|'pend'|'conf'|'canc'){
+    switch(section){
+      case 'hoy': return this.uiLimitHoy;
+      case 'prox': return this.uiLimitProx;
+      case 'pend': return this.uiLimitPend;
+      case 'conf': return this.uiLimitConf;
+      case 'canc': return this.uiLimitCanc;
+    }
+  }
+  private getUiPage(section: 'hoy'|'prox'|'pend'|'conf'|'canc'){
+    switch(section){
+      case 'hoy': return this.uiPageHoy;
+      case 'prox': return this.uiPageProx;
+      case 'pend': return this.uiPagePend;
+      case 'conf': return this.uiPageConf;
+      case 'canc': return this.uiPageCanc;
+    }
+  }
+  private setUiPage(section: 'hoy'|'prox'|'pend'|'conf'|'canc', page: number){
+    switch(section){
+      case 'hoy': this.uiPageHoy = page; break;
+      case 'prox': this.uiPageProx = page; break;
+      case 'pend': this.uiPagePend = page; break;
+      case 'conf': this.uiPageConf = page; break;
+      case 'canc': this.uiPageCanc = page; break;
+    }
+  }
+  private setUiLimit(section: 'hoy'|'prox'|'pend'|'conf'|'canc', limit: number){
+    switch(section){
+      case 'hoy': this.uiLimitHoy = limit; break;
+      case 'prox': this.uiLimitProx = limit; break;
+      case 'pend': this.uiLimitPend = limit; break;
+      case 'conf': this.uiLimitConf = limit; break;
+      case 'canc': this.uiLimitCanc = limit; break;
+    }
+  }
+  clampPage(section: 'hoy'|'prox'|'pend'|'conf'|'canc'){
+    const totalPages = this.getTotalPages(section);
+    const curr = this.getUiPage(section) || 1;
+    if(curr > totalPages) this.setUiPage(section, totalPages);
+    if(curr < 1) this.setUiPage(section, 1);
+  }
+  prevPage(section: 'hoy'|'prox'|'pend'|'conf'|'canc'){
+    const curr = this.getUiPage(section) || 1;
+    if(curr > 1) this.setUiPage(section, curr - 1);
+  }
+  nextPage(section: 'hoy'|'prox'|'pend'|'conf'|'canc'){
+    const curr = this.getUiPage(section) || 1;
+    const total = this.getTotalPages(section);
+    if(curr < total) this.setUiPage(section, curr + 1);
+  }
+  changeLimit(section: 'hoy'|'prox'|'pend'|'conf'|'canc', val: any){
+    const n = Number(val) || 10;
+    this.setUiLimit(section, n);
+    this.setUiPage(section, 1);
+  }
+
   openActionModal(type: 'confirm' | 'cancel', target: any){
     this.actionType = type;
     // If fecha/hora are missing but we can resolve an ID, fetch full appointment details first
@@ -239,4 +326,6 @@ export class AdminAppointmentsComponent implements OnInit {
       error: (e:any) => { console.error('performAction', e); this.toast.show('Error al procesar la acción: ' + (e?.error?.message || e?.message || e.statusText || 'Error'), 'error', 5000); this.actionLoading = false; }
     });
   }
+  // Utilidad para plantillas: mínimo entre dos números
+  min(a:number, b:number){ return Math.min(a,b); }
   }
