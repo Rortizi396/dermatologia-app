@@ -29,6 +29,7 @@ export class AppointmentCreateComponent implements OnInit {
   noDoctorsForSpecialty: boolean = false;
   // UX flags
   actionLoading: boolean = false;
+  canSubmitFlag: boolean = false;
 
   constructor(
     private fb: FormBuilder,
@@ -48,19 +49,23 @@ export class AppointmentCreateComponent implements OnInit {
     // Suscribirse a cambios en fecha y hora para verificar disponibilidad
     this.appointmentForm?.get('date')?.valueChanges.subscribe(() => {
       this.updateAvailableTimes();
+      this.recalcCanSubmit();
     });
     this.appointmentForm?.get('doctor')?.valueChanges.subscribe(() => {
       this.updateAvailableTimes();
+      this.recalcCanSubmit();
     });
     // También recalcular disponibilidad cuando cambie la hora seleccionada
     this.appointmentForm?.get('time')?.valueChanges.subscribe(() => {
       // Si la hora seleccionada no está en las disponibles, marcar no disponible
       const t = this.appointmentForm?.get('time')?.value;
       this.isDoctorAvailable = !t || this.availableTimes.includes(t);
+      this.recalcCanSubmit();
     });
     // Subscribe to specialty changes via valueChanges (avoids timing issue with (change) event)
     this.appointmentForm?.get('specialty')?.valueChanges.subscribe((val) => {
       this.onSpecialtyChange(val);
+      this.recalcCanSubmit();
     });
 
     // Exponer util de depuración en consola (window.apptDbg())
@@ -78,8 +83,17 @@ export class AppointmentCreateComponent implements OnInit {
         isDoctorAvailable: this.isDoctorAvailable,
         availableTimes: this.availableTimes,
         canSubmit: this.canSubmit,
+        canSubmitFlag: this.canSubmitFlag,
       };
     };
+  }
+
+  private recalcCanSubmit(): void {
+    const specValid = this.appointmentForm.get('specialty')?.valid;
+    const docValid = this.appointmentForm.get('doctor')?.valid;
+    const dateValid = this.appointmentForm.get('date')?.valid;
+    const timeValid = this.appointmentForm.get('time')?.valid;
+    this.canSubmitFlag = !!(specValid && docValid && dateValid && timeValid && this.isDoctorAvailable);
   }
 
   initForm(): void {
@@ -282,16 +296,19 @@ export class AppointmentCreateComponent implements OnInit {
           // Actualizar flag de disponibilidad con base en la hora actual seleccionada
           const selected = this.appointmentForm.get('time')?.value;
           this.isDoctorAvailable = !selected || this.availableTimes.includes(selected);
+          this.recalcCanSubmit();
         },
         error => {
           console.error('Error obteniendo citas del doctor:', error);
           this.availableTimes = [...this.allTimes];
           this.isDoctorAvailable = true;
+          this.recalcCanSubmit();
         }
       );
     } else {
       this.availableTimes = [...this.allTimes];
       this.isDoctorAvailable = true;
+      this.recalcCanSubmit();
     }
   }
 
