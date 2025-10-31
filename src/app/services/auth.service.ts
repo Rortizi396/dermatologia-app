@@ -36,27 +36,48 @@ export class AuthService {
     console.log('setCurrentUser llamado con:', { user, token });
     if (user && typeof user === 'object' && token && typeof token === 'string') {
     try {
-      // Normalize role field to `tipo` and lowercase it to keep consistency
+      // Normalize role field to `tipo` and lowercase it to keep consistency.
+      // Be permissive: accept `Tipo`, `TIPO`, `type` or `tipo` coming from API.
       try {
-        if ((!user as any).tipo && ((user as any).Tipo || (user as any).TIPO || (user as any).type)) {
-          (user as any).tipo = ((user as any).Tipo || (user as any).TIPO || (user as any).type).toString().toLowerCase();
-        } else if ((user as any).tipo) {
-          (user as any).tipo = String((user as any).tipo).toLowerCase();
+        const asAny = user as any;
+        if (!asAny.tipo && (asAny.Tipo || asAny.TIPO || asAny.type)) {
+          asAny.tipo = (asAny.Tipo || asAny.TIPO || asAny.type).toString().toLowerCase();
+        } else if (asAny.tipo) {
+          asAny.tipo = String(asAny.tipo).toLowerCase();
         }
       } catch (e) {
         console.warn('No se pudo normalizar tipo en setCurrentUser', e);
       }
+
+      // Ensure nombres/apellidos exist so templates don't render `undefined`.
+      try {
+        const asAny = user as any;
+        if (!asAny.nombres && (asAny.Nombres || asAny.name)) {
+          asAny.nombres = asAny.Nombres || asAny.name || '';
+        }
+        if (!asAny.apellidos && (asAny.Apellidos || asAny.lastname || asAny.lastName)) {
+          asAny.apellidos = asAny.Apellidos || asAny.lastname || asAny.lastName || '';
+        }
+        // If still missing, fallback to the email local-part (before @)
+        if (!asAny.nombres && asAny.correo) {
+          asAny.nombres = String(asAny.correo).split('@')[0] || '';
+        }
+      } catch (e) {
+        console.warn('No se pudo normalizar nombres/apellidos en setCurrentUser', e);
+      }
+
       // Guardar en localStorage
       localStorage.setItem('currentUser', JSON.stringify(user));
       localStorage.setItem('token', token);
-      
+
       // Actualizar BehaviorSubject
       this.currentUserSubject.next(user);
-      
+
       console.log('Usuario y token guardados exitosamente');
     } catch (error) {
       console.error('Error al guardar en localStorage:', error);
-      this.handleAuthError();}
+      this.handleAuthError();
+    }
   } else {
     console.error('Error: Intento de guardar usuario o token undefined');
     // Limpiar en caso de error

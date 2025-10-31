@@ -44,10 +44,9 @@ import { adapterFactory } from 'angular-calendar/date-adapters/date-fns';
     PatientDashboardComponent,
     HttpClientModule,
     ReactiveFormsModule,
-    FormsModule,
+      FormsModule,
     RouterModule,
-    CalendarModule.forRoot({ provide: DateAdapter, useFactory: adapterFactory }),
-    
+    CalendarModule.forRoot({ provide: DateAdapter, useFactory: adapterFactory }),  
   ],
   providers: [
     AuthService,

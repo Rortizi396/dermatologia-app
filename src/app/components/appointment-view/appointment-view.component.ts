@@ -3,6 +3,7 @@ import { Component, OnInit } from '@angular/core';
 import { AppointmentService } from '../../services/appointment.service';
 import { PdfGeneratorUtil } from '../../utils/pdf-generator.util';
 import { ToastService } from '../../services/toast.service';
+import { normalizeAppointment } from '../../utils/appointment-normalizer.util';
 
 @Component({
   selector: 'app-appointment-view',
@@ -31,10 +32,10 @@ export class AppointmentViewComponent implements OnInit {
       this.loading = true;
       this.appointmentService.getAppointmentById(this.appointmentId).subscribe(
         (response: any) => {
-          console.log('[searchAppointment] Datos recibidos:', response);
           if (response && response.success && response.appointment) {
-            this.appointment = response.appointment;
-            console.log('[searchAppointment] Valor Confirmado:', this.appointment.Confirmado);
+            const app: any = response.appointment;
+            // normalize the full appointment object (sets .Confirmado and other aliases)
+            this.appointment = normalizeAppointment(app);
             this.found = true;
             this.errorMessage = '';
           } else {

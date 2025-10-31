@@ -1,6 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule, NgIf, NgForOf } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { forkJoin, of } from 'rxjs';
+import { normalizeAppointment } from '../../utils/appointment-normalizer.util';
 import { AppointmentService } from '../../services/appointment.service';
 import { ToastService } from '../../services/toast.service';
 
@@ -29,6 +31,13 @@ export class AdminAppointmentsComponent implements OnInit {
   page = 1;
   limit = 50;
 
+  // Paginación UI por sección
+  uiPageHoy = 1; uiLimitHoy = 10;
+  uiPageProx = 1; uiLimitProx = 10;
+  uiPagePend = 1; uiLimitPend = 10;
+  uiPageConf = 1; uiLimitConf = 10;
+  uiPageCanc = 1; uiLimitCanc = 10;
+
   actionModalOpen = false;
   actionType: 'confirm' | 'cancel' | null = null;
   actionTarget: any = null;
@@ -54,8 +63,10 @@ export class AdminAppointmentsComponent implements OnInit {
     const date = this.toYMD(new Date());
     this.svc.getCitasPaged(1, this.limit, date).subscribe({
       next: (r:any) => {
-        this.citasHoy = (r?.data || []).map((c:any) => this.normalizeAppointment(c));
+  this.citasHoy = (r?.data || []).map((c:any) => normalizeAppointment(c));
+  this.fetchMissingDates(this.citasHoy);
         this.totalHoy = r?.meta?.total ?? this.citasHoy.length;
+        this.clampPage('hoy');
       },
       error: (e) => console.error('loadToday', e)
     });
@@ -66,8 +77,10 @@ export class AdminAppointmentsComponent implements OnInit {
     const end = new Date(); end.setDate(end.getDate() + 7);
     this.svc.getCitasByRangePaged(this.toYMD(start), this.toYMD(end), 1, this.limit).subscribe({
       next: (r:any) => {
-        this.citasProximas = (r?.data || []).map((c:any) => this.normalizeAppointment(c));
+  this.citasProximas = (r?.data || []).map((c:any) => normalizeAppointment(c));
+  this.fetchMissingDates(this.citasProximas);
         this.totalProx = r?.meta?.total ?? this.citasProximas.length;
+        this.clampPage('prox');
       },
       error: (e) => console.error('loadProximas', e)
     });
@@ -76,24 +89,79 @@ export class AdminAppointmentsComponent implements OnInit {
   loadByStatus(status: string){
     this.svc.getCitasByStatusPaged(status, 1, this.limit).subscribe({
       next: (r:any) => {
-        const data = (r?.data || []).map((c:any) => this.normalizeAppointment(c));
-        if(status === 'pendiente'){ this.citasPendientes = data; this.totalPendientes = r?.meta?.total ?? data.length; }
-        if(status === 'confirmada'){ this.citasConfirmadas = data; this.totalConfirmadas = r?.meta?.total ?? data.length; }
-        if(status === 'cancelada'){ this.citasCanceladas = data; this.totalCanceladas = r?.meta?.total ?? data.length; }
+  const data = (r?.data || []).map((c:any) => normalizeAppointment(c));
+  this.fetchMissingDates(data);
+        if(status === 'pendiente'){ this.citasPendientes = data; this.totalPendientes = r?.meta?.total ?? data.length; this.clampPage('pend'); }
+        if(status === 'confirmada'){ this.citasConfirmadas = data; this.totalConfirmadas = r?.meta?.total ?? data.length; this.clampPage('conf'); }
+        if(status === 'cancelada'){ this.citasCanceladas = data; this.totalCanceladas = r?.meta?.total ?? data.length; this.clampPage('canc'); }
       },
       error: (e) => console.error('loadByStatus', status, e)
     });
   }
 
-  // Normalizar objeto de cita para que las plantillas puedan depender de campos comunes
-  private normalizeAppointment(c:any){
-    if(!c || typeof c !== 'object') return c;
-  // asegurar que idCitas exista
-    c.idCitas = c.idCitas ?? c.id ?? c.Id ?? c.CitaId ?? c.citaId ?? null;
-    // normalize number fields used in templates
-    c.numero = c.numero ?? c.CitaNumero ?? c.idCitas ?? c.id ?? c.Id ?? c.nro ?? c.Nro ?? null;
-    c.CitaNumero = c.CitaNumero ?? c.numero;
-    return c;
+  // For any appointments missing fecha/hora in a list, fetch full details by id and merge them.
+  private fetchMissingDates(items: any[]){
+    if(!Array.isArray(items) || items.length === 0) return;
+    // Also fetch when 'numero' is missing in list responses. Some backend list endpoints omit Fecha/Hora or CitaNumero.
+    const needFetch = items.filter(i => {
+      if(!i) return false;
+      const missingFecha = (!i.fecha || i.fecha === '-');
+      const missingNumero = !(i.numero ?? i.CitaNumero ?? i.Cita_Numero ?? i.Cita_Num ?? null);
+      const hasId = !!(i.idCitas || i.idcitas || i.id);
+      return hasId && (missingFecha || missingNumero);
+    });
+  if(needFetch.length === 0) return;
+    const calls = needFetch.map(i => {
+      const id = i.idCitas ?? i.idcitas ?? i.id ?? null;
+      if(!id) return of(null);
+      return this.svc.getAppointmentById(id).pipe(
+        // map to object { id, appointment }
+        // we don't import map here to keep changes minimal; use subscribe later
+      );
+    });
+    // forkJoin only on real observables; replace nulls with of(null)
+    forkJoin(calls).subscribe((results: any[]) => {
+      results.forEach((res, idx) => {
+        if(!res) return;
+        const app = (res && res.appointment) ? res.appointment : res;
+        try {
+          const id = app.idCitas ?? app.idcitas ?? app.id ?? null;
+          const targetIdx = items.findIndex(it => (it.idCitas ?? it.idcitas ?? it.id) == id);
+          if(targetIdx >= 0){
+            const merged = normalizeAppointment({ ...items[targetIdx], ...app });
+            items[targetIdx] = merged;
+          }
+        } catch(e) { console.warn('fetchMissingDates merge failed', e); }
+      });
+    }, (err) => { console.warn('fetchMissingDates failed', err); });
+  }
+
+  // Use shared normalizeAppointment util instead of local implementation
+
+  // Obtener teléfono canónico desde la cita (varios aliases)
+  getPhone(c:any){
+    if(!c) return null;
+    return c.pacienteInfo?.telefono ?? c.patientPhone ?? c.patientphone ?? c.pacienteTelefono ?? c.pacientePhone ?? c.telefono ?? null;
+  }
+
+  // Formatea un teléfono para mostrarlo: elimina caracteres no numéricos y deja una separación antes de los últimos 4 dígitos.
+  formatPhone(raw: any){
+    if(!raw && raw !== 0) return '-';
+    let s = String(raw).trim();
+    if(s.length === 0) return '-';
+    const leadingPlus = s.startsWith('+');
+    // mantener sólo dígitos
+    s = s.replace(/[^0-9]/g, '');
+    if(s.length === 0) return '-';
+    // si tenía +, recuperarlo
+    let digits = s;
+    // separar antes de los últimos 4 dígitos para mejorar legibilidad
+    if(digits.length <= 4) return (leadingPlus ? '+' : '') + digits;
+    const last4 = digits.slice(-4);
+    const rest = digits.slice(0, -4);
+    // poner un espacio entre el resto y los últimos 4
+    const formatted = rest + ' ' + last4;
+    return (leadingPlus ? '+' : '') + formatted;
   }
 
   isPendiente(c: any){
@@ -122,14 +190,130 @@ export class AdminAppointmentsComponent implements OnInit {
     return 'Pendiente';
   }
 
-  openActionModal(type: 'confirm' | 'cancel', target: any){ this.actionType = type; this.actionTarget = target; this.actionModalOpen = true; }
+  getStatusClass(c:any){
+    if(this.isConfirmada(c)) return 'status-confirmada';
+    if(this.isCancelada(c)) return 'status-cancelada';
+    return 'status-pendiente';
+  }
+
+  // Paginación UI (cliente)
+  private listLength(section: 'hoy'|'prox'|'pend'|'conf'|'canc'){
+    switch(section){
+      case 'hoy': return this.citasHoy.length;
+      case 'prox': return this.citasProximas.length;
+      case 'pend': return this.citasPendientes.length;
+      case 'conf': return this.citasConfirmadas.length;
+      case 'canc': return this.citasCanceladas.length;
+    }
+  }
+  getTotalPages(section: 'hoy'|'prox'|'pend'|'conf'|'canc'){
+    const limit = this.getUiLimit(section);
+    const len = this.listLength(section);
+    return Math.max(1, Math.ceil((len || 0) / (limit || 1)));
+  }
+  private getUiLimit(section: 'hoy'|'prox'|'pend'|'conf'|'canc'){
+    switch(section){
+      case 'hoy': return this.uiLimitHoy;
+      case 'prox': return this.uiLimitProx;
+      case 'pend': return this.uiLimitPend;
+      case 'conf': return this.uiLimitConf;
+      case 'canc': return this.uiLimitCanc;
+    }
+  }
+  private getUiPage(section: 'hoy'|'prox'|'pend'|'conf'|'canc'){
+    switch(section){
+      case 'hoy': return this.uiPageHoy;
+      case 'prox': return this.uiPageProx;
+      case 'pend': return this.uiPagePend;
+      case 'conf': return this.uiPageConf;
+      case 'canc': return this.uiPageCanc;
+    }
+  }
+  private setUiPage(section: 'hoy'|'prox'|'pend'|'conf'|'canc', page: number){
+    switch(section){
+      case 'hoy': this.uiPageHoy = page; break;
+      case 'prox': this.uiPageProx = page; break;
+      case 'pend': this.uiPagePend = page; break;
+      case 'conf': this.uiPageConf = page; break;
+      case 'canc': this.uiPageCanc = page; break;
+    }
+  }
+  private setUiLimit(section: 'hoy'|'prox'|'pend'|'conf'|'canc', limit: number){
+    switch(section){
+      case 'hoy': this.uiLimitHoy = limit; break;
+      case 'prox': this.uiLimitProx = limit; break;
+      case 'pend': this.uiLimitPend = limit; break;
+      case 'conf': this.uiLimitConf = limit; break;
+      case 'canc': this.uiLimitCanc = limit; break;
+    }
+  }
+  clampPage(section: 'hoy'|'prox'|'pend'|'conf'|'canc'){
+    const totalPages = this.getTotalPages(section);
+    const curr = this.getUiPage(section) || 1;
+    if(curr > totalPages) this.setUiPage(section, totalPages);
+    if(curr < 1) this.setUiPage(section, 1);
+  }
+  prevPage(section: 'hoy'|'prox'|'pend'|'conf'|'canc'){
+    const curr = this.getUiPage(section) || 1;
+    if(curr > 1) this.setUiPage(section, curr - 1);
+  }
+  nextPage(section: 'hoy'|'prox'|'pend'|'conf'|'canc'){
+    const curr = this.getUiPage(section) || 1;
+    const total = this.getTotalPages(section);
+    if(curr < total) this.setUiPage(section, curr + 1);
+  }
+  changeLimit(section: 'hoy'|'prox'|'pend'|'conf'|'canc', val: any){
+    const n = Number(val) || 10;
+    this.setUiLimit(section, n);
+    this.setUiPage(section, 1);
+  }
+
+  openActionModal(type: 'confirm' | 'cancel', target: any){
+    this.actionType = type;
+    // If fecha/hora are missing but we can resolve an ID, fetch full appointment details first
+    const id = target?.idCitas ?? target?.idcitas ?? target?.id ?? target?.Id ?? target?.CitaId ?? target?.citaId ?? null;
+    if (id && (!target?.fecha && !target?.Fecha && !target?.hora && !target?.Hora)) {
+      // show loading in modal placeholder
+      this.actionLoading = true;
+      this.svc.getAppointmentById(id).subscribe({
+        next: (resp: any) => {
+            try {
+              const app = (resp && resp.appointment) ? resp.appointment : resp;
+              // merge fetched data into target
+              const merged = { ...target, ...app };
+              this.actionTarget = normalizeAppointment(merged);
+            } catch (e) {
+              console.warn('Failed to merge appointment details', e);
+              this.actionTarget = normalizeAppointment(target);
+            }
+          this.actionLoading = false;
+          this.actionModalOpen = true;
+        },
+        error: (e) => {
+          console.warn('Failed to fetch full appointment details', e);
+          this.actionLoading = false;
+          this.actionTarget = normalizeAppointment(target);
+          this.actionModalOpen = true;
+        }
+      });
+    } else {
+      this.actionTarget = normalizeAppointment(target);
+      this.actionModalOpen = true;
+    }
+  }
   closeActionModal(){ this.actionModalOpen = false; this.actionType = null; this.actionTarget = null; this.actionLoading = false; }
 
   performAction(){
     if(!this.actionType || !this.actionTarget) return;
     this.actionLoading = true;
-  const id = this.actionTarget.idCitas ?? this.actionTarget.id ?? this.actionTarget.Id ?? this.actionTarget.CitaId ?? this.actionTarget.citaId;
+    const id = this.actionTarget.idCitas ?? this.actionTarget.id ?? this.actionTarget.Id ?? this.actionTarget.CitaId ?? this.actionTarget.citaId;
     if(!id){ this.toast.show('ID de cita no encontrado','error',3000); this.actionLoading = false; return; }
+    // Log the resolved URL for debugging (svc.apiUrl is private, access via indexer as diagnostic)
+    try {
+      // diagnostic: we avoid noisy logs in production
+      // const base = (this.svc as any)['apiUrl'] || (window as any).__env?.apiUrl || '/api';
+      // console.log('[AdminAppointments] calling backend URL:', `${base}/appointments/${id}/${this.actionType === 'confirm' ? 'confirm' : 'cancel'}`);
+    } catch (e) {}
     const obs = this.actionType === 'confirm' ? this.svc.confirmAppointment(id) : this.svc.cancelAppointment(id);
     obs.subscribe({
       next: () => {
@@ -139,7 +323,9 @@ export class AdminAppointmentsComponent implements OnInit {
         this.closeActionModal();
         this.refreshAll();
       },
-      error: (e:any) => { console.error('performAction', e); this.toast.show('Error al procesar la acción','error',3500); this.actionLoading = false; }
+      error: (e:any) => { console.error('performAction', e); this.toast.show('Error al procesar la acción: ' + (e?.error?.message || e?.message || e.statusText || 'Error'), 'error', 5000); this.actionLoading = false; }
     });
   }
+  // Utilidad para plantillas: mínimo entre dos números
+  min(a:number, b:number){ return Math.min(a,b); }
   }

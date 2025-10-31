@@ -1,9 +1,9 @@
 <div class="user-create-panel">
-  <button class="toggle-panels-btn" (click)="showPanels = !showPanels">
-    <span [class.rotate]="showPanels" *ngIf="!showPanels">&#43;</span>
-    <span [class.rotate]="!showPanels" *ngIf="showPanels">&#8722;</span>
+  <button class="toggle-panels-btn" (click)="showPanels = !showPanels" [attr.aria-expanded]="showPanels" aria-controls="user-create-panels">
+    <span class="icon" aria-hidden="true">{{ showPanels ? '−' : '+' }}</span>
+    <span class="toggle-label">{{ showPanels ? 'Ocultar panel' : 'Crear usuario' }}</span>
   </button>
-  <div class="panels" [class.open]="showPanels">
+  <div id="user-create-panels" class="panels" [class.open]="showPanels">
     <div class="tabs">
       <button [class.active]="selectedTab === 'paciente'" (click)="selectTab('paciente')">Paciente</button>
       <button [class.active]="selectedTab === 'doctor'" (click)="selectTab('doctor')">Doctor</button>
@@ -15,6 +15,7 @@
   <div *ngIf="selectedTab === 'paciente'" class="form-container">
       <h2 class="form-title">Crear Paciente</h2>
       <form [formGroup]="pacienteForm" (ngSubmit)="submitPaciente()">
+        <div class="form-grid">
         <div class="form-group">
           <label class="form-label">DPI</label>
           <input type="text" class="form-input" formControlName="dpi">
@@ -39,6 +40,7 @@
           <label class="form-label">Contraseña</label>
           <input type="password" class="form-input" formControlName="password">
         </div>
+        </div>
         <button class="form-button" type="submit" [disabled]="loading">Crear Paciente</button>
         <div *ngIf="error" class="form-error">{{ error }}</div>
         <div *ngIf="success" class="form-success">{{ success }}</div>
@@ -48,6 +50,7 @@
   <div *ngIf="selectedTab === 'doctor'" class="form-container">
       <h2 class="form-title">Crear Doctor</h2>
       <form [formGroup]="doctorForm" (ngSubmit)="submitDoctor()">
+        <div class="form-grid">
         <div class="form-group">
           <label class="form-label">Colegiado</label>
           <input type="text" class="form-input" formControlName="colegiado">
@@ -68,7 +71,7 @@
           <label class="form-label">Correo</label>
           <input type="email" class="form-input" formControlName="correo">
         </div>
-        <div class="form-group">
+        <div class="form-group form-group--full">
           <label class="form-label">Especialidades</label>
           <div class="specialty-checkbox-list">
             <div *ngFor="let specialty of specialties" class="specialty-checkbox-item">
@@ -84,6 +87,7 @@
           <label class="form-label">Contraseña</label>
           <input type="password" class="form-input" formControlName="password">
         </div>
+        </div>
         <button class="form-button" type="submit" [disabled]="loading">Crear Doctor</button>
         <div *ngIf="error" class="form-error">{{ error }}</div>
         <div *ngIf="success" class="form-success">{{ success }}</div>
@@ -93,6 +97,7 @@
   <div *ngIf="selectedTab === 'secretaria'" class="form-container">
       <h2 class="form-title">Crear Secretaria</h2>
       <form [formGroup]="secretariaForm" (ngSubmit)="submitSecretaria()">
+        <div class="form-grid">
         <div class="form-group">
           <label class="form-label">Nombres</label>
           <input type="text" class="form-input" formControlName="nombres">
@@ -113,6 +118,7 @@
           <label class="form-label">Contraseña</label>
           <input type="password" class="form-input" formControlName="password">
         </div>
+        </div>
         <button class="form-button" type="submit" [disabled]="loading">Crear Secretaria</button>
         <div *ngIf="error" class="form-error">{{ error }}</div>
         <div *ngIf="success" class="form-success">{{ success }}</div>
@@ -122,6 +128,7 @@
   <div *ngIf="selectedTab === 'administrador'" class="form-container">
       <h2 class="form-title">Crear Administrador</h2>
       <form [formGroup]="adminForm" (ngSubmit)="submitAdmin()">
+        <div class="form-grid">
         <div class="form-group">
           <label class="form-label">Nombres</label>
           <input type="text" class="form-input" formControlName="nombres">
@@ -137,6 +144,7 @@
         <div class="form-group">
           <label class="form-label">Contraseña</label>
           <input type="password" class="form-input" formControlName="password">
+        </div>
         </div>
         <button class="form-button" type="submit" [disabled]="loading">Crear Administrador</button>
         <div *ngIf="error" class="form-error">{{ error }}</div>

@@ -1,11 +1,16 @@
 <!-- components/user-management/user-management.component.html -->
 <div class="container-fluid">
-  <div class="row mb-4">
+  <div class="row mb-2">
     <div class="col-12">
-      <div class="d-flex justify-content-between align-items-center">
-        <h2>Gestión de Usuarios</h2>
-      </div>
+      <!-- Botón de crear usuario, arriba a la izquierda dentro del panel -->
       <app-user-create-panel></app-user-create-panel>
+    </div>
+  </div>
+  <div class="row mb-3">
+    <div class="col-12">
+      <div class="d-flex align-items-center">
+        <h2 style="margin:0;">Gestión de Usuarios</h2>
+      </div>
     </div>
   </div>
 
@@ -105,68 +110,28 @@
             </thead>
             <tbody>
               <tr *ngFor="let user of paginatedUsers">
-                <!-- ...existing code for active users... -->
-                <ng-container *ngIf="editingUser?.id === user.id; else viewRow">
-                  <td>
-                    <input type="text" class="form-control" [(ngModel)]="editingUser.nombres" placeholder="Nombres">
-                    <input type="text" class="form-control mt-1" [(ngModel)]="editingUser.apellidos" placeholder="Apellidos">
-                  </td>
-                  <td>
-                    <input type="email" class="form-control" [(ngModel)]="editingUser.correo" placeholder="Correo">
-                  </td>
-                  <td>
-                    <select class="form-control" [(ngModel)]="editingUser.tipo">
-                      <option value="administrador">Administrador</option>
-                      <option value="doctor">Doctor</option>
-                      <option value="secretaria">Secretaria</option>
-                      <option value="paciente">Paciente</option>
-                    </select>
-                  </td>
-                  <td>
-                    <select class="form-control" [(ngModel)]="editingUser.activo">
-                      <option [ngValue]="true">Activo</option>
-                      <option [ngValue]="false">Inactivo</option>
-                    </select>
-                  </td>
-                  <td>
-                    <button class="btn btn-sm btn-success mr-1" (click)="saveUserEdits()" title="Guardar cambios">
-                      <i class="fas fa-save"></i> Guardar
-                    </button>
-                    <button class="btn btn-sm btn-secondary" (click)="cancelEdit()" title="Cancelar edición">
-                      <i class="fas fa-times"></i> Cancelar
-                    </button>
-                  </td>
-                </ng-container>
-                <ng-template #viewRow>
-                  <td>{{ user.nombres }} {{ user.apellidos }}</td>
-                  <td>{{ user.correo }}</td>
-                  <td>
-                    <span class="badge" [ngClass]="{
-                      'badge-primary': user.tipo === 'administrador',
-                      'badge-success': user.tipo === 'doctor',
-                      'badge-info': user.tipo === 'secretaria',
-                      'badge-secondary': user.tipo === 'paciente'
-                    }">
-                      {{ user.tipo }}
-                    </span>
-                  </td>
-                  <td>
-                    <span class="badge" [ngClass]="{
-                      'badge-success': (user['Estado'] ? user['Estado'].toUpperCase() === 'SI' : user.activo),
-                      'badge-danger': (user['Estado'] ? user['Estado'].toUpperCase() !== 'SI' : !user.activo)
-                    }">
-                      {{ user['Estado'] ? (user['Estado'].toUpperCase() === 'SI' ? 'Activo' : 'Inactivo') : (user.activo ? 'Activo' : 'Inactivo') }}
-                    </span>
-                  </td>
-                  <td>
-                    <button class="btn btn-sm btn-info mr-1" (click)="editUser(user)" title="Editar usuario">
-                      <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="btn btn-sm btn-danger" (click)="darDeBaja(user)" title="Dar de baja">
-                      <i class="bi bi-person-x"></i> Dar de baja
-                    </button>
-                  </td>
-                </ng-template>
+                <td>{{ getUserDisplayName(user) }}</td>
+                <td>{{ user.correo }}</td>
+                <td>
+                  <span class="badge" [ngClass]="{
+                    'badge-primary': user.tipo === 'administrador',
+                    'badge-success': user.tipo === 'doctor',
+                    'badge-info': user.tipo === 'secretaria',
+                    'badge-secondary': user.tipo === 'paciente'
+                  }">
+                    {{ user.tipo }}
+                  </span>
+                </td>
+                <td>
+                  <span class="badge" [ngClass]="isActive(user) ? 'badge-success' : 'badge-danger'">
+                    {{ isActive(user) ? 'Activo' : 'Inactivo' }}
+                  </span>
+                </td>
+                <td>
+                  <button class="btn btn-sm btn-danger" (click)="darDeBaja(user)" title="Dar de baja">
+                    <i class="bi bi-person-x"></i> Dar de baja
+                  </button>
+                </td>
               </tr>
             </tbody>
           </table>
@@ -194,7 +159,7 @@
             </thead>
             <tbody>
               <tr *ngFor="let user of paginatedInactivos">
-                <td>{{ user.nombres }} {{ user.apellidos }}</td>
+                <td>{{ getUserDisplayName(user) }}</td>
                 <td>{{ user.correo }}</td>
                 <td>
                   <span class="badge" [ngClass]="{

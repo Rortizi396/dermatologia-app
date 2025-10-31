@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">
+  <circle cx="48" cy="48" r="46" fill="#fff" stroke="#cfeef1" stroke-width="4" />
+  <circle cx="48" cy="34" r="16" fill="#dff5f7" />
+  <rect x="18" y="60" width="60" height="20" rx="10" fill="#dff5f7" />
+  <text x="48" y="62" font-size="18" font-family="Segoe UI, Roboto, Arial" fill="#1b6067" text-anchor="middle">MA</text>
+</svg>

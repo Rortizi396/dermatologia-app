@@ -48,6 +48,11 @@ export class UserService {
     return this.http.get<any>(`${this.apiUrl}/doctores`);
   }
 
+  // Obtener todos los pacientes
+  getAllPacientes(): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/pacientes`);
+  }
+
   // Obtener todos los administradores
   getAllAdministradores(): Observable<any> {
     return this.http.get<any>(`${this.apiUrl}/administradores`);
@@ -114,6 +119,11 @@ export class UserService {
   // Gestión de usuarios
   getAllUsers(): Observable<PaginatedResponse<User>> {
     return this.http.get<PaginatedResponse<User>>(`${this.apiUrl}/users`);
+  }
+
+  // Obtener nombres/apellidos desde Usuarios por correo (enriquecimiento)
+  getUsuarioByCorreo(correo: string): Observable<{ success: boolean; data: { nombres: string; apellidos: string } | null }> {
+    return this.http.get<{ success: boolean; data: { nombres: string; apellidos: string } | null }>(`${this.apiUrl}/usuarios/by-email/${encodeURIComponent(correo)}`);
   }
 
   getUserById(id: number): Observable<ApiResponse<User>> {

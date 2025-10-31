@@ -61,7 +61,13 @@ export class AppComponent{
   }
 
   get userName(): string {
-    return this.currentUser ? `${this.currentUser.nombres} ${this.currentUser.apellidos}` : '';
+    if (!this.currentUser) return '';
+    const u: any = this.currentUser as any;
+    const first = (u.nombres || u.Nombres || u.name || '').toString().trim();
+    const last = (u.apellidos || u.Apellidos || u.lastname || u.lastName || '').toString().trim();
+    if (first || last) return `${first} ${last}`.trim();
+    // Fallback to correo if names are missing
+    return u.correo ? String(u.correo) : '';
   }
 
   logout(): void {

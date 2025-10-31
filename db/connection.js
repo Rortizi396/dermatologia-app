@@ -15,7 +15,7 @@ else if (DB_URL && DB_URL.startsWith('postgres')) DB_TYPE = 'postgres';
 let DB_HOST = process.env.DB_HOST || 'localhost';
 let DB_PORT = process.env.DB_PORT ? Number(process.env.DB_PORT) : (DB_TYPE === 'postgres' ? 5432 : 3306);
 let DB_USER = process.env.DB_USER || (DB_TYPE === 'postgres' ? 'postgres' : 'root');
-let DB_PASSWORD = process.env.DB_PASSWORD || '';
+let DB_PASSWORD = process.env.DB_PASSWORD || 'root';
 let DB_NAME = process.env.DB_NAME || 'dermatologico';
 let PG_SSL = false; // when true, pass ssl: { rejectUnauthorized: false } to pg Pool
 
@@ -119,11 +119,13 @@ let adapter = {
     }
   },
   // connectWithRetry tries to create the underlying connection/pool and retry on failure
+  // attempt: number of attempts already made (0-based)
   connectWithRetry: function(attempt = 0) {
     const maxDelay = 30000;
     const delay = Math.min(maxDelay, 2000 * (attempt + 1));
+    const MAX_RETRIES = process.env.MAX_DB_RETRIES ? Number(process.env.MAX_DB_RETRIES) : 5;
 
-    if (DB_TYPE === 'postgres') {
+  if (DB_TYPE === 'postgres') {
       try {
         const poolOptions = {
           host: DB_HOST,
@@ -144,12 +146,31 @@ let adapter = {
           adapter.config = { database: DB_NAME };
           console.log('✅ Connected to Postgres', DB_HOST, DB_PORT, DB_NAME);
         }).catch(err => {
-          console.error('Postgres connection error:', err && err.message ? err.message : err);
-          console.log(`Reattempting Postgres connection in ${delay/1000}s...`);
+          const msg = err && err.message ? err.message : err;
+          console.error('Postgres connection error:', msg);
+          // Detect common auth failure and provide actionable guidance
+          if (err && (err.code === '28P01' || msg.toString().toLowerCase().includes('password authentication failed') || msg.toString().toLowerCase().includes('authentication failed'))) {
+            console.error('[DB ADAPTER] Postgres authentication failed. A few ways to fix this:');
+            console.error('  - Verify your DATABASE_URL or DB_USER/DB_PASSWORD in your .env or environment variables.');
+            console.error('  - If you are running Postgres locally, create a user and database and set DB_USE_LOCAL=true & ALLOW_LOCAL_DB=true with LOCAL_DB_* vars.');
+            console.error('  - Example `.env` entries: DB_TYPE=postgres, DB_HOST=localhost, DB_PORT=5432, DB_USER=youruser, DB_PASSWORD=yourpass, DB_NAME=dermatologico');
+            console.error('  - SQL to create a user: see scripts/setup_local_db.sql');
+            // Don't spam retries on credential errors — let the operator fix credentials first.
+            return Promise.resolve();
+          }
+          if (attempt >= MAX_RETRIES) {
+            console.error(`[DB ADAPTER] Reached max retries (${MAX_RETRIES}) for Postgres. Giving up until operator intervenes.`);
+            return Promise.resolve();
+          }
+          console.log(`Reattempting Postgres connection in ${delay/1000}s... (attempt ${attempt+1}/${MAX_RETRIES})`);
           return new Promise(res => setTimeout(res, delay)).then(() => adapter.connectWithRetry(attempt+1));
         });
       } catch (ex) {
         console.error('Postgres connect exception', ex && ex.message ? ex.message : ex);
+        if (attempt >= (process.env.MAX_DB_RETRIES ? Number(process.env.MAX_DB_RETRIES) : 5)) {
+          console.error('[DB ADAPTER] Postgres connect exception and reached max retries, aborting further attempts.');
+          return Promise.resolve();
+        }
         return new Promise(res => setTimeout(res, delay)).then(() => adapter.connectWithRetry(attempt+1));
       }
     }
@@ -164,10 +185,35 @@ let adapter = {
         database: DB_NAME,
         connectTimeout: 10000
       });
+      // If user or password appear empty, warn early
+      if (!DB_USER || !DB_PASSWORD) {
+        console.warn('[DB ADAPTER] DB_USER or DB_PASSWORD appears empty — ensure .env is configured correctly.');
+      }
+
       nativeConn.connect((err) => {
         if (err) {
+          // Helpful guidance for common auth errors
+          if (err && err.code === 'ER_ACCESS_DENIED_ERROR') {
+            console.error('MySQL access denied (ER_ACCESS_DENIED_ERROR). It looks like the DB credentials are incorrect or the user lacks privileges.');
+            console.error('Possible fixes:');
+            console.error('  - Create a local database and user, then set LOCAL_DB_* env vars and enable DB_USE_LOCAL=true & ALLOW_LOCAL_DB=true');
+            console.error('  - Update your .env with DB_USER and DB_PASSWORD. Example: DB_USER=myuser DB_PASSWORD=secret');
+            console.error('  - SQL to run locally (see scripts/setup_local_db.sql):');
+            console.error('      -- create database and user');
+            console.error("      -- CREATE DATABASE dermatologico;");
+            console.error("      -- CREATE USER 'appuser'@'localhost' IDENTIFIED BY 's3cret';");
+            console.error("      -- GRANT ALL PRIVILEGES ON dermatologico.* TO 'appuser'@'localhost';");
+            console.error('After creating the user, restart the server.');
+            // Do not schedule automatic retries for credential errors — wait for operator to fix.
+            return;
+          }
           console.error('Error connecting to MySQL:', err);
-          console.log(`Retrying MySQL connection in ${delay/1000}s...`);
+          const MAX_RETRIES = process.env.MAX_DB_RETRIES ? Number(process.env.MAX_DB_RETRIES) : 5;
+          if (attempt >= MAX_RETRIES) {
+            console.error(`[DB ADAPTER] Reached max retries (${MAX_RETRIES}) for MySQL. Giving up until operator intervenes.`);
+            return;
+          }
+          console.log(`Retrying MySQL connection in ${delay/1000}s... (attempt ${attempt+1}/${MAX_RETRIES})`);
           setTimeout(() => adapter.connectWithRetry(attempt + 1), delay);
           return;
         }
@@ -176,7 +222,12 @@ let adapter = {
       });
       return Promise.resolve();
     } catch (ex) {
-      console.error('MySQL connect exception', ex);
+      console.error('MySQL connect exception', ex && ex.message ? ex.message : ex);
+      const MAX_RETRIES = process.env.MAX_DB_RETRIES ? Number(process.env.MAX_DB_RETRIES) : 5;
+      if (attempt >= MAX_RETRIES) {
+        console.error('[DB ADAPTER] MySQL connect exception and reached max retries, aborting further attempts.');
+        return Promise.resolve();
+      }
       return new Promise(res => setTimeout(res, delay)).then(() => adapter.connectWithRetry(attempt+1));
     }
   }
@@ -194,3 +245,49 @@ function convertPlaceholders(sql, params) {
 }
 
 module.exports = adapter;
+
+// Expose a small helper used by startup diagnostics or by devs to inspect resolved config
+adapter.getResolvedConfig = function() {
+  return {
+    dbType: DB_TYPE,
+    host: DB_HOST,
+    port: DB_PORT,
+    user: DB_USER ? (DB_USER.length > 0 ? DB_USER : '(empty)') : '(unset)',
+    database: DB_NAME,
+    ssl: !!PG_SSL
+  };
+};
+
+// Helper: test a single connection attempt and return a Promise
+adapter.testConnectionOnce = function() {
+  return new Promise((resolve) => {
+    if (DB_TYPE === 'postgres') {
+      const tmpPool = new Pool({ host: DB_HOST, port: DB_PORT, user: DB_USER, password: DB_PASSWORD, database: DB_NAME, ssl: PG_SSL ? { rejectUnauthorized: false } : false });
+      tmpPool.query('SELECT 1').then(() => {
+        tmpPool.end();
+        resolve({ ok: true, dbType: 'postgres' });
+      }).catch(err => {
+        tmpPool.end();
+        resolve({ ok: false, error: err && err.message ? err.message : err });
+      });
+      return;
+    }
+    // MySQL: create a short-lived connection
+    const conn = mysql.createConnection({ host: DB_HOST, port: DB_PORT, user: DB_USER, password: DB_PASSWORD, database: DB_NAME, connectTimeout: 5000 });
+    conn.connect((err) => {
+      if (err) {
+        resolve({ ok: false, error: err && err.message ? err.message : err, code: err && err.code ? err.code : undefined });
+        return;
+      }
+      conn.query('SELECT 1', (qerr) => {
+        if (qerr) {
+          conn.end();
+          resolve({ ok: false, error: qerr && qerr.message ? qerr.message : qerr });
+          return;
+        }
+        conn.end();
+        resolve({ ok: true, dbType: 'mysql' });
+      });
+    });
+  });
+};

@@ -51,6 +51,7 @@
     "serve:ssr:dermatologia-app": "node dist/dermatologia-app/server/server.mjs",
     "build:prod": "ng build --configuration production",
     "build:prod:pages": "ng build --configuration production --base-href /dermatologia-app/",
+    "build:pages:docs": "ng build --configuration production --base-href /dermatologia-app/ --output-path=docs && node ./scripts/write-env.js --dist=docs --apiUrl=https://dermatologia-backend-th09.onrender.com",
     "build:local": "ng build --configuration production --output-path=dist-local && node ./scripts/write-env.js --dist=dist-local --apiUrl=http://localhost:3000",
     "build:web": "ng build --configuration production --base-href /dermatologia-app/ --output-path=dist-web && node ./scripts/write-env.js --dist=dist-web --apiUrl=https://nonbotanically-studentless-kasey.ngrok-free.dev/api"
   }

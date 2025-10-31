@@ -24,7 +24,7 @@
 }
 
 .ficha-card {
-	background: #ffffff;
+	background: rgb(255, 255, 255);
 	border-radius: 8px;
 	padding: 1rem;
 	box-shadow: 0 6px 18px rgba(16,24,40,0.06);
@@ -232,10 +232,11 @@ table.table tbody tr:hover { background: rgba(2,6,23,0.04); }
 	color: #fff !important;
 }
 
-/* Strong overrides: solid fills for headers and buttons (fill color, white text) */
+/* Strong overrides: usar encabezado de tabla sobrio y formal */
 table.table thead th {
-	background: #45b665 !important; /* header background requested */
-	color: #ffffff !important;
+	background: #f8fafc !important; /* fondo claro neutro */
+	color: #0f172a !important;      /* texto oscuro para legibilidad */
+	border-bottom: 1px solid rgba(15,23,42,0.08) !important;
 }
 
 :host .btn-accept, :host ::ng-deep .btn-accept {
@@ -249,3 +250,42 @@ table.table thead th {
 	color: #fff !important;
 	border: none !important;
 }
+
+/* New: card header brand variant */
+.card-header--brand {
+  background: linear-gradient(180deg, #5acc76, #6ba3dc) !important;
+}
+
+/* New: enforce minimal width to avoid cramped columns on wide screens */
+.app-table--minwidth {
+  min-width: 980px;
+}
+
+/* New: wrap long content but keep compact columns on one line */
+.text-wrap { white-space: normal; overflow-wrap: anywhere; }
+.col-date,
+.col-num,
+.col-phone,
+.col-status,
+.col-actions { white-space: nowrap; }
+.col-date { width: 110px; }
+.col-num { width: 90px; }
+.col-phone { width: 120px; }
+.col-status { width: 120px; }
+.col-actions { width: 170px; }
+
+/* New: horizontal scroll container so headers stick within the block */
+.table-scroll { overflow-x: auto; }
+
+/* Nueva: subtítulo y pie de tabla (paginación) */
+.section-subtitle { color: var(--muted-600); font-size: 0.85rem; margin: 0.2rem 0 0.5rem; }
+.table-footer { display:flex; align-items:center; justify-content: space-between; gap: 0.75rem; padding-top: 0.5rem; margin-top: 0.5rem; border-top: 1px solid rgba(15,23,42,0.06); }
+.table-footer .pager { display:flex; align-items:center; gap: 0.5rem; }
+.table-footer .page-size { display:flex; align-items:center; gap: 0.4rem; }
+.table-footer select { padding: 0.25rem 0.45rem; border-radius: 6px; border: 1px solid rgba(15,23,42,0.18); background: #fff; }
+
+/* Nueva: badge de estado con esquema formal */
+.status-badge { display:inline-block; padding: 0.18rem 0.55rem; border-radius: 999px; font-weight: 600; font-size: 0.82rem; border: 1px solid transparent; }
+.status-pendiente { background: #fff7ed; color: #9a3412; border-color: rgba(251,146,60,0.5); } /* amber-50/700 */
+.status-confirmada { background: #ecfdf5; color: #065f46; border-color: rgba(16,185,129,0.5); } /* green-50/700 */
+.status-cancelada { background: #fef2f2; color: #7f1d1d; border-color: rgba(239,68,68,0.5); } /* red-50/800 */

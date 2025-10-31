@@ -16,6 +16,91 @@ import { FormsModule } from '@angular/forms';
   imports: [CommonModule, FormsModule, UserCreatePanelComponent, CommonModule]
 })
 export class UserManagementComponent implements OnInit {
+  // Cache para evitar spamear el endpoint si no existe en backend desplegado
+  private byEmailEndpointAvailable: boolean | null = null;
+  // Helper to normalize "tipo" and common fields
+  private normalizeUser(u: any): any {
+    if (!u) return u;
+    // Normalize tipo
+    const t = (u.tipo || u.Tipo || u.TIPO || u.tiPo || '').toString();
+    if (t) u.tipo = t.toLowerCase();
+    // Normalize correo/email
+    u.correo = u.correo || u.Correo || u.email || u.Email || '';
+    // Normalize nombres/apellidos
+    u.nombres = u.nombres || u.Nombres || '';
+    u.apellidos = u.apellidos || u.Apellidos || '';
+    // Normalize active flag: if none present, set as true so it's visible in Activos
+    const hasEstado = typeof u.Estado !== 'undefined' || typeof u.estado !== 'undefined';
+    const hasActivo = typeof u.Activo !== 'undefined' || typeof u.activo !== 'undefined' || typeof u.isActive !== 'undefined' || typeof u.status !== 'undefined';
+    if (!hasEstado && !hasActivo) {
+      u.activo = true;
+    }
+    return u;
+  }
+
+  // Helper to evaluate active flag with many variants; default to true if unknown
+  public isActive(u: any): boolean {
+    try {
+      if (!u) return false;
+      // Prefer explicit boolean
+      if (typeof u.activo === 'boolean') return u.activo === true;
+      // Common variants as string
+      const est = (u.Estado ?? u.estado ?? '').toString().trim();
+      if (est) return est.toUpperCase() === 'SI' || est === '1' || est.toLowerCase() === 'active';
+      const act = (u.Activo ?? u.activo ?? u.isActive ?? u.status ?? '').toString().trim();
+      if (act) return act.toUpperCase() === 'SI' || act === '1' || act.toLowerCase() === 'active' || act.toLowerCase() === 'true';
+      // If no flags present, consider active so lists are not empty and user can be managed
+      return true;
+    } catch {
+      return true;
+    }
+  }
+
+  public isInactive(u: any): boolean {
+    try {
+      if (!u) return false;
+      if (typeof u.activo === 'boolean') return u.activo === false;
+      const est = (u.Estado ?? u.estado ?? '').toString().trim();
+      if (est) return est.toUpperCase() === 'NO' || est === '0' || est.toLowerCase() === 'inactive';
+      const act = (u.Activo ?? u.activo ?? u.isActive ?? u.status ?? '').toString().trim();
+      if (act) return act.toUpperCase() === 'NO' || act === '0' || act.toLowerCase() === 'inactive' || act.toLowerCase() === 'false';
+      // If unknown, not explicitly inactive
+      return false;
+    } catch {
+      return false;
+    }
+  }
+
+  // Build a friendly display name; fallback to correo if names missing
+  public getUserDisplayName(u: any): string {
+    if (!u) return '';
+    const nombres = (u.nombres || u.Nombres || '').toString().trim();
+    const apellidos = (u.apellidos || u.Apellidos || '').toString().trim();
+    const full = `${nombres} ${apellidos}`.trim();
+    if (full) return full;
+    // Fallback elegante: derivar nombre desde el correo ("carlos.lopez" -> "Carlos Lopez")
+    const correo = (u.correo || u.Correo || '').toString().trim();
+    if (correo) {
+      const derived = this.deriveNameFromEmail(correo);
+      const fallbackFull = `${derived.nombres} ${derived.apellidos}`.trim();
+      if (fallbackFull) return fallbackFull;
+    }
+    return 'Sin nombre';
+  }
+
+  private deriveNameFromEmail(email: string): { nombres: string; apellidos: string } {
+    try {
+      const local = (email.split('@')[0] || '').replace(/\d+/g, '');
+      if (!local) return { nombres: '', apellidos: '' };
+      const parts = local.split(/[._-]+/).filter(Boolean);
+      const cap = (s: string) => s ? (s.charAt(0).toUpperCase() + s.slice(1).toLowerCase()) : '';
+      if (parts.length === 1) return { nombres: cap(parts[0]), apellidos: '' };
+      if (parts.length >= 2) return { nombres: cap(parts[0]), apellidos: cap(parts[1]) };
+      return { nombres: '', apellidos: '' };
+    } catch {
+      return { nombres: '', apellidos: '' };
+    }
+  }
   darDeAlta(user: User): void {
     let id = user.id || user.dpi || user.colegiado || user.idSecretaria || user.idAdministrador;
     if (typeof id === 'number') {
@@ -168,41 +253,113 @@ export class UserManagementComponent implements OnInit {
     this.userService.getAllUsers().subscribe({
       next: (response) => {
         const raw = Array.isArray(response) ? response : (response.data || response || []);
-        const mapped = (raw || []).map((u: any) => {
-          if (!u.tipo && u.Tipo) u.tipo = u.Tipo.toLowerCase();
-          if (!u.tipo && u.tipo) u.tipo = u.tipo.toLowerCase();
-          if (!u.tipo && u.TIPO) u.tipo = u.TIPO.toLowerCase();
-          if (!u.tipo && u.tiPo) u.tipo = u.tiPo.toLowerCase();
-          return u;
-        });
+        const mapped = (raw || []).map((u: any) => this.normalizeUser(u));
         console.log('[loadUsers] total raw:', mapped.length);
-        // Usuarios activos
-        this.users = mapped.filter((u: any) => {
-          if (u.Estado) return u.Estado.toUpperCase() === 'SI';
-          if (typeof u.activo === 'boolean') return u.activo;
-          if (typeof u.activo === 'string') return u.activo.toUpperCase() === 'SI';
-          if (typeof u.activo === 'number') return u.activo === 1;
-          return false;
-        });
-        // Usuarios inactivos
-        this.inactivos = mapped.filter((u: any) => {
-          if (u.Estado) return u.Estado.toUpperCase() === 'NO';
-          if (typeof u.activo === 'boolean') return !u.activo;
-          if (typeof u.activo === 'string') return u.activo.toUpperCase() === 'NO';
-          if (typeof u.activo === 'number') return u.activo === 0;
-          return false;
-        });
+        // Usuarios activos/inactivos con normalización robusta
+        this.users = mapped.filter((u: any) => this.isActive(u));
+        this.inactivos = mapped.filter((u: any) => this.isInactive(u));
         this.filteredUsers = this.users;
         this.totalItems = this.users.length;
         this.updatePagination();
         this.updatePaginationInactivos();
-        this.loading = false;
+        // Enriquecer nombres faltantes con una consulta adicional por correo
+        this.enrichMissingNames([...this.users, ...this.inactivos]).finally(() => {
+          this.updatePagination();
+          this.updatePaginationInactivos();
+          this.loading = false;
+        });
       },
       error: (error) => {
         console.error('Error loading users:', error);
         this.loading = false;
       }
     });
+  }
+
+  private async enrichMissingNames(all: any[]): Promise<void> {
+    try {
+      const targets = all.filter(u => !((u.nombres && u.nombres.trim()) || (u.Nombres && String(u.Nombres).trim())));
+      if (targets.length === 0) return;
+
+      // 1) Intentar completar desde listados por tipo (endpoints existentes en backend)
+      try {
+        const [pacRes, docRes, secRes] = await Promise.all([
+          this.userService.getAllPacientes().toPromise(),
+          this.userService.getAllDoctores().toPromise(),
+          this.userService.getAllSecretarias().toPromise()
+        ]);
+        const mapByEmail = new Map<string, { nombres: string; apellidos: string }>();
+        const addAll = (arr: any[], correoKey = 'Correo') => {
+          (arr || []).forEach((r: any) => {
+            const correo = (r[correoKey] || r.correo || '').toString();
+            if (!correo) return;
+            const nombres = (r.Nombres || r.nombres || '').toString();
+            const apellidos = (r.Apellidos || r.apellidos || '').toString();
+            if (nombres || apellidos) mapByEmail.set(correo, { nombres, apellidos });
+          });
+        };
+        addAll((pacRes && pacRes.data) || []);
+        addAll((docRes && docRes.data) || []);
+        addAll((secRes && secRes.data) || []);
+
+        targets.forEach(u => {
+          const correo = (u.correo || u.Correo || '').toString();
+          if (!correo) return;
+          const found = mapByEmail.get(correo);
+          if (found) {
+            u.nombres = found.nombres || u.nombres || u.Nombres || '';
+            u.apellidos = found.apellidos || u.apellidos || u.Apellidos || '';
+          }
+        });
+      } catch { /* ignorar si algún endpoint falla */ }
+
+      // 2) Si aún faltan, probar endpoint by-email una sola vez; si 404, no insistir
+      const stillMissing = all.filter(u => !((u.nombres && u.nombres.trim()) || (u.Nombres && String(u.Nombres).trim())));
+      if (stillMissing.length === 0) return;
+      if (this.byEmailEndpointAvailable === false) return;
+
+      if (this.byEmailEndpointAvailable === null) {
+        const probe = stillMissing[0];
+        const correoProbe = (probe.correo || probe.Correo || '').toString();
+        if (correoProbe) {
+          try {
+            const r = await this.userService.getUsuarioByCorreo(correoProbe).toPromise();
+            if (r && r.success) {
+              this.byEmailEndpointAvailable = true;
+              if (r.data) {
+                probe.nombres = r.data.nombres || probe.nombres || probe.Nombres || '';
+                probe.apellidos = r.data.apellidos || probe.apellidos || probe.Apellidos || '';
+              }
+            } else {
+              this.byEmailEndpointAvailable = false;
+            }
+          } catch (e: any) {
+            if (e && e.status === 404) this.byEmailEndpointAvailable = false; else this.byEmailEndpointAvailable = false;
+          }
+        } else {
+          this.byEmailEndpointAvailable = false;
+        }
+      }
+
+      if (this.byEmailEndpointAvailable === true) {
+        for (let i = 1; i < stillMissing.length; i++) {
+          const u = stillMissing[i];
+          const correo = (u.correo || u.Correo || '').toString();
+          if (!correo) continue;
+          try {
+            const resp = await this.userService.getUsuarioByCorreo(correo).toPromise();
+            if (resp && resp.success && resp.data) {
+              u.nombres = resp.data.nombres || u.nombres || u.Nombres || '';
+              u.apellidos = resp.data.apellidos || u.apellidos || u.Apellidos || '';
+            }
+          } catch (e: any) {
+            if (e && e.status === 404) { this.byEmailEndpointAvailable = false; break; }
+          }
+        }
+      }
+    } catch {
+      // ignore
+    }
   }
   updatePaginationInactivos(): void {
     this.totalPages = Math.ceil(this.inactivos.length / this.itemsPerPage) || 1;
@@ -287,21 +444,9 @@ export class UserManagementComponent implements OnInit {
     this.userService.getUserDetails(id, user.tipo).subscribe({
       next: (response: any) => {
         console.log('[Usuarios recibidos]', response.data);
-        const mapped = (response.data || []).map((u: any) => {
-          if (!u.tipo && u.Tipo) u.tipo = u.Tipo.toLowerCase();
-          if (!u.tipo && u.tipo) u.tipo = u.tipo.toLowerCase();
-          if (!u.tipo && u.TIPO) u.tipo = u.TIPO.toLowerCase();
-          if (!u.tipo && u.tiPo) u.tipo = u.tiPo.toLowerCase();
-          return u;
-        });
-        const filtered = mapped.filter((u: any) => {
-          if (u.Estado) return u.Estado.toUpperCase() === 'SI';
-          if (typeof u.activo === 'boolean') return u.activo;
-          if (typeof u.activo === 'string') return u.activo.toUpperCase() === 'SI';
-          if (typeof u.activo === 'number') return u.activo === 1;
-          return false;
-        });
-        console.log('[Usuarios filtrados]', filtered.map((u: any) => ({ id: u.id, Estado: u.Estado, activo: u.activo, tipo: u.tipo })));
+        const mapped = (response.data || []).map((u: any) => this.normalizeUser(u));
+        const filtered = mapped.filter((u: any) => this.isActive(u));
+        console.log('[Usuarios filtrados]', filtered.map((u: any) => ({ id: u.id, Estado: u.Estado, Activo: u.Activo, activo: u.activo, tipo: u.tipo })));
         this.users = filtered;
         this.filteredUsers = this.users;
         this.loading = false;
