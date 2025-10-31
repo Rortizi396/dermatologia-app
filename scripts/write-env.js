@@ -33,3 +33,14 @@ let html = fs.readFileSync(indexPath, 'utf8');
 html = html.replace(/window\.__env\s*\.\s*apiUrl\s*=\s*window\.__env\s*\.\s*apiUrl\s*\|\|\s*(['"]).*?\1\s*;?/m, `window.__env.apiUrl = window.__env.apiUrl || '${apiUrl}';`);
 fs.writeFileSync(indexPath, html, 'utf8');
 console.log('Wrote API URL into', indexPath);
+
+// For GitHub Pages SPA support: copy index.html to 404.html so deep links
+// like /dermatologia-app/dashboard load the app instead of a hard 404 page.
+// GitHub Pages serves 404.html for unknown paths.
+try {
+  const notFoundPath = path.resolve(process.cwd(), dist, '404.html');
+  fs.writeFileSync(notFoundPath, html, 'utf8');
+  console.log('Created SPA fallback', notFoundPath);
+} catch (e) {
+  console.warn('Could not create 404.html fallback:', e.message);
+}
