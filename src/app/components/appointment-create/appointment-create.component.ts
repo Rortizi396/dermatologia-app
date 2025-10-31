@@ -26,6 +26,7 @@ export class AppointmentCreateComponent implements OnInit {
   minDate: string;
   isDoctorAvailable: boolean = true;
   loadingDoctors: boolean = false;
+  noDoctorsForSpecialty: boolean = false;
   // UX flags
   actionLoading: boolean = false;
 
@@ -135,6 +136,9 @@ export class AppointmentCreateComponent implements OnInit {
     console.log('[Especialidad Change] ID:', specialtyId);
     if (Number.isFinite(specialtyId) && (specialtyId as number) > 0) {
       this.loadingDoctors = true;
+      // Reset current doctor selection and available times when specialty changes
+      this.appointmentForm.patchValue({ doctor: null });
+      this.availableTimes = [...this.allTimes];
       this.appointmentService.getDoctorsBySpecialty(specialtyId as number).subscribe(
         (data: any) => {
           console.log('[Especialidad Change] Respuesta doctores:', data);
@@ -147,16 +151,38 @@ export class AppointmentCreateComponent implements OnInit {
           } else {
             this.doctors = [];
           }
+          // Normalizar por si backend devuelve campos en minúsculas
+          this.doctors = this.doctors.map((d: any) => ({
+            ...d,
+            Nombres: d.Nombres || d.nombres || d.nombre || d.firstName || d.Nombre || '',
+            Apellidos: d.Apellidos || d.apellidos || d.lastName || d.Apellido || '',
+            Colegiado: d.Colegiado || d.colegiado || d.idDoctor || d.id || d.ID || null,
+          }));
+          // Flag for empty state
+          this.noDoctorsForSpecialty = this.doctors.length === 0;
+
+          // If there is exactly one doctor, auto-select it and update available times
+          if (this.doctors.length === 1) {
+            const only = this.doctors[0];
+            const id = (only.Colegiado || only.colegiado || only.id || only.idDoctor);
+            if (id) {
+              this.appointmentForm.patchValue({ doctor: id });
+              // Give the form a tick to update then recompute availability
+              setTimeout(() => this.updateAvailableTimes(), 0);
+            }
+          }
           this.loadingDoctors = false;
         },
         error => {
           console.error('[Especialidad Change] Error al cargar doctores:', error);
+          this.noDoctorsForSpecialty = false;
           this.loadingDoctors = false;
         }
       );
     } else {
       // Valor inválido o no seleccionado: limpiar lista de doctores
       this.doctors = [];
+      this.noDoctorsForSpecialty = false;
       this.loadingDoctors = false;
     }
   }

@@ -67,12 +67,15 @@
           <div class="col-md-6">
             <div class="form-group">
               <label>Doctor</label>
-              <select class="form-control" formControlName="doctor" [disabled]="!appointmentForm.get('specialty')?.value || loadingDoctors">
+              <select class="form-control" formControlName="doctor" [disabled]="!appointmentForm.get('specialty')?.value || loadingDoctors || doctors.length === 0">
                 <option value="">Seleccione un doctor</option>
-                <option *ngFor="let doctor of doctors" [ngValue]="doctor.Colegiado">
-                  Dr. {{doctor.Nombres}} {{doctor.Apellidos}}
+                <option *ngFor="let doctor of doctors" [ngValue]="doctor.Colegiado || doctor.colegiado || doctor.id || doctor.idDoctor">
+                  Dr. {{ (doctor.Nombres || doctor.nombres || doctor.nombre || doctor.firstName || '') }} {{ (doctor.Apellidos || doctor.apellidos || doctor.lastName || '') }}
                 </option>
               </select>
+              <div *ngIf="!loadingDoctors && appointmentForm.get('specialty')?.value && doctors.length === 0" class="mt-2">
+                <small class="text-muted">No hay doctores disponibles para esta especialidad.</small>
+              </div>
               <div *ngIf="loadingDoctors" class="mt-2">
                 <small class="text-muted">Cargando doctores...</small>
               </div>
