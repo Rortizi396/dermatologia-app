@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -40,6 +41,10 @@ jobs:
 
       - name: Build (production for Pages)
         run: npm run build:prod:pages
+
+      - name: Inject backend API URL into built index.html
+        # Set repository secret BACKEND_API_URL, e.g. https://dermatologia-backend-th09.onrender.com
+        run: node ./scripts/write-env.js --dist=dist/dermatologia-app --apiUrl=${{ secrets.BACKEND_API_URL }}
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v5
