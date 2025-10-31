@@ -63,3 +63,9 @@ __pycache__/
 
 # Misc
 *.log
+
+# Ignore local deploy helper folders
+.deploy_ghpages/
+.deploy_temp/
+.deploy_web_temp/
+
