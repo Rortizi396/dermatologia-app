@@ -170,6 +170,20 @@
   }
 }
 
+/* Mobile topbar for hamburger toggle */
+.mobile-topbar { display: none; position: sticky; top: 0; background: var(--white); z-index: 1100; padding: .5rem .75rem; border-bottom: 1px solid rgba(0,0,0,0.06); align-items: center; gap: .5rem; }
+.mobile-topbar .topbar-title { font-weight: 600; color: var(--text-dark); }
+.hamburger { width: 34px; height: 28px; display: inline-flex; flex-direction: column; justify-content: space-between; border: 1px solid rgba(0,0,0,0.12); border-radius: 6px; padding: 6px; background: var(--white); }
+.hamburger span { display:block; height: 2px; background: var(--text-dark); border-radius: 2px; }
+
+/* Show mobile topbar only on small screens */
+@media (max-width: 576px) {
+  .mobile-topbar { display: flex; }
+}
+
+/* Backdrop when sidebar open on mobile */
+.sidebar-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 1050; }
+
 /* Loading Animation */
 .loading-spinner {
   display: inline-block;

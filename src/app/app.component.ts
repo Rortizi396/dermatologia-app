@@ -16,6 +16,7 @@ export class AppComponent{
   title = 'Centro Dermatológico';
   currentUser: User | null = null;
   showSidebar = false;
+  isMobileSidebarOpen = false;
   currentRoute = '';
 
   constructor(
@@ -49,11 +50,17 @@ export class AppComponent{
     this.showSidebar = !this.showSidebar;
   }
 
+  toggleMobileSidebar(): void {
+    this.isMobileSidebarOpen = !this.isMobileSidebarOpen;
+  }
+
   updateSidebarVisibility(): void {
     // No mostrar sidebar en login y en algunas rutas específicas
     this.showSidebar = this.currentUser !== null && 
                       !this.currentRoute.includes('/login') &&
                       this.currentRoute !== '/';
+    // Al navegar, cerrar sidebar móvil si estaba abierto
+    this.isMobileSidebarOpen = false;
   }
 
   get userRole(): string {

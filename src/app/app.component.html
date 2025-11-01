@@ -1,7 +1,7 @@
 <!-- app.component.html -->
 <div class="app-container">
   <!-- Sidebar -->
-  <nav *ngIf="showSidebar" class="sidebar">
+  <nav *ngIf="showSidebar" class="sidebar" [class.open]="isMobileSidebarOpen">
     <div class="sidebar-header">
       <h5>Centro Dermatológico</h5>
     </div>
@@ -51,13 +51,22 @@
 
   <!-- Main Content -->
   <div class="main-content" [class.with-sidebar]="showSidebar">
-    <!-- Top Navigation Bar removed to avoid duplicate user info (sidebar already shows it) -->
+    <!-- Mobile topbar (hamburger) -->
+    <div class="mobile-topbar d-sm-none">
+      <button class="hamburger" type="button" (click)="toggleMobileSidebar()">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="topbar-title">{{ title }}</div>
+    </div>
 
     <!-- Router Content -->
     <div class="content-wrapper">
       <router-outlet></router-outlet>
     </div>
   </div>
+
+  <!-- Backdrop for mobile sidebar -->
+  <div class="sidebar-backdrop" *ngIf="showSidebar && isMobileSidebarOpen" (click)="toggleMobileSidebar()"></div>
 </div>
 
 <!-- Global Toast Container -->
