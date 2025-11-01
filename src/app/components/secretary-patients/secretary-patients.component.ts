@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { UserService } from '../../services/user.service';
+import { ToastService } from '../../services/toast.service';
 
 @Component({
   selector: 'app-secretary-patients',
@@ -27,7 +28,7 @@ export class SecretaryPatientsComponent implements OnInit {
   editTelefono = '';
   editCorreo = '';
 
-  constructor(private userService: UserService, private http: HttpClient) {}
+  constructor(private userService: UserService, private http: HttpClient, private toast: ToastService) {}
 
   ngOnInit(): void {
     this.loadPatients();
@@ -43,7 +44,7 @@ export class SecretaryPatientsComponent implements OnInit {
         this.applyFilters();
         this.loading = false;
       },
-      error: (e: any) => { console.error('Error cargando pacientes', e); this.loading = false; }
+      error: (e: any) => { console.error('Error cargando pacientes', e); this.loading = false; this.toast.show('Error cargando pacientes', 'error'); }
     });
   }
 
@@ -96,8 +97,8 @@ export class SecretaryPatientsComponent implements OnInit {
     const payload: any = { Telefono: this.editTelefono, Correo: this.editCorreo };
     // Actualiza en tabla Pacientes y sincroniza con Usuarios por correo anterior (backend ya lo maneja)
     this.userService.updateUserByType('pacientes', dpi, payload).subscribe({
-      next: () => { this.cancelEdit(); this.loadPatients(); },
-      error: (e: any) => { console.error('Error guardando paciente', e); }
+      next: () => { this.cancelEdit(); this.toast.show('Paciente actualizado'); this.loadPatients(); },
+      error: (e: any) => { console.error('Error guardando paciente', e); this.toast.show('Error al guardar cambios', 'error'); }
     });
   }
 
