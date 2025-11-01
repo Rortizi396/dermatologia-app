@@ -126,7 +126,8 @@ export class SecretaryDashboardComponent implements OnInit {
 
   selectAppointment(id: number): void {
     this.selectedAppointmentId = id;
-    this.selectedAppointment = this.appointments.find(a => ((a.idCitas || a.id) === id)) || null;
+    // Be tolerant to string/number id shapes
+    this.selectedAppointment = this.appointments.find(a => (String(a.idCitas || a.id) === String(id))) || null;
     this.availabilityChecked = false;
     this.available = false;
     // default newDate to appointment date and load times
@@ -189,7 +190,8 @@ export class SecretaryDashboardComponent implements OnInit {
       this.availabilityChecked = false; this.available = false; return;
     }
     const apt = this.selectedAppointment;
-    const doctorId = apt.doctorId || apt.doctor_id || apt.medicoId || (apt.doctor && (apt.doctor.id || apt.doctor._id));
+    // Use the same robust resolver used elsewhere to avoid undefined doctorId
+    const doctorId = this.getDoctorIdFromAppointment(apt);
     console.log('[SecretaryDashboard] onTimeChange', { doctorId, date: this.newDate, time: this.newTime, availableTimes: this.availableTimes });
     if (!doctorId) { this.availabilityChecked = true; this.available = false; return; }
     if (this.availableTimes && this.availableTimes.length > 0) {
