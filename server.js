@@ -1362,7 +1362,8 @@ app.post('/api/appointments', (req, res) => {
     date,
     time,
     observations,
-    creatorId
+    creatorId,
+    creatorType
   } = req.body;
   // Resolve doctor identifier (allows numeric id, colegiado, email or name)
   resolveProfessional(req, doctor, (errResolve, resolvedDoctor) => {
@@ -1387,7 +1388,12 @@ app.post('/api/appointments', (req, res) => {
       const insertQuery = `INSERT INTO citas (Paciente, Consulta_Especialidad, Profesional_Responsable, Fecha, Hora, Observaciones, Id_Creador, Tipo_Creador, Confirmado)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Pendiente')`;
       const tipoMap = { paciente: 'Paciente', doctor: 'Doctor', secretaria: 'Secretaria', administrador: 'Administrador' };
-      const creatorTypeNormalized = tipoMap[(req.body.creatorType || '').toString().toLowerCase()] || null;
+      const creatorTypeNormalized = tipoMap[(creatorType || '').toString().toLowerCase()] || null;
+      // If creatorId is missing and the creator is the Patient, use the patient DPI as a sensible identifier
+      let creatorIdValue = creatorId;
+      if ((!creatorIdValue || creatorIdValue === null) && creatorTypeNormalized === 'Paciente') {
+        creatorIdValue = patientDpi || null;
+      }
       db.query(insertQuery, [
         patientDpi,
         specialty,
@@ -1395,12 +1401,15 @@ app.post('/api/appointments', (req, res) => {
         date,
         time,
         observations,
-        creatorId,
+        creatorIdValue,
         creatorTypeNormalized
       ], (errInsert, result) => {
         if (errInsert) {
           console.error('Error al crear cita:', errInsert);
-          return res.status(500).json({ success: false, message: 'Error al crear cita', error: errInsert });
+          // Return a compact, client-friendly error description to aid debugging
+          const short = errInsert && (errInsert.sqlMessage || errInsert.message) ? (errInsert.sqlMessage || errInsert.message) : String(errInsert);
+          const code = errInsert && errInsert.code ? errInsert.code : undefined;
+          return res.status(500).json({ success: false, message: 'Error al crear cita', error: { short, code } });
         }
         // Retornar la cita creada con datos completos
         const citaId = result.insertId;
