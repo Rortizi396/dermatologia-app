@@ -126,8 +126,8 @@ export class SecretaryDashboardComponent implements OnInit {
 
   selectAppointment(id: number): void {
     this.selectedAppointmentId = id;
-    // Be tolerant to string/number id shapes
-    this.selectedAppointment = this.appointments.find(a => (String(a.idCitas || a.id) === String(id))) || null;
+    // Be tolerant to string/number id shapes and multiple id keys
+    this.selectedAppointment = this.appointments.find(a => (String(a.idCitas || a.idcitas || a.id) === String(id))) || null;
     this.availabilityChecked = false;
     this.available = false;
     // default newDate to appointment date and load times
@@ -157,16 +157,16 @@ export class SecretaryDashboardComponent implements OnInit {
   displayPatientName(c: any): string {
     if (!c) return '';
     // Try multiple variants from API and potential DB aliases
-    const pn = c.pacienteNombres || c.pacienteNombre || c.paciente_nombres || c.Paciente_Nombres || c.patientName || (c.paciente && (c.paciente.nombres || c.paciente.Nombre)) || (c.pacienteInfo && c.pacienteInfo.nombres);
-    const pa = c.pacienteApellidos || c.paciente_apellidos || c.Paciente_Apellidos || (c.paciente && (c.paciente.apellidos || c.paciente.Apellidos)) || (c.pacienteInfo && c.pacienteInfo.apellidos);
+    const pn = c.pacienteNombres || c.pacienteNombre || c.pacientenombres || c.paciente_nombres || c.Paciente_Nombres || c.patientName || (c.paciente && (c.paciente.nombres || c.paciente.Nombre)) || (c.pacienteInfo && c.pacienteInfo.nombres);
+    const pa = c.pacienteApellidos || c.pacienteapellidos || c.paciente_apellidos || c.Paciente_Apellidos || (c.paciente && (c.paciente.apellidos || c.paciente.Apellidos)) || (c.pacienteInfo && c.pacienteInfo.apellidos);
     if (pn || pa) return ((pn || '') + ' ' + (pa || '')).trim();
     return (c.paciente && (c.paciente.nombres || c.paciente.name || c.paciente.fullName)) || c.paciente || '';
   }
 
   displayDoctorName(c: any): string {
     if (!c) return '';
-    const dn = c.doctorNombres || c.doctorNombre || c.doctor_nombres || c.Doctor_Nombres || c.doctorName || (c.doctor && (c.doctor.nombres || c.doctor.Nombre)) || (c.doctorInfo && c.doctorInfo.nombres);
-    const da = c.doctorApellidos || c.doctor_apellidos || c.Doctor_Apellidos || (c.doctor && (c.doctor.apellidos || c.doctor.Apellidos)) || (c.doctorInfo && c.doctorInfo.apellidos);
+    const dn = c.doctorNombres || c.doctorNombre || c.doctornombres || c.doctor_nombres || c.Doctor_Nombres || c.doctorName || (c.doctor && (c.doctor.nombres || c.doctor.Nombre)) || (c.doctorInfo && c.doctorInfo.nombres);
+    const da = c.doctorApellidos || c.doctorapellidos || c.doctor_apellidos || c.Doctor_Apellidos || (c.doctor && (c.doctor.apellidos || c.doctor.Apellidos)) || (c.doctorInfo && c.doctorInfo.apellidos);
     if (dn || da) return ((dn || '') + ' ' + (da || '')).trim();
     return (c.medico && (c.medico.nombres || c.medico.name || c.medico.fullName)) || c.medico || '';
   }
