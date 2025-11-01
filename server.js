@@ -285,6 +285,9 @@ function connectWithRetry(attempt = 0) {
             "SELECT setval(pg_get_serial_sequence('usuarios','idusuarios'), COALESCE((SELECT MAX(idusuarios) FROM usuarios), 0));",
             "SELECT setval(pg_get_serial_sequence('especialidades_has_doctores','ref'), COALESCE((SELECT MAX(ref) FROM especialidades_has_doctores), 0));"
           ];
+          // Best-effort: if secretarias/administradores exist, sync their sequences too
+          try { db.query("SELECT setval(pg_get_serial_sequence('secretarias','idsecretarias'), COALESCE((SELECT MAX(idsecretarias) FROM secretarias), 0));", () => {}); } catch(e) {}
+          try { db.query("SELECT setval(pg_get_serial_sequence('administradores','idadministradores'), COALESCE((SELECT MAX(idadministradores) FROM administradores), 0));", () => {}); } catch(e) {}
           seqFixes.forEach((sql) => db.query(sql, (e2) => { if (e2) console.warn('[DB INIT] sequence sync warn:', e2 && e2.message ? e2.message : e2); }));
         } catch (e) { /* ignore */ }
         db.query('SELECT COUNT(*) AS cnt FROM Usuarios', (e, rows) => {
@@ -1064,33 +1067,57 @@ app.post('/api/users', (req, res) => {
     } else if (tipo.toLowerCase() === 'secretaria') {
       const querySecretaria = `INSERT INTO secretarias (Nombres, Apellidos, Telefono, Correo, Activo) VALUES (?, ?, ?, ?, ?)`;
       const valuesSecretaria = [nombres, apellidos, telefono || '', correo, activo ? 'SI' : 'NO'];
-      db.query(querySecretaria, valuesSecretaria, (err2) => {
-        if (err2) {
-          return res.status(500).json({ success: false, message: 'Error al crear secretaria', error: err2 });
-        }
-        db.query('SELECT * FROM secretarias WHERE Correo = ?', [correo], (errSel, rowsSel) => {
-          const created = (rowsSel && rowsSel.length > 0) ? rowsSel[0] : { tipo: 'secretaria', correo };
-          insertAudit(req, 'user_create', 'user', idUsuario, null, JSON.stringify(created), (errAudit) => {
-            if (errAudit) console.warn('Audit insert failed for user_create', errAudit);
-            return res.json({ success: true, message: 'Secretaria creada exitosamente', userId: idUsuario, tipo: 'secretaria' });
+      const isPg = (db && db.dbType === 'postgres');
+      const tryInsertSecretaria = (didRetry) => {
+        db.query(querySecretaria, valuesSecretaria, (err2) => {
+          if (err2) {
+            const code = err2 && err2.code ? String(err2.code) : '';
+            const constraint = err2 && err2.constraint ? String(err2.constraint) : '';
+            const detail = err2 && err2.detail ? String(err2.detail) : '';
+            if (isPg && !didRetry && code === '23505' && (/secretarias_pkey/i.test(constraint) || /Key \(idsecretarias\)=\(/i.test(detail))) {
+              console.warn('[SECRETARIAS INSERT] Duplicate PK on secretarias — syncing id sequence then retrying once...');
+              const seqSync = "SELECT setval(pg_get_serial_sequence('secretarias','idsecretarias'), COALESCE((SELECT MAX(idsecretarias) FROM secretarias), 0));";
+              return db.query(seqSync, () => tryInsertSecretaria(true));
+            }
+            return res.status(500).json({ success: false, message: 'Error al crear secretaria', error: err2 });
+          }
+          db.query('SELECT * FROM secretarias WHERE Correo = ?', [correo], (errSel, rowsSel) => {
+            const created = (rowsSel && rowsSel.length > 0) ? rowsSel[0] : { tipo: 'secretaria', correo };
+            insertAudit(req, 'user_create', 'user', idUsuario, null, JSON.stringify(created), (errAudit) => {
+              if (errAudit) console.warn('Audit insert failed for user_create', errAudit);
+              return res.json({ success: true, message: 'Secretaria creada exitosamente', userId: idUsuario, tipo: 'secretaria' });
+            });
           });
         });
-      });
+      };
+      tryInsertSecretaria(false);
     } else if (tipo.toLowerCase() === 'administrador') {
       const queryAdmin = `INSERT INTO administradores (Nombres, Apellidos, Correo, Activo) VALUES (?, ?, ?, ?)`;
       const valuesAdmin = [nombres, apellidos, correo, activo ? 'SI' : 'NO'];
-      db.query(queryAdmin, valuesAdmin, (err2) => {
-        if (err2) {
-          return res.status(500).json({ success: false, message: 'Error al crear administrador', error: err2 });
-        }
-        db.query('SELECT * FROM administradores WHERE Correo = ?', [correo], (errSel, rowsSel) => {
-          const created = (rowsSel && rowsSel.length > 0) ? rowsSel[0] : { tipo: 'administrador', correo };
-          insertAudit(req, 'user_create', 'user', idUsuario, null, JSON.stringify(created), (errAudit) => {
-            if (errAudit) console.warn('Audit insert failed for user_create', errAudit);
-            return res.json({ success: true, message: 'Administrador creado exitosamente', userId: idUsuario, tipo: 'administrador' });
+      const isPg = (db && db.dbType === 'postgres');
+      const tryInsertAdmin = (didRetry) => {
+        db.query(queryAdmin, valuesAdmin, (err2) => {
+          if (err2) {
+            const code = err2 && err2.code ? String(err2.code) : '';
+            const constraint = err2 && err2.constraint ? String(err2.constraint) : '';
+            const detail = err2 && err2.detail ? String(err2.detail) : '';
+            if (isPg && !didRetry && code === '23505' && (/administradores_pkey/i.test(constraint) || /Key \(idadministradores\)=\(/i.test(detail))) {
+              console.warn('[ADMIN INSERT] Duplicate PK on administradores — syncing id sequence then retrying once...');
+              const seqSync = "SELECT setval(pg_get_serial_sequence('administradores','idadministradores'), COALESCE((SELECT MAX(idadministradores) FROM administradores), 0));";
+              return db.query(seqSync, () => tryInsertAdmin(true));
+            }
+            return res.status(500).json({ success: false, message: 'Error al crear administrador', error: err2 });
+          }
+          db.query('SELECT * FROM administradores WHERE Correo = ?', [correo], (errSel, rowsSel) => {
+            const created = (rowsSel && rowsSel.length > 0) ? rowsSel[0] : { tipo: 'administrador', correo };
+            insertAudit(req, 'user_create', 'user', idUsuario, null, JSON.stringify(created), (errAudit) => {
+              if (errAudit) console.warn('Audit insert failed for user_create', errAudit);
+              return res.json({ success: true, message: 'Administrador creado exitosamente', userId: idUsuario, tipo: 'administrador' });
+            });
           });
         });
-      });
+      };
+      tryInsertAdmin(false);
     } else {
       return res.json({ success: true, message: 'Usuario creado exitosamente', userId: idUsuario });
     }
