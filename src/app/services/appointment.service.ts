@@ -3,7 +3,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { map, tap } from 'rxjs/operators';
 import { Appointment } from '../interfaces/appointment.interface';
 
 @Injectable({
@@ -42,6 +42,9 @@ export class AppointmentService {
   getSpecialties(): Observable<any> {
     // Normalize backend shape to frontend-friendly shape and be resilient to multiple response formats
     return this.http.get<any>(`${this.apiUrl}/specialties`).pipe(
+      tap((resp: any) => {
+        try { console.log('[getSpecialties] raw resp:', resp); } catch {}
+      }),
       map((resp: any) => {
         const raw: any[] = Array.isArray(resp)
           ? resp
@@ -68,7 +71,9 @@ export class AppointmentService {
         });
 
         // Return consistent object shape the caller expects
-        return { specialties: normalized };
+        const out = { specialties: normalized };
+        try { console.log('[getSpecialties] normalized:', out); } catch {}
+        return out;
       })
     );
   }
