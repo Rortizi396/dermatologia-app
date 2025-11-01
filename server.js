@@ -825,7 +825,7 @@ app.get('/api/doctores/:colegiado', (req, res) => {
         const total = (countRows && countRows[0] && countRows[0].total) ? countRows[0].total : 0;
 
   // NOTA: usar únicamente d.Colegiado para el JOIN y evitar nombres de PK distintos entre esquemas
-  const dataSql = `SELECT c.*, p.Nombres AS pacienteNombres, p.Apellidos AS pacienteApellidos, d.Nombres AS doctorNombres, d.Apellidos AS doctorApellidos, e.Nombre AS especialidadNombre FROM citas c LEFT JOIN pacientes p ON p.DPI = c.Paciente LEFT JOIN doctores d ON d.Colegiado = c.Profesional_Responsable LEFT JOIN especialidades e ON e.idEspecialidades = c.Consulta_Especialidad ${whereSql} ORDER BY c.Fecha ASC, c.Hora ASC LIMIT ? OFFSET ?`;
+  const dataSql = `SELECT c.*, p.Nombres AS pacienteNombres, p.Apellidos AS pacienteApellidos, p.Telefono AS pacienteTelefono, d.Nombres AS doctorNombres, d.Apellidos AS doctorApellidos, e.Nombre AS especialidadNombre FROM citas c LEFT JOIN pacientes p ON p.DPI = c.Paciente LEFT JOIN doctores d ON d.Colegiado = c.Profesional_Responsable LEFT JOIN especialidades e ON e.idEspecialidades = c.Consulta_Especialidad ${whereSql} ORDER BY c.Fecha ASC, c.Hora ASC LIMIT ? OFFSET ?`;
 
         // append pagination params
         const dataParams = params.slice();
@@ -858,7 +858,8 @@ app.get('/api/doctores/:colegiado', (req, res) => {
             doctorNombres: r.doctorNombres || r.doctornombres,
             doctorApellidos: r.doctorApellidos || r.doctorapellidos,
             especialidadNombre: r.especialidadNombre || r.especialidadnombre,
-            pacienteInfo: { nombres: r.pacienteNombres || r.pacientenombres, apellidos: r.pacienteApellidos || r.pacienteapellidos },
+            pacienteTelefono: r.pacienteTelefono || r.pacientetelefono,
+            pacienteInfo: { nombres: r.pacienteNombres || r.pacientenombres, apellidos: r.pacienteApellidos || r.pacienteapellidos, telefono: r.pacienteTelefono || r.pacientetelefono },
             doctorInfo: { nombres: r.doctorNombres || r.doctornombres, apellidos: r.doctorApellidos || r.doctorapellidos },
             especialidadInfo: { Nombre: (r.especialidadNombre || r.especialidadnombre) }
           }));
