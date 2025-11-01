@@ -148,7 +148,7 @@ table.app-table td, table.app-table th {
 .grid { display: grid; grid-template-columns: 1fr; gap: 1rem; }
 @media (min-width: 900px) { .grid { grid-template-columns: repeat(2, 1fr); } }
 .card.ficha { padding: 0; border-radius: 8px; overflow: hidden; }
-.card-header { padding: 0.8rem 1rem; background: linear-gradient(180deg,#f8fafc,#f1f5f9); font-weight:600; display:flex; align-items:center; justify-content:space-between; }
+.card-header { padding: 0.8rem 1rem; background: linear-gradient(180deg,#10a52d,#0caf21); font-weight:600; display:flex; align-items:center; justify-content:space-between; }
 .card-body { padding: 0.6rem 0.9rem; }
 
 /* Table enhancements for table.table (Bootstrap-like) */
@@ -227,7 +227,7 @@ table.table thead th {
 :host .btn-cancel, :host ::ng-deep .btn-cancel { background: #ef4444 !important; color: #ffffff !important; border: 1px solid rgba(0,0,0,0.06) !important; }
 
 /* New: card header brand variant - subtle brand tone */
-.card-header--brand { background: linear-gradient(180deg, #eaf7ed, #d4f0d9) !important; }
+.card-header--brand { background: linear-gradient(180deg, #39d75e, #5ed474) !important; }
 
 /* New: enforce minimal width to avoid cramped columns on wide screens */
 .app-table--minwidth {
@@ -267,7 +267,7 @@ table.table thead th {
 .modal-overlay {
 	position: fixed;
 	inset: 0;
-	background: rgba(2,6,23,0.5);
+	background: rgba(11, 200, 30, 0.5);
 	display: flex;
 	align-items: center;
 	justify-content: center;
