@@ -42,6 +42,7 @@ import { FormsModule } from '@angular/forms';
           <div class="filter-actions">
             <button class="btn btn-sm btn-primary" (click)="applyFilters()">Aplicar</button>
             <button class="btn btn-sm btn-secondary" (click)="clearFilters()">Limpiar</button>
+            <button class="btn btn-sm btn-success" (click)="load()" title="Actualizar la tabla con los últimos eventos">Actualizar</button>
           </div>
         </div>
       </div>
