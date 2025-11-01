@@ -1991,7 +1991,7 @@ app.post('/api/audit/:auditId/undo', (req, res) => {
 app.get('/api/doctores', cors({ origin: '*', credentials: false }), (req, res) => {
   // Case-insensitive filter for active doctors: treat 'SI', 'Si', 'SÍ', 'sí', 'si' as active
   // Also default NULL/empty to active to avoid accidentally hiding doctors in mixed datasets
-  const sql = "SELECT * FROM doctores WHERE UPPER(COALESCE(Activo, 'SI')) IN ('SI','SÍ')";
+  const sql = "SELECT * FROM doctores WHERE UPPER(TRIM(COALESCE(Activo, 'SI'))) IN ('SI','SÍ')";
   db.query(sql, (err, results) => {
     if (err) {
       return res.status(500).json({ success: false, message: 'Error al obtener doctores', error: err });
