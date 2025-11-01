@@ -117,33 +117,45 @@ export class DoctorScheduleComponent implements OnInit {
         return true;
       });
 
-      this.events = notCancelled.map((cita: any) => {
+      this.events = notCancelled.map((raw: any) => {
+        // Normalizar variantes de nombres de campos provenientes del backend (minúsculas/mayúsculas)
+        const fecha = raw.Fecha ?? raw.fecha ?? null;
+        const horaVal = raw.Hora ?? raw.hora ?? null;
+        const pacienteNombres = raw.pacienteNombres ?? raw.pacientenombres ?? null;
+        const pacienteApellidos = raw.pacienteApellidos ?? raw.pacienteapellidos ?? null;
+        const pacienteDPI = raw.pacienteDPI ?? raw.pacientedpi ?? raw.Paciente ?? raw.paciente ?? '';
+        const especialidadNombre = raw.especialidadNombre ?? raw.especialidadnombre ?? raw.Consulta_Especialidad ?? raw.consulta_especialidad ?? '';
+        const observaciones = raw.Observaciones ?? raw.observaciones ?? '';
+        const pacienteTelefono = raw.pacienteTelefono ?? raw.pacientetelefono ?? raw.Telefono ?? raw.telefono ?? '';
+        const doctorNombres = raw.doctorNombres ?? raw.doctornombres ?? '';
+        const doctorApellidos = raw.doctorApellidos ?? raw.doctorapellidos ?? '';
+        const profesionalResp = raw.Profesional_Responsable ?? raw.profesional_responsable ?? '';
+
         // Construir startDate robustamente: parsear Fecha y Hora por separado cuando sea necesario
-        let startDate: Date;
-        if (cita.Fecha) {
-          startDate = new Date(cita.Fecha);
-        } else {
-          startDate = new Date();
+        let startDate: Date = new Date();
+        if (fecha) {
+          const d = new Date(fecha);
+          if (!isNaN(d.getTime())) startDate = d;
         }
 
         // Normalizar Hora y aplicar al objeto Date si es posible
-        if (cita.Hora) {
-          const horaRaw = String(cita.Hora).trim();
+        if (horaVal) {
+          const horaRaw = String(horaVal).trim();
           // Intentar extraer HH:mm
           const m = horaRaw.match(/(\d{1,2}):(\d{2})/);
           if (m) {
             const hh = parseInt(m[1], 10);
             const mm = parseInt(m[2], 10);
             startDate.setHours(hh, mm, 0, 0);
-          } else {
+          } else if (fecha) {
             // último recurso: intentar parsear como parte de un ISO
-            const parsed = new Date(`${cita.Fecha}T${horaRaw}`);
+            const parsed = new Date(`${fecha}T${horaRaw}`);
             if (!isNaN(parsed.getTime())) startDate = parsed;
           }
         }
 
   // Normalizar estado de confirmado a una etiqueta legible
-  const statusRaw = cita.Confirmado ?? cita.confirmado ?? cita.Estado ?? cita.estado;
+  const statusRaw = raw.Confirmado ?? raw.confirmado ?? raw.Estado ?? raw.estado;
         let confirmadoLabel = 'Pendiente';
         if (typeof statusRaw === 'number') {
           if (statusRaw === 1) confirmadoLabel = 'Confirmada';
@@ -167,15 +179,18 @@ export class DoctorScheduleComponent implements OnInit {
           iconClass = 'fa-solid fa-xmark text-danger';
         }
 
+        const pacienteLabel = pacienteNombres ? `${pacienteNombres} ${pacienteApellidos ?? ''}`.trim() : pacienteDPI;
+        const doctorLabel = doctorNombres ? `${doctorNombres} ${doctorApellidos ?? ''}`.trim() : profesionalResp;
+
         return {
           start: startDate,
-          title: `Cita con ${cita.pacienteNombres ? cita.pacienteNombres + ' ' + cita.pacienteApellidos : cita.pacienteDPI || cita.Paciente}`,
+          title: `Cita con ${pacienteLabel || 'Paciente'}`,
           meta: {
-            paciente: cita.pacienteNombres ? `${cita.pacienteNombres} ${cita.pacienteApellidos}` : cita.pacienteDPI || cita.Paciente,
-            especialidad: cita.especialidadNombre || cita.Consulta_Especialidad,
-            detalles: cita.Observaciones,
-            telefono: cita.pacienteTelefono,
-            doctor: cita.doctorNombres ? `${cita.doctorNombres} ${cita.doctorApellidos}` : cita.Profesional_Responsable,
+            paciente: pacienteLabel,
+            especialidad: especialidadNombre,
+            detalles: observaciones,
+            telefono: pacienteTelefono,
+            doctor: doctorLabel,
             // guardamos tanto el valor original como la etiqueta legible
             confirmado: {
               raw: statusRaw,
