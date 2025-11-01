@@ -1460,19 +1460,52 @@ app.get('/api/users/profile', authenticateToken, (req, res) => {
   }
 });
 
-// Obtener datos básicos de Usuarios por correo (para completar nombres/apellidos en frontend)
+// Obtener nombres/apellidos por correo desde cualquier tabla conocida (doctores, pacientes, secretarias, administradores, usuarios)
+// Esto permite al frontend enriquecer el saludo aun si Usuarios no tiene Nombres/Apellidos poblados.
 app.get('/api/usuarios/by-email/:correo', (req, res) => {
   const correo = req.params.correo;
   if (!correo) return res.status(400).json({ success: false, message: 'correo requerido' });
-  db.query('SELECT Nombres, Apellidos FROM Usuarios WHERE correo = ? LIMIT 1', [correo], (err, rows) => {
-    if (err) {
-      // This endpoint is used as a best-effort enrichment in the frontend. Avoid noisy 500s.
-      try { console.warn('[USUARIOS BY-EMAIL] query error for', correo, err && err.message ? err.message : err); } catch (_) {}
-      return res.json({ success: true, data: null, message: 'by-email lookup not available' });
+
+  const tryTables = [
+    { table: 'pacientes', nombres: 'Nombres', apellidos: 'Apellidos' },
+    { table: 'doctores', nombres: 'Nombres', apellidos: 'Apellidos' },
+    { table: 'secretarias', nombres: 'Nombres', apellidos: 'Apellidos' },
+    { table: 'administradores', nombres: 'Nombres', apellidos: 'Apellidos' },
+  ];
+
+  let idx = 0;
+
+  const tryNext = () => {
+    if (idx >= tryTables.length) {
+      // Fallback final: Usuarios
+      return db.query('SELECT Nombres, Apellidos FROM Usuarios WHERE correo = ? LIMIT 1', [correo], (errU, rowsU) => {
+        if (errU) {
+          try { console.warn('[USUARIOS BY-EMAIL] usuarios lookup error for', correo, errU && errU.message ? errU.message : errU); } catch (_) {}
+          return res.json({ success: true, data: null });
+        }
+        if (!rowsU || rowsU.length === 0) return res.json({ success: true, data: null });
+        const n = rowsU[0].Nombres || rowsU[0].nombres || '';
+        const a = rowsU[0].Apellidos || rowsU[0].apellidos || '';
+        return res.json({ success: true, data: { nombres: n, apellidos: a } });
+      });
     }
-    if (!rows || rows.length === 0) return res.json({ success: true, data: null });
-    return res.json({ success: true, data: { nombres: rows[0].Nombres || '', apellidos: rows[0].Apellidos || '' } });
-  });
+
+    const cur = tryTables[idx++];
+    const sql = `SELECT ${cur.nombres} AS nombres, ${cur.apellidos} AS apellidos FROM ${cur.table} WHERE Correo = ? LIMIT 1`;
+    db.query(sql, [correo], (err, rows) => {
+      if (!err && rows && rows.length > 0) {
+        const n = rows[0].nombres || '';
+        const a = rows[0].apellidos || '';
+        if (n || a) {
+          return res.json({ success: true, data: { nombres: n, apellidos: a } });
+        }
+      }
+      // continue to next table
+      tryNext();
+    });
+  };
+
+  tryNext();
 });
 
 // Ruta por defecto
