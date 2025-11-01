@@ -248,3 +248,22 @@ body {
   .form-control, .form-select, .input-group, .btn { width: 100%; }
   .input-group > .form-control { width: 1%; flex: 1 1 auto; }
 }
+
+/* Form controls sizing/alignment fixes: prevent clipped text in inputs */
+.form-control,
+.input-group .form-control,
+.form-select {
+  min-height: 40px;        /* ensure vertical room for text */
+  line-height: 1.4;        /* readable line-height to avoid clipping */
+}
+.input-group-text {
+  min-height: 40px;
+  display: inline-flex;    /* vertically center icon/text */
+  align-items: center;
+  padding-top: 0;          /* rely on min-height and line-height */
+  padding-bottom: 0;
+}
+.input-group {
+  align-items: stretch;    /* keep controls same height */
+}
+.form-control::placeholder { opacity: 0.85; }
