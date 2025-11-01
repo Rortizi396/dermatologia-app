@@ -1987,7 +1987,8 @@ app.post('/api/audit/:auditId/undo', (req, res) => {
 });
 
 // Obtener todos los doctores
-app.get('/api/doctores', (req, res) => {
+// Make this endpoint explicitly CORS-public without credentials so it's callable from GitHub Pages
+app.get('/api/doctores', cors({ origin: '*', credentials: false }), (req, res) => {
   db.query("SELECT * FROM doctores WHERE Activo = 'SI'", (err, results) => {
     if (err) {
       return res.status(500).json({ success: false, message: 'Error al obtener doctores', error: err });
