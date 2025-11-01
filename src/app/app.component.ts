@@ -5,6 +5,7 @@ import { AuthService } from './services/auth.service';
 import { ToastService } from './services/toast.service';
 import { User } from './interfaces/user.interface';
 import { filter } from 'rxjs/operators';
+import { UserService } from './services/user.service';
 
 @Component({
   selector: 'app-root',
@@ -18,11 +19,14 @@ export class AppComponent{
   showSidebar = false;
   isMobileSidebarOpen = false;
   currentRoute = '';
+  // Evita múltiples intentos de enriquecer nombres si ya se hizo una vez
+  private triedNameEnrichment = false;
 
   constructor(
     private authService: AuthService,
     @Inject(Router) private router: Router
-    , private toastService: ToastService
+    , private toastService: ToastService,
+    private userService: UserService
   ) {}
 
   // Expose toast observable for global container
@@ -35,6 +39,32 @@ export class AppComponent{
     this.authService.currentUser.subscribe(user => {
       this.currentUser = user;
       this.updateSidebarVisibility();
+
+      // Intentar enriquecer nombres/apellidos si faltan y aún no lo intentamos
+      if (user && !this.triedNameEnrichment) {
+        const u: any = user as any;
+        const hasFirst = !!(u.nombres || u.Nombres || u.name);
+        const hasLast = !!(u.apellidos || u.Apellidos || u.lastname || u.lastName);
+        const correo = u.correo as string | undefined;
+        const token = this.authService.getToken();
+        if ((!hasFirst || !hasLast) && correo && token) {
+          this.triedNameEnrichment = true;
+          this.userService.getUsuarioByCorreo(correo).subscribe({
+            next: (resp) => {
+              if (resp?.success && resp.data) {
+                const updated: any = { ...u };
+                if (!hasFirst && resp.data.nombres) updated.nombres = resp.data.nombres;
+                if (!hasLast && resp.data.apellidos) updated.apellidos = resp.data.apellidos;
+                // Persistir usuario enriquecido sin alterar el token actual
+                this.authService.setCurrentUser(updated, token);
+              }
+            },
+            error: () => {
+              // Silencioso: si no existe endpoint o falla, mantener fallback
+            }
+          });
+        }
+      }
     });
 
     // Suscribirse a cambios de ruta para actualizar la navegación
@@ -73,8 +103,20 @@ export class AppComponent{
     const first = (u.nombres || u.Nombres || u.name || '').toString().trim();
     const last = (u.apellidos || u.Apellidos || u.lastname || u.lastName || '').toString().trim();
     if (first || last) return `${first} ${last}`.trim();
-    // Fallback to correo if names are missing
-    return u.correo ? String(u.correo) : '';
+    // Fallback amable: usar la parte local del correo, titulizada
+    if (u.correo) {
+      const local = String(u.correo).split('@')[0] || '';
+      if (local) {
+        // Reemplazar separadores comunes por espacios y capitalizar palabras
+        const pretty = local.replace(/[._-]+/g, ' ').replace(/\s+/g, ' ').trim()
+          .split(' ')
+          .map((w: string) => w ? w.charAt(0).toUpperCase() + w.slice(1) : '')
+          .join(' ');
+        return pretty || local;
+      }
+      return String(u.correo);
+    }
+    return '';
   }
 
   logout(): void {
