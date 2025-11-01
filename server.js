@@ -1790,6 +1790,45 @@ app.put('/api/appointments/:id/cancel', (req, res) => {
   });
 });
 
+// Reprogramar cita (cambiar fecha y hora)
+app.put('/api/appointments/:id/reschedule', (req, res) => {
+  const citaId = req.params.id;
+  const { date, time } = req.body || {};
+  if (!date || !time) {
+    return res.status(400).json({ success: false, message: 'Faltan fecha u hora para reprogramar.' });
+  }
+  // Leer la cita actual para conocer el doctor y auditar valores previos
+  db.query('SELECT * FROM citas WHERE idCitas = ? LIMIT 1', [citaId], (errSel, rowsSel) => {
+    if (errSel) return res.status(500).json({ success: false, message: 'Error al leer la cita', error: errSel });
+    if (!rowsSel || rowsSel.length === 0) return res.status(404).json({ success: false, message: 'Cita no encontrada' });
+    const current = rowsSel[0];
+    const doctorId = current.Profesional_Responsable;
+
+    // Verificar disponibilidad del doctor en la nueva fecha/hora, excluyendo esta misma cita
+    const checkSql = `SELECT 1 FROM citas WHERE Profesional_Responsable = ? AND Fecha = ? AND Hora = ? AND idCitas <> ? AND (Confirmado IS NULL OR Confirmado <> 'Cancelada') LIMIT 1`;
+    db.query(checkSql, [doctorId, date, time, citaId], (errChk, rowsChk) => {
+      if (errChk) return res.status(500).json({ success: false, message: 'Error al verificar disponibilidad', error: errChk });
+      if (rowsChk && rowsChk.length > 0) {
+        return res.status(400).json({ success: false, message: 'El horario seleccionado no está disponible para este doctor.' });
+      }
+
+      // Actualizar la cita con nueva fecha y hora
+      db.query('UPDATE citas SET Fecha = ?, Hora = ? WHERE idCitas = ?', [date, time, citaId], (errUpd, result) => {
+        if (errUpd) return res.status(500).json({ success: false, message: 'Error al reprogramar la cita', error: errUpd });
+        if (!result || result.affectedRows === 0) return res.status(404).json({ success: false, message: 'Cita no encontrada para actualizar' });
+
+        // Auditoría: guardar vieja y nueva fecha/hora
+        const oldVal = JSON.stringify({ Fecha: current.Fecha || current.fecha || null, Hora: current.Hora || current.hora || null });
+        const newVal = JSON.stringify({ Fecha: date, Hora: time });
+        insertAudit(req, 'appointment_reschedule', 'appointment', citaId, oldVal, newVal, (errAudit) => {
+          if (errAudit) console.warn('Audit insert failed for appointment_reschedule', errAudit);
+          return res.json({ success: true, message: 'Cita reprogramada correctamente.' });
+        });
+      });
+    });
+  });
+});
+
 // Undo last appointment change (restore previous Confirmado value)
 app.post('/api/appointments/:id/undo', (req, res) => {
   const citaId = req.params.id;
