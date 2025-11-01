@@ -9,14 +9,14 @@
     <ul class="sidebar-nav">
       <li *ngFor="let item of navigationItems" 
           [class.active]="isActiveRoute(item.path)">
-        <a [routerLink]="item.path" class="nav-link">
+        <a [routerLink]="item.path" class="nav-link" (click)="isMobileSidebarOpen && toggleMobileSidebar()">
           <i [class]="item.icon"></i>
           <span>{{ item.label }}</span>
         </a>
       </li>
       <!-- Admin quick actions inserted into main nav (visible only to administrators) -->
       <li *ngIf="userRole==='administrador'" [class.active]="isActiveRoute('/mission-vision')">
-        <a [routerLink]="['/mission-vision']" class="nav-link d-flex align-items-center">
+        <a [routerLink]="['/mission-vision']" class="nav-link d-flex align-items-center" (click)="isMobileSidebarOpen && toggleMobileSidebar()">
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:12px">
             <path d="M12 2L2 7l10 5 10-5-10-5z" />
             <path d="M2 17l10 5 10-5" />
@@ -26,7 +26,7 @@
         </a>
       </li>
       <li *ngIf="userRole==='administrador'" [class.active]="isActiveRoute('/audit-history')">
-        <a [routerLink]="['/audit-history']" class="nav-link d-flex align-items-center">
+        <a [routerLink]="['/audit-history']" class="nav-link d-flex align-items-center" (click)="isMobileSidebarOpen && toggleMobileSidebar()">
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:12px">
             <circle cx="12" cy="12" r="10"></circle>
             <polyline points="12 6 12 12 16 14"></polyline>

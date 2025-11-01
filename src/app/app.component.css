@@ -116,7 +116,7 @@
     position: fixed;
     left: 0;
     height: 100vh;
-    z-index: 1000;
+    z-index: 1200; /* above backdrop */
   }
   
   .sidebar-header,
@@ -144,6 +144,7 @@
   .sidebar {
     transform: translateX(-100%);
     width: 250px;
+    z-index: 1200; /* keep above backdrop on xs too */
   }
   
   .sidebar-header,
@@ -182,7 +183,7 @@
 }
 
 /* Backdrop when sidebar open on mobile */
-.sidebar-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 1050; }
+.sidebar-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 1100; }
 
 /* Loading Animation */
 .loading-spinner {
