@@ -156,18 +156,45 @@ export class SecretaryDashboardComponent implements OnInit {
 
   displayPatientName(c: any): string {
     if (!c) return '';
-    const pn = c.pacienteNombres || c.pacienteNombre || c.patientName || (c.paciente && c.paciente.nombres);
-    const pa = c.pacienteApellidos || (c.paciente && c.paciente.apellidos) || (c.pacienteInfo && c.pacienteInfo.apellidos);
+    // Try multiple variants from API and potential DB aliases
+    const pn = c.pacienteNombres || c.pacienteNombre || c.paciente_nombres || c.Paciente_Nombres || c.patientName || (c.paciente && (c.paciente.nombres || c.paciente.Nombre)) || (c.pacienteInfo && c.pacienteInfo.nombres);
+    const pa = c.pacienteApellidos || c.paciente_apellidos || c.Paciente_Apellidos || (c.paciente && (c.paciente.apellidos || c.paciente.Apellidos)) || (c.pacienteInfo && c.pacienteInfo.apellidos);
     if (pn || pa) return ((pn || '') + ' ' + (pa || '')).trim();
     return (c.paciente && (c.paciente.nombres || c.paciente.name || c.paciente.fullName)) || c.paciente || '';
   }
 
   displayDoctorName(c: any): string {
     if (!c) return '';
-    const dn = c.doctorNombres || c.doctorNombre || c.doctorName || (c.doctor && c.doctor.nombres);
-    const da = c.doctorApellidos || (c.doctor && c.doctor.apellidos) || (c.doctorInfo && c.doctorInfo.apellidos);
+    const dn = c.doctorNombres || c.doctorNombre || c.doctor_nombres || c.Doctor_Nombres || c.doctorName || (c.doctor && (c.doctor.nombres || c.doctor.Nombre)) || (c.doctorInfo && c.doctorInfo.nombres);
+    const da = c.doctorApellidos || c.doctor_apellidos || c.Doctor_Apellidos || (c.doctor && (c.doctor.apellidos || c.doctor.Apellidos)) || (c.doctorInfo && c.doctorInfo.apellidos);
     if (dn || da) return ((dn || '') + ' ' + (da || '')).trim();
     return (c.medico && (c.medico.nombres || c.medico.name || c.medico.fullName)) || c.medico || '';
+  }
+
+  getDateDisplay(c: any): string {
+    if (!c) return '';
+    let d: any = c.fecha || c.Fecha || c.date;
+    if (!d) return '-';
+    if (typeof d === 'string' && d.length > 10) d = d.slice(0, 10);
+    // Expecting YYYY-MM-DD
+    if (typeof d === 'string' && d.includes('-')) {
+      const parts = d.split('-');
+      if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+    try {
+      const dt = new Date(d);
+      if (!isNaN(dt.getTime())) return dt.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    } catch {}
+    return String(d);
+  }
+
+  getTimeDisplay(c: any): string {
+    if (!c) return '';
+    let t: any = c.hora || c.Hora || c.time;
+    if (!t) return '-';
+    t = String(t);
+    if (t.length >= 5) return t.slice(0,5);
+    return t;
   }
 
   isSelectable(c: any): boolean {
