@@ -158,10 +158,21 @@ export class AppointmentCreateComponent implements OnInit {
       (data: any) => {
         let arr = Array.isArray(data) ? data : (data && Array.isArray(data.specialties) ? data.specialties : []);
         // Normalize backend fields (idEspecialidad / nombre) to expected keys idEspecialidades / Nombre
-        this.specialties = arr.map((s: any) => ({
-          idEspecialidades: s.idEspecialidades || s.idEspecialidad || s.id || s.ID || null,
-          Nombre: s.Nombre || s.nombre || s.NombreEspecialidad || s.name || ''
-        }));
+        this.specialties = arr.map((s: any) => {
+          const idRaw = s.idEspecialidades || s.idEspecialidad || s.id || s.ID;
+          let idNum: number | null = null;
+          if (typeof idRaw === 'number') {
+            idNum = Number.isFinite(idRaw) ? idRaw : null;
+          } else if (typeof idRaw !== 'undefined' && idRaw !== null) {
+            const parsed = parseInt(String(idRaw), 10);
+            idNum = Number.isFinite(parsed) ? parsed : null;
+          }
+          return {
+            idEspecialidades: idNum,
+            Nombre: s.Nombre || s.nombre || s.NombreEspecialidad || s.name || ''
+          };
+        }).filter((s: any) => s.idEspecialidades !== null);
+        console.log('[Specialties] Cargadas:', this.specialties.length, this.specialties);
       },
       error => console.error('Error loading specialties:', error)
     );
