@@ -255,7 +255,15 @@ function connectWithRetry(attempt = 0) {
         user_agent TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );`;
-      db.query(createAuditLog, (err) => { if (err) console.warn('Warning: could not ensure audit_log table (pg):', err); });
+      db.query(createAuditLog, (err) => { 
+        if (err) {
+          console.warn('Warning: could not ensure audit_log table (pg):', err); 
+        } else {
+          // Best-effort: resync sequence to prevent duplicate key on id when table existed before without proper sequence state
+          const seqSync = "SELECT setval(pg_get_serial_sequence('audit_log','id'), COALESCE((SELECT MAX(id) FROM audit_log), 0));";
+          db.query(seqSync, (e2) => { if (e2) console.warn('[DB INIT] Could not sync audit_log id sequence:', e2); else console.log('[DB INIT] audit_log id sequence synced'); });
+        }
+      });
 
       const createUsuarios = `
       CREATE TABLE IF NOT EXISTS Usuarios (
@@ -320,16 +328,28 @@ function insertAudit(req, eventType, resourceType, resourceId, oldValue, newValu
     } catch (_) {}
     if (db && db.dbType === 'postgres') {
       const sql = baseSql + valuesSql + ' RETURNING id';
-      db.query(sql, [eventType, resourceType, resourceId ? String(resourceId) : null, oldValue, newValue, changedBy, ip, ua], (err, rows) => {
-        if (err) {
-          console.error('[AUDIT] Failed to insert audit_log (pg):', err);
-          if (cb) return cb(err);
-          return;
-        }
-        const newId = Array.isArray(rows) && rows[0] && (rows[0].id || rows[0].ID) ? (rows[0].id || rows[0].ID) : undefined;
-        try { console.log('[AUDIT] inserted (pg) id=', newId); } catch (_) {}
-        if (cb) return cb(null, newId);
-      });
+      const params = [eventType, resourceType, resourceId ? String(resourceId) : null, oldValue, newValue, changedBy, ip, ua];
+      const attemptInsert = (didRetry) => {
+        db.query(sql, params, (err, rows) => {
+          if (err) {
+            const code = err && err.code ? err.code : '';
+            const constraint = err && err.constraint ? err.constraint : '';
+            // If sequence is out of sync and causes duplicate key on id, try to sync sequence once and retry
+            if (!didRetry && code === '23505' && /audit_log_pkey/i.test(constraint || '')) {
+              console.warn('[AUDIT] Duplicate key on audit_log.id — syncing sequence and retrying once...');
+              const seqSync = "SELECT setval(pg_get_serial_sequence('audit_log','id'), COALESCE((SELECT MAX(id) FROM audit_log), 0));";
+              return db.query(seqSync, () => attemptInsert(true));
+            }
+            console.error('[AUDIT] Failed to insert audit_log (pg):', err);
+            if (cb) return cb(err);
+            return;
+          }
+          const newId = Array.isArray(rows) && rows[0] && (rows[0].id || rows[0].ID) ? (rows[0].id || rows[0].ID) : undefined;
+          try { console.log('[AUDIT] inserted (pg) id=', newId); } catch (_) {}
+          if (cb) return cb(null, newId);
+        });
+      };
+      attemptInsert(false);
     } else {
       const sql = baseSql + valuesSql;
       db.query(sql, [eventType, resourceType, resourceId ? String(resourceId) : null, oldValue, newValue, changedBy, ip, ua], (err, result) => {
