@@ -1397,7 +1397,8 @@ app.post('/api/appointments', (req, res) => {
       }
 
       // Si no existe, crear la cita
-      const insertQuery = `INSERT INTO citas (Paciente, Consulta_Especialidad, Profesional_Responsable, Fecha, Hora, Observaciones, Id_Creador, Tipo_Creador, Confirmado)
+      // Build DB-specific INSERT (Postgres needs RETURNING to get idCitas; MySQL provides insertId)
+      const baseInsert = `INSERT INTO citas (Paciente, Consulta_Especialidad, Profesional_Responsable, Fecha, Hora, Observaciones, Id_Creador, Tipo_Creador, Confirmado)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Pendiente')`;
       const tipoMap = { paciente: 'Paciente', doctor: 'Doctor', secretaria: 'Secretaria', administrador: 'Administrador' };
       const creatorTypeNormalized = tipoMap[(creatorType || '').toString().toLowerCase()] || null;
@@ -1423,25 +1424,7 @@ app.post('/api/appointments', (req, res) => {
       // Final fallback for any role
       if (normalizedCreator === null) normalizedCreator = 0;
 
-      db.query(insertQuery, [
-        patientDpi,
-        specialty,
-        resolvedDoctor,
-        date,
-        time,
-        observations,
-        normalizedCreator,
-        creatorTypeNormalized
-      ], (errInsert, result) => {
-        if (errInsert) {
-          console.error('Error al crear cita:', errInsert);
-          // Return a compact, client-friendly error description to aid debugging
-          const short = errInsert && (errInsert.sqlMessage || errInsert.message) ? (errInsert.sqlMessage || errInsert.message) : String(errInsert);
-          const code = errInsert && errInsert.code ? errInsert.code : undefined;
-          return res.status(500).json({ success: false, message: 'Error al crear cita', error: { short, code } });
-        }
-        // Retornar la cita creada con datos completos
-        const citaId = result.insertId;
+      const runJoinAndRespond = (citaId) => {
         const joinQuery = `
           SELECT c.idCitas, c.Fecha, c.Hora, c.Observaciones, c.Confirmado,
             p.Nombres AS patientNames, p.Apellidos AS patientLastNames, p.DPI AS patientDpi, p.Telefono AS patientPhone, p.Correo AS patientEmail,
@@ -1457,13 +1440,64 @@ app.post('/api/appointments', (req, res) => {
           if (err2) {
             return res.status(500).json({ success: false, message: 'Cita creada pero error al consultar', error: err2 });
           }
+          if (!results2 || results2.length === 0) {
+            // Extremely unlikely with proper id, but guard just in case
+            return res.json({ success: true, appointment: { idCitas: citaId, Fecha: date, Hora: time, Observaciones: observations, Confirmado: 'Pendiente' } });
+          }
           // Audit: appointment created
           insertAudit(req, 'appointment_create', 'appointment', citaId, null, JSON.stringify(results2[0]), (errAudit) => {
             if (errAudit) console.warn('Audit insert failed for appointment_create', errAudit);
             res.json({ success: true, appointment: results2[0] });
           });
         });
-      });
+      };
+
+      const insertParams = [
+        patientDpi,
+        specialty,
+        resolvedDoctor,
+        date,
+        time,
+        observations,
+        normalizedCreator,
+        creatorTypeNormalized
+      ];
+
+      if ((db && db.dbType) === 'postgres') {
+        const insertQuery = baseInsert + ' RETURNING idCitas';
+        db.query(insertQuery, insertParams, (errInsert, rows) => {
+          if (errInsert) {
+            console.error('Error al crear cita:', errInsert);
+            const short = errInsert && (errInsert.sqlMessage || errInsert.message) ? (errInsert.sqlMessage || errInsert.message) : String(errInsert);
+            const code = errInsert && errInsert.code ? errInsert.code : undefined;
+            return res.status(500).json({ success: false, message: 'Error al crear cita', error: { short, code } });
+          }
+          const row0 = rows && rows[0] ? rows[0] : null;
+          const citaId = row0 ? (row0.idcitas || row0.idCitas || row0.id) : null;
+          if (!citaId) {
+            console.warn('[APPOINTMENTS POST] Postgres insert returned no idCitas; returning bare appointment shell');
+            return res.json({ success: true, appointment: { idCitas: null, Fecha: date, Hora: time, Observaciones: observations, Confirmado: 'Pendiente' } });
+          }
+          runJoinAndRespond(citaId);
+        });
+      } else {
+        const insertQuery = baseInsert;
+        db.query(insertQuery, insertParams, (errInsert, result) => {
+          if (errInsert) {
+          console.error('Error al crear cita:', errInsert);
+          // Return a compact, client-friendly error description to aid debugging
+          const short = errInsert && (errInsert.sqlMessage || errInsert.message) ? (errInsert.sqlMessage || errInsert.message) : String(errInsert);
+          const code = errInsert && errInsert.code ? errInsert.code : undefined;
+          return res.status(500).json({ success: false, message: 'Error al crear cita', error: { short, code } });
+          }
+          const citaId = result && result.insertId ? result.insertId : null;
+          if (!citaId) {
+            console.warn('[APPOINTMENTS POST] MySQL insert did not return insertId; returning bare appointment shell');
+            return res.json({ success: true, appointment: { idCitas: null, Fecha: date, Hora: time, Observaciones: observations, Confirmado: 'Pendiente' } });
+          }
+          runJoinAndRespond(citaId);
+        });
+      }
     });
   });
 });
