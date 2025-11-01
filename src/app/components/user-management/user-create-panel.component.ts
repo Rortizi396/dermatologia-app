@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { UserService } from '../../services/user.service';
+import { AuthService } from '../../services/auth.service';
 import { AppointmentService } from '../../services/appointment.service';
 import { Specialty } from '../../interfaces/specialty.interface';
 import { SpecialtyCreateComponent } from './specialty-create.component';
@@ -42,10 +43,12 @@ export class UserCreatePanelComponent implements OnInit {
   error = '';
   success = '';
   specialties: Specialty[] = [];
+  canCreateAdmin = false;
 
   constructor(
     private fb: FormBuilder,
     private userService: UserService,
+    private authService: AuthService,
     private appointmentService: AppointmentService
   ) {
     this.pacienteForm = this.fb.group({
@@ -94,6 +97,8 @@ export class UserCreatePanelComponent implements OnInit {
         this.specialties = [];
       }
     });
+    // Pre-chequeo de permisos para crear administradores
+    try { this.canCreateAdmin = this.authService.hasRole('administrador'); } catch { this.canCreateAdmin = false; }
   }
 
   selectTab(tab: string) {
@@ -111,6 +116,43 @@ export class UserCreatePanelComponent implements OnInit {
         }
       });
     }
+    if (tab === 'administrador') {
+      // recalcular por si cambió sesión
+      try { this.canCreateAdmin = this.authService.hasRole('administrador'); } catch { this.canCreateAdmin = false; }
+      if (!this.canCreateAdmin) {
+        this.error = 'Necesitas iniciar sesión como administrador para crear otro administrador.';
+      }
+    }
+  }
+
+  private formatBackendError(err: any, kind: 'paciente'|'doctor'|'secretaria'|'administrador'): string {
+    try {
+      const status = err?.status;
+      const msg = err?.error?.message || err?.message;
+      const code = err?.error?.error?.code || err?.error?.code;
+      const detail = (err?.error?.error?.detail || '').toString().toLowerCase();
+
+      if (status === 403 && kind === 'administrador') {
+        return 'No estás autorizado para crear administradores. Inicia sesión como administrador.';
+      }
+      if (status === 400 && msg) {
+        return msg;
+      }
+      // Postgres duplicate key (correo único u otras claves)
+      if (code === '23505') {
+        if (detail.includes('correo') || (msg || '').toLowerCase().includes('correo')) {
+          return 'El correo ya está en uso. Por favor utiliza otro.';
+        }
+        return 'Registro duplicado: ya existe un elemento con esos datos.';
+      }
+      // Postgres not-null violation
+      if (code === '23502') {
+        return 'Faltan campos obligatorios o hay un valor inválido. Revisa el formulario.';
+      }
+      return msg || `Error al crear ${kind}`;
+    } catch {
+      return `Error al crear ${kind}`;
+    }
   }
 
   submitPaciente() {
@@ -124,7 +166,7 @@ export class UserCreatePanelComponent implements OnInit {
           this.loading = false;
         },
         error: err => {
-          this.error = err.error?.message || 'Error al crear paciente';
+          this.error = this.formatBackendError(err, 'paciente');
           this.success = '';
           this.loading = false;
         }
@@ -157,7 +199,7 @@ export class UserCreatePanelComponent implements OnInit {
           this.loading = false;
         },
         error: err => {
-          this.error = err.error?.message || 'Error al crear doctor';
+          this.error = this.formatBackendError(err, 'doctor');
           this.success = '';
           this.loading = false;
         }
@@ -175,7 +217,7 @@ export class UserCreatePanelComponent implements OnInit {
           this.loading = false;
         },
         error: err => {
-          this.error = err.error?.message || 'Error al crear secretaria';
+          this.error = this.formatBackendError(err, 'secretaria');
           this.success = '';
           this.loading = false;
         }
@@ -193,7 +235,7 @@ export class UserCreatePanelComponent implements OnInit {
           this.loading = false;
         },
         error: err => {
-          this.error = err.error?.message || 'Error al crear administrador';
+          this.error = this.formatBackendError(err, 'administrador');
           this.success = '';
           this.loading = false;
         }

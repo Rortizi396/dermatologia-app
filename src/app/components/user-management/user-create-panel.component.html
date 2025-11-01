@@ -127,26 +127,29 @@
 
   <div *ngIf="selectedTab === 'administrador'" class="form-container">
       <h2 class="form-title">Crear Administrador</h2>
+      <p *ngIf="!canCreateAdmin" class="form-hint form-hint--warning">
+        Debes iniciar sesión como administrador para poder crear otro administrador.
+      </p>
       <form [formGroup]="adminForm" (ngSubmit)="submitAdmin()">
         <div class="form-grid">
         <div class="form-group">
           <label class="form-label">Nombres</label>
-          <input type="text" class="form-input" formControlName="nombres">
+          <input type="text" class="form-input" formControlName="nombres" [disabled]="!canCreateAdmin">
         </div>
         <div class="form-group">
           <label class="form-label">Apellidos</label>
-          <input type="text" class="form-input" formControlName="apellidos">
+          <input type="text" class="form-input" formControlName="apellidos" [disabled]="!canCreateAdmin">
         </div>
         <div class="form-group">
           <label class="form-label">Correo</label>
-          <input type="email" class="form-input" formControlName="correo">
+          <input type="email" class="form-input" formControlName="correo" [disabled]="!canCreateAdmin">
         </div>
         <div class="form-group">
           <label class="form-label">Contraseña</label>
-          <input type="password" class="form-input" formControlName="password">
+          <input type="password" class="form-input" formControlName="password" [disabled]="!canCreateAdmin">
         </div>
         </div>
-        <button class="form-button" type="submit" [disabled]="loading">Crear Administrador</button>
+        <button class="form-button" type="submit" [disabled]="loading || !canCreateAdmin">Crear Administrador</button>
         <div *ngIf="error" class="form-error">{{ error }}</div>
         <div *ngIf="success" class="form-success">{{ success }}</div>
       </form>
