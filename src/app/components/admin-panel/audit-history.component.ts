@@ -167,6 +167,8 @@ export class AuditHistoryComponent implements OnInit {
   records: any[] = [];
   activeTab: 'users'|'appointments' = 'appointments';
   undoing: Record<number, boolean> = {} as any;
+  // Use runtime API base to work on GitHub Pages and local dev
+  private apiBase = ((window as any).__env && (window as any).__env.apiUrl) ? (window as any).__env.apiUrl : '/api';
   // filters
   filterEvent: string | null = null;
   filterResourceId: string | null = null;
@@ -189,8 +191,10 @@ export class AuditHistoryComponent implements OnInit {
     if (this.filterSince) params.push(`since=${encodeURIComponent(this.filterSince)}`);
     if (this.filterUntil) params.push(`until=${encodeURIComponent(this.filterUntil)}`);
     params.push(`limit=${encodeURIComponent(String(this.filterLimit || 200))}`);
-    const q = `/api/audit?${params.join('&')}`;
-    this.http.get<any>(q).subscribe({
+    // cache-bust param to avoid intermediary caches
+    params.push(`_=${Date.now()}`);
+    const q = `${this.apiBase}/audit?${params.join('&')}`;
+    this.http.get<any>(q, { headers: { 'Accept': 'application/json' } }).subscribe({
       next: (r) => { if (r && r.success) this.records = r.data || []; },
       error: (e) => { console.error('Error loading audit', e); }
     });
@@ -230,15 +234,16 @@ export class AuditHistoryComponent implements OnInit {
   undo(auditId: number) {
     if (!confirm('¿Seguro que quieres deshacer este cambio de cita?')) return;
     this.undoing[auditId] = true;
-    this.http.post<any>(`/api/audit/${auditId}/undo`, {}).subscribe({
+    this.http.post<any>(`${this.apiBase}/audit/${auditId}/undo`, {}, { headers: { 'Accept': 'application/json' } }).subscribe({
       next: (r) => { this.undoing[auditId] = false; this.load(); alert(r && r.message ? r.message : 'Deshecho'); },
       error: (e) => {
         console.error('Undo failed', e);
         // If proxy returned 404 or network error, try direct backend to help diagnose
         const status = e && e.status ? e.status : 0;
         if (status === 404 || status === 0) {
-          console.warn('Retrying undo directly against backend http://localhost:3000 (proxy may be misconfigured)');
-          this.http.post<any>(`http://localhost:3000/api/audit/${auditId}/undo`, {}).subscribe({
+          // Retry using the resolved apiBase without hash routing issues
+          console.warn('Retrying undo directly against configured backend', this.apiBase);
+          this.http.post<any>(`${this.apiBase}/audit/${auditId}/undo`, {}, { headers: { 'Accept': 'application/json' } }).subscribe({
             next: (r2) => { this.undoing[auditId] = false; this.load(); alert(r2 && r2.message ? r2.message : 'Deshecho (directo)'); },
             error: (e2) => { this.undoing[auditId] = false; console.error('Direct undo failed', e2); alert('Error al deshacer (directo): ' + (e2?.error?.message || e2.message || e2)); }
           });
