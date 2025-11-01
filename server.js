@@ -834,20 +834,27 @@ app.get('/api/doctores/:colegiado', (req, res) => {
           try { console.log('[CITAS] returned rows:', (dataRows || []).length); } catch(e) {}
           let mapped = (dataRows || []).map(r => ({
             ...r,
-            // provide lowercase aliases expected by frontend templates
-            Fecha: r.Fecha,
-            fecha: r.Fecha,
-            Hora: r.Hora,
-            hora: r.Hora,
-            Paciente: r.Paciente,
-            paciente: r.Paciente,
-            Consulta_Especialidad: r.Consulta_Especialidad,
-            consulta_Especialidad: r.Consulta_Especialidad,
-            Profesional_Responsable: r.Profesional_Responsable,
-            profesional_Responsable: r.Profesional_Responsable,
-            pacienteInfo: { nombres: r.pacienteNombres, apellidos: r.pacienteApellidos },
-            doctorInfo: { nombres: r.doctorNombres, apellidos: r.doctorApellidos },
-            especialidadInfo: { Nombre: r.especialidadnombre }
+            // Provide both camelCase/PascalCase and snake_case aliases expected by frontend templates
+            idCitas: r.idCitas || r.idcitas,
+            Fecha: r.Fecha || r.fecha,
+            fecha: r.fecha || r.Fecha,
+            Hora: r.Hora || r.hora,
+            hora: r.hora || r.Hora,
+            Paciente: r.Paciente || r.paciente,
+            paciente: r.paciente || r.Paciente,
+            Consulta_Especialidad: r.Consulta_Especialidad || r.consulta_especialidad,
+            consulta_Especialidad: r.consulta_Especialidad || r.consulta_especialidad,
+            Profesional_Responsable: r.Profesional_Responsable || r.profesional_responsable,
+            profesional_Responsable: r.profesional_Responsable || r.profesional_responsable,
+            // Normalize joined names regardless of driver casing
+            pacienteNombres: r.pacienteNombres || r.pacientenombres,
+            pacienteApellidos: r.pacienteApellidos || r.pacienteapellidos,
+            doctorNombres: r.doctorNombres || r.doctornombres,
+            doctorApellidos: r.doctorApellidos || r.doctorapellidos,
+            especialidadNombre: r.especialidadNombre || r.especialidadnombre,
+            pacienteInfo: { nombres: r.pacienteNombres || r.pacientenombres, apellidos: r.pacienteApellidos || r.pacienteapellidos },
+            doctorInfo: { nombres: r.doctorNombres || r.doctornombres, apellidos: r.doctorApellidos || r.doctorapellidos },
+            especialidadInfo: { Nombre: (r.especialidadNombre || r.especialidadnombre) }
           }));
 
           // If some rows are missing Fecha/Hora, fetch them directly from the citas table by id
