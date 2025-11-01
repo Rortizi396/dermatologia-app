@@ -16,6 +16,7 @@ export class SecretaryPatientsComponent implements OnInit {
   patients: any[] = [];
   filtered: any[] = [];
   loading = false;
+  skeletonRows: number[] = Array.from({ length: 8 }, (_, i) => i);
   // Paginación
   page = 1;
   pageSize = 10;
