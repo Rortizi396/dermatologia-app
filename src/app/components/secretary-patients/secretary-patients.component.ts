@@ -171,6 +171,10 @@ export class SecretaryPatientsComponent implements OnInit {
     return this.sortDir === 'asc' ? '▲' : '▼';
     }
 
+  isSortedField(field: 'apellidos' | 'nombres' | 'dpi' | 'correo'): boolean {
+    return this.sortBy === field;
+  }
+
   initials(p: any): string {
     const n = (p.Nombres || '').trim();
     const a = (p.Apellidos || '').trim();
