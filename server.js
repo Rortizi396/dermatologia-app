@@ -277,6 +277,15 @@ function connectWithRetry(attempt = 0) {
       );`;
       db.query(createUsuarios, (err) => {
         if (err) { console.warn('[DB INIT] could not ensure Usuarios table (pg):', err); return; }
+        // Best-effort: resync common sequences that might be out-of-sync if DB content was imported
+        try {
+          const seqFixes = [
+            "SELECT setval(pg_get_serial_sequence('audit_log','id'), COALESCE((SELECT MAX(id) FROM audit_log), 0));",
+            "SELECT setval(pg_get_serial_sequence('especialidades','idespecialidades'), COALESCE((SELECT MAX(idespecialidades) FROM especialidades), 0));",
+            "SELECT setval(pg_get_serial_sequence('usuarios','idusuarios'), COALESCE((SELECT MAX(idusuarios) FROM usuarios), 0));"
+          ];
+          seqFixes.forEach((sql) => db.query(sql, (e2) => { if (e2) console.warn('[DB INIT] sequence sync warn:', e2 && e2.message ? e2.message : e2); }));
+        } catch (e) { /* ignore */ }
         db.query('SELECT COUNT(*) AS cnt FROM Usuarios', (e, rows) => {
           if (e) return console.warn('[DB INIT] count Usuarios failed (pg):', e);
           const cnt = (rows && rows[0] && (rows[0].cnt || rows[0].count)) ? Number(rows[0].cnt || rows[0].count) : 0;
@@ -938,20 +947,53 @@ app.post('/api/users', (req, res) => {
         console.error('Error al encriptar contraseña:', err);
         return res.status(500).json({ success: false, message: 'Error al encriptar contraseña', error: err });
       }
-      // Insertar en Usuarios
-      const queryUsuarios = `INSERT INTO Usuarios (correo, contrasenia, Tipo) VALUES (?, ?, ?)`;
-      const valuesUsuarios = [correo, hash, tipo.toLowerCase()];
-      console.log('Query Usuarios:', queryUsuarios);
-      console.log('Values Usuarios:', valuesUsuarios);
-      db.query(queryUsuarios, valuesUsuarios, (err, result) => {
-        if (err) {
-          console.error('Error al crear usuario en Usuarios:', err);
-          return res.status(500).json({ success: false, message: 'Error al crear usuario', error: err });
+      const activeVal = activo ? 'SI' : 'NO';
+
+      // Helper: robust insert into Usuarios across MySQL/Postgres and mixed schemas (Estado vs Activo)
+      const tryInsertUsuarios = (attempt) => {
+        // attempt: 0 = prefer Estado (pg); 1 = fallback Activo; 2 = minimal columns
+        let sql;
+        let params;
+        const isPg = (db && db.dbType === 'postgres');
+        const wantsReturning = isPg;
+        if (attempt === 0) {
+          sql = `INSERT INTO usuarios (correo, contrasenia, Tipo, Estado)` + (wantsReturning ? ` VALUES (?, ?, ?, ?) RETURNING idUsuarios` : ` VALUES (?, ?, ?, ?)`);
+          params = [correo, hash, tipo.toLowerCase(), activeVal];
+        } else if (attempt === 1) {
+          sql = `INSERT INTO usuarios (correo, contrasenia, Tipo, Activo)` + (wantsReturning ? ` VALUES (?, ?, ?, ?) RETURNING idUsuarios` : ` VALUES (?, ?, ?, ?)`);
+          params = [correo, hash, tipo.toLowerCase(), activeVal];
+        } else {
+          sql = `INSERT INTO usuarios (correo, contrasenia, Tipo)` + (wantsReturning ? ` VALUES (?, ?, ?) RETURNING idUsuarios` : ` VALUES (?, ?, ?)`);
+          params = [correo, hash, tipo.toLowerCase()];
         }
-        const idUsuario = result.insertId;
-        // Continue existing creation logic for pacientes/doctores/secretarias/administradores
-        createSpecificEntity(idUsuario);
-      });
+        console.log('[CREATE USER] trying insert:', sql);
+        db.query(sql, params, (insErr, rowsOrResult) => {
+          if (insErr) {
+            const code = insErr && insErr.code ? String(insErr.code) : '';
+            const msg = insErr && insErr.message ? String(insErr.message) : '';
+            // If column doesn't exist in this schema, fallback to next attempt
+            if ((code === '42703' || /column .* does not exist/i.test(msg)) && attempt < 2) {
+              return tryInsertUsuarios(attempt + 1);
+            }
+            console.error('Error al crear usuario en Usuarios:', insErr);
+            return res.status(500).json({ success: false, message: 'Error al crear usuario', error: insErr });
+          }
+          let idUsuario = undefined;
+          if (wantsReturning) {
+            // Postgres path: db.query returns rows
+            if (Array.isArray(rowsOrResult) && rowsOrResult[0]) {
+              idUsuario = rowsOrResult[0].idusuarios || rowsOrResult[0].idUsuarios || rowsOrResult[0].id;
+            }
+          } else {
+            // MySQL path: insertId available
+            idUsuario = rowsOrResult && (rowsOrResult.insertId || rowsOrResult.lastInsertId);
+          }
+          createSpecificEntity(idUsuario);
+        });
+      };
+
+      // Prefer Estado on Postgres, else fallback
+      tryInsertUsuarios(0);
     });
   };
 
@@ -1050,8 +1092,18 @@ app.post('/api/users', (req, res) => {
     try {
       const token = auth.split(' ')[1];
       const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secreto');
-      const userRole = ((decoded.tipo || decoded.role || '') || '').toString().toLowerCase();
-      if (userRole !== 'administrador') return res.status(403).json({ success: false, message: 'No autorizado para crear administradores' });
+      const email = (decoded.email || decoded.correo || '').toString();
+      if (!email) return res.status(403).json({ success: false, message: 'No autorizado para crear administradores' });
+      // Look up the caller's role in DB to decide
+      db.query('SELECT Tipo FROM Usuarios WHERE correo = ? LIMIT 1', [email], (er, rows) => {
+        if (er) {
+          console.warn('[ADMIN CREATE CHECK] failed to fetch caller role:', er);
+          return res.status(403).json({ success: false, message: 'No autorizado para crear administradores' });
+        }
+        const t = rows && rows[0] ? (rows[0].Tipo || rows[0].tipo || '').toString().toLowerCase() : '';
+        if (t !== 'administrador') return res.status(403).json({ success: false, message: 'No autorizado para crear administradores' });
+        // Authorized — continue (no response here, flow continues)
+      });
     } catch (exAuth) {
       return res.status(403).json({ success: false, message: 'No autorizado para crear administradores', error: exAuth && exAuth.message ? exAuth.message : exAuth });
     }
@@ -1069,14 +1121,36 @@ app.post('/api/specialties', (req, res) => {
   if (!nombre) {
     return res.status(400).json({ success: false, message: 'El nombre de la especialidad es obligatorio' });
   }
-  const query = 'INSERT INTO especialidades (Nombre, Descripcion) VALUES (?, ?)';
-  db.query(query, [nombre, descripcion || ''], (err, result) => {
-    if (err) {
-      return res.status(500).json({ success: false, message: 'Error al crear especialidad', error: err });
-    }
-    // éxito
-    return res.json({ success: true, message: 'Especialidad creada exitosamente', idEspecialidad: result.insertId });
-  });
+  const baseSql = 'INSERT INTO especialidades (Nombre, Descripcion) VALUES (?, ?)';
+  const params = [nombre, descripcion || ''];
+  const isPg = (db && db.dbType === 'postgres');
+  if (isPg) {
+    const sql = baseSql + ' RETURNING idespecialidades';
+    const tryInsert = (didRetry) => {
+      db.query(sql, params, (err, rows) => {
+        if (err) {
+          const code = err && err.code ? err.code : '';
+          const constraint = err && err.constraint ? String(err.constraint) : '';
+          if (!didRetry && code === '23505' && /especialidades_pkey/i.test(constraint)) {
+            console.warn('[SPECIALTIES] Duplicate PK on especialidades — syncing sequence then retrying once...');
+            const seqSync = "SELECT setval(pg_get_serial_sequence('especialidades','idespecialidades'), COALESCE((SELECT MAX(idespecialidades) FROM especialidades), 0));";
+            return db.query(seqSync, () => tryInsert(true));
+          }
+          return res.status(500).json({ success: false, message: 'Error al crear especialidad', error: err });
+        }
+        const newId = Array.isArray(rows) && rows[0] ? (rows[0].idespecialidades || rows[0].id || rows[0].ID) : undefined;
+        return res.json({ success: true, message: 'Especialidad creada exitosamente', idEspecialidad: newId });
+      });
+    };
+    return tryInsert(false);
+  } else {
+    db.query(baseSql, params, (err, result) => {
+      if (err) {
+        return res.status(500).json({ success: false, message: 'Error al crear especialidad', error: err });
+      }
+      return res.json({ success: true, message: 'Especialidad creada exitosamente', idEspecialidad: result.insertId });
+    });
+  }
 });
 
 // Obtener todas las especialidades
