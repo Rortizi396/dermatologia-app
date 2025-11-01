@@ -197,6 +197,26 @@ export class SecretaryDashboardComponent implements OnInit {
     return t;
   }
 
+  getStatus(c: any): string {
+    if (!c) return '';
+    const raw = c.Confirmado || c.confirmado || c.estado || c.Estado || c.status || c.Status || '';
+    const s = String(raw).toLowerCase();
+    if (s.includes('pend')) return 'Pendiente';
+    if (s.includes('confirm')) return 'Confirmada';
+    if (s.includes('cancel')) return 'Cancelada';
+    // Fallback: capitalize first letter if present
+    if (!raw) return '';
+    try { return String(raw).charAt(0).toUpperCase() + String(raw).slice(1); } catch { return String(raw); }
+  }
+
+  getStatusClass(c: any): string {
+    const st = (this.getStatus(c) || '').toLowerCase();
+    if (st === 'pendiente') return 'bg-warning text-dark';
+    if (st === 'confirmada') return 'bg-success';
+    if (st === 'cancelada') return 'bg-danger';
+    return 'bg-secondary';
+  }
+
   isSelectable(c: any): boolean {
     if (!c) return false;
     // Backend uses 'Confirmado' with values like 'Confirmada', 'Pendiente', 'Cancelada'
