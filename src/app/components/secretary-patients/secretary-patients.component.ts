@@ -23,6 +23,11 @@ export class SecretaryPatientsComponent implements OnInit {
   totalPages = 1;
   // Búsqueda
   search = '';
+  // Ordenamiento
+  sortBy: 'apellidos' | 'nombres' | 'dpi' | 'correo' = 'apellidos';
+  sortDir: 'asc' | 'desc' = 'asc';
+  // Filtro de estado
+  statusFilter: 'todos' | 'activos' | 'inactivos' = 'todos';
   // Edición
   editingDpi: string | null = null;
   editTelefono = '';
@@ -40,7 +45,8 @@ export class SecretaryPatientsComponent implements OnInit {
     this.userService.getPacientes(true).subscribe({
       next: (resp: any) => {
         const arr = Array.isArray(resp) ? resp : (resp.data || resp || []);
-        this.patients = arr;
+        // Normalizar llaves para UI consistente
+        this.patients = (arr || []).map((p: any) => this.normalizePatient(p));
         this.applyFilters();
         this.loading = false;
       },
@@ -51,6 +57,11 @@ export class SecretaryPatientsComponent implements OnInit {
   applyFilters(): void {
     const q = (this.search || '').toLowerCase().trim();
     let list = [...this.patients];
+    // Filtro estado
+    if (this.statusFilter !== 'todos') {
+      const wantActive = this.statusFilter === 'activos';
+      list = list.filter(p => (p.Activo || 'NO') === (wantActive ? 'SI' : 'NO'));
+    }
     if (q) {
       list = list.filter(p => {
         const nombre = `${p.Nombres || ''} ${p.Apellidos || ''}`.toLowerCase();
@@ -60,6 +71,19 @@ export class SecretaryPatientsComponent implements OnInit {
         return nombre.includes(q) || correo.includes(q) || dpi.includes(q) || tel.includes(q);
       });
     }
+    // Ordenar
+    const dir = this.sortDir === 'asc' ? 1 : -1;
+    const getKey = (p: any) => {
+      switch (this.sortBy) {
+        case 'nombres': return `${p.Nombres || ''}`.toLowerCase();
+        case 'dpi': return String(p.DPI || '');
+        case 'correo': return `${p.Correo || ''}`.toLowerCase();
+        case 'apellidos':
+        default: return `${p.Apellidos || ''}`.toLowerCase();
+      }
+    };
+    list.sort((a, b) => (getKey(a) > getKey(b) ? 1 * dir : getKey(a) < getKey(b) ? -1 * dir : 0));
+
     this.filtered = list;
     this.page = 1;
     this.recalcPages();
@@ -105,4 +129,22 @@ export class SecretaryPatientsComponent implements OnInit {
   // Helpers para plantillas
   toStringVal(v: any): string { try { return String(v ?? ''); } catch { return '';} }
   min(a: number, b: number): number { return Math.min(a, b); }
+  normalizePatient(p: any): any {
+    const get = (a: any, b: any) => (typeof a !== 'undefined' && a !== null && a !== '') ? a : b;
+    const up = (s: any) => (typeof s === 'string' ? s.toUpperCase() : s);
+    const activoRaw = get(p.Activo, get(p.activo, 'SI'));
+    const activo = ((): string => {
+      const v = ('' + activoRaw).toUpperCase();
+      return v === 'SI' || v === 'S' || v === 'TRUE' || v === '1' ? 'SI' : 'NO';
+    })();
+    return {
+      ...p,
+      DPI: get(p.DPI, get(p.dpi, get(p.id, ''))),
+      Nombres: get(p.Nombres, p.nombres || ''),
+      Apellidos: get(p.Apellidos, p.apellidos || ''),
+      Telefono: get(p.Telefono, p.telefono || ''),
+      Correo: get(p.Correo, p.correo || ''),
+      Activo: activo
+    };
+  }
 }
