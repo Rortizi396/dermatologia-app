@@ -12,8 +12,11 @@ export class AuthInterceptor implements HttpInterceptor {
     // Obtener el token del auth service
     const token = this.authService.getToken();
     
-    // Clonar la request y añadir el header Authorization si existe el token
-    if (token) {
+    // Clonar la request y añadir el header Authorization si existe el token,
+    // excepto para endpoints públicos donde queremos evitar preflight CORS.
+    // Caso específico: GET /api/doctores (lista de doctores pública)
+    const isPublicDoctorsList = request.method === 'GET' && /\/doctores(\?.*)?$/i.test(request.url);
+    if (token && !isPublicDoctorsList) {
       request = request.clone({
         setHeaders: {
           Authorization: `Bearer ${token}`
