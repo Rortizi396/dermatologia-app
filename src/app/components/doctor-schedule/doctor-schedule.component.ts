@@ -36,44 +36,55 @@ export class DoctorScheduleComponent implements OnInit {
   constructor(private appointmentService: AppointmentService, private authService: AuthService, private userService: UserService) {}
 
   ngOnInit() {
-    // Obtener lista de doctores a través del servicio de usuarios
-    this.userService.getAllDoctores().subscribe({ next: (r:any) => {
+    // Cargar doctores y autoseleccionar por correo/colegiado si el usuario es doctor
+    this.userService.getAllDoctores().subscribe({
+      next: (r: any) => {
         this.doctors = r && r.data ? r.data : (Array.isArray(r) ? r : []);
-        // si el usuario es doctor intentar auto-seleccionar
-        const user: User | null = this.authService.currentUserValue;
-        if (user && user.tipo === 'doctor') {
-          const colegiado = (user.colegiado as unknown) as number | string;
-          const userEmail = (user as any)?.email || (user as any)?.correo || null;
-          // Buscar por colegiado en la lista de doctores
-          let found: any = null;
-          if (colegiado) {
-            found = this.doctors.find(d => String(d.Colegiado || d.colegiado || d.colegiado_numero || d.ColegiadoNumero || d.id) === String(colegiado));
-          }
-          // si no encontrado, intentar por email
-          if (!found && userEmail) {
-            found = this.doctors.find(d => String(d.Correo || d.correo || d.email).toLowerCase() === String(userEmail).toLowerCase());
-          }
-          if (found) {
-            // intentar seleccionar
-            setTimeout(() => { this.onDoctorSelect(found.Colegiado || found.colegiado || found.id); }, 50);
-          }
-        }
-      }, error: (e) => { console.warn('Error cargando doctores', e); this.doctors = []; } });
-    // Si hay un usuario logueado y es doctor, autoseleccionar su agenda
-    const user: User | null = this.authService.currentUserValue;
-    if (user && user.tipo === 'doctor') {
-      // si el usuario tiene 'colegiado' usamos ese valor para filtrar
-      const colegiado = (user.colegiado as unknown) as number;
-      if (colegiado) {
-        // Intentamos autoseleccionar después de una pequeña espera para que 'doctors' haya cargado
-        setTimeout(() => {
-          try {
-            this.onDoctorSelect(colegiado);
-          } catch (e) {
-            console.warn('No se pudo autoseleccionar la agenda del doctor:', e);
-          }
-        }, 250);
+        this.tryAutoSelectDoctor();
+      },
+      error: (e) => {
+        console.warn('Error cargando doctores', e);
+        this.doctors = [];
+        // incluso si falla la carga de doctores, intentamos autoseleccionar por colegiado del usuario
+        this.tryAutoSelectDoctor(true);
       }
+    });
+  }
+
+  private tryAutoSelectDoctor(fallbackOnly: boolean = false) {
+    const user: User | null = this.authService.currentUserValue;
+    if (!user || user.tipo !== 'doctor') return;
+
+    const userEmailRaw = (user as any)?.email || (user as any)?.correo || (user as any)?.Correo || '';
+    const userEmail = String(userEmailRaw).trim().toLowerCase();
+    const userColegiadoRaw = (user as any)?.colegiado || (user as any)?.Colegiado || null;
+    const userColegiado = userColegiadoRaw != null ? String(userColegiadoRaw).trim() : null;
+
+    let selected: any = null;
+    if (!fallbackOnly && Array.isArray(this.doctors) && this.doctors.length > 0) {
+      // Primero intentar por correo (requisito del negocio)
+      if (userEmail) {
+        selected = this.doctors.find(d => String((d.Correo ?? d.correo ?? d.email) || '').trim().toLowerCase() === userEmail) || null;
+      }
+      // Si no se encontró por correo, intentar por colegiado
+      if (!selected && userColegiado) {
+        selected = this.doctors.find(d => String(d.Colegiado ?? d.colegiado ?? d.id ?? '').trim() === userColegiado) || null;
+      }
+    }
+
+    // Determinar el colegiado a usar
+    const colegiadoToUse = selected ? (selected.Colegiado ?? selected.colegiado ?? selected.id) : (userColegiado ? Number(userColegiado) : null);
+    if (colegiadoToUse) {
+      // Seleccionar directamente
+      try {
+        this.onDoctorSelect(Number(colegiadoToUse));
+      } catch (e) {
+        console.warn('Fallo al seleccionar agenda del doctor:', e);
+      }
+    } else {
+      // No se encontró coincidencia; limpiar calendario
+      this.selectedDoctorId = null;
+      this.events = [];
     }
   }
 

@@ -8,16 +8,10 @@
     <div style="display:flex;flex-direction:column;">
       <h2 style="margin:0;">Agenda de Citas</h2>
     </div>
-    <!-- Selector de doctor -->
-    <div style="margin-left:auto;display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
-      <label for="selDoctor" class="text-muted" style="font-size:.95rem;">Doctor</label>
-  <select id="selDoctor" class="form-select" (change)="onDoctorSelectFromEvent($event)" style="min-width:260px;">
-        <option [ngValue]="null">Seleccione un doctor…</option>
-        <option *ngFor="let d of doctors" [value]="d.Colegiado || d.colegiado || d.id">
-          {{ (d.nombres || d.Nombres || '') }} {{ (d.apellidos || d.Apellidos || '') }}
-          <ng-container *ngIf="d.colegiado || d.Colegiado"> — {{ d.colegiado || d.Colegiado }}</ng-container>
-        </option>
-      </select>
+    <!-- Avatares de ejemplo -->
+    <div style="margin-left:auto;display:flex;gap:10px;align-items:center;">
+      <img src="assets/images/doctor-avatar-1.svg" alt="Dr. Ejemplo" width="56" height="56" style="border-radius:6px;" />
+      <img src="assets/images/doctor-avatar-2.svg" alt="Dr. Ejemplo 2" width="56" height="56" style="border-radius:6px;" />
     </div>
   </div>
 
@@ -31,9 +25,7 @@
     </mwl-calendar-month-view>
   </div>
 
-  <div *ngIf="!selectedDoctorId" class="text-muted" style="margin-top:8px;">
-    Selecciona un doctor para cargar el calendario.
-  </div>
+  
 
   <!-- Detalles de la cita debajo del calendario -->
   <div *ngIf="selectedAppointment" class="appointment-details mt-4">
