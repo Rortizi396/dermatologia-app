@@ -1989,7 +1989,10 @@ app.post('/api/audit/:auditId/undo', (req, res) => {
 // Obtener todos los doctores
 // Make this endpoint explicitly CORS-public without credentials so it's callable from GitHub Pages
 app.get('/api/doctores', cors({ origin: '*', credentials: false }), (req, res) => {
-  db.query("SELECT * FROM doctores WHERE Activo = 'SI'", (err, results) => {
+  // Case-insensitive filter for active doctors: treat 'SI', 'Si', 'SÍ', 'sí', 'si' as active
+  // Also default NULL/empty to active to avoid accidentally hiding doctors in mixed datasets
+  const sql = "SELECT * FROM doctores WHERE UPPER(COALESCE(Activo, 'SI')) IN ('SI','SÍ')";
+  db.query(sql, (err, results) => {
     if (err) {
       return res.status(500).json({ success: false, message: 'Error al obtener doctores', error: err });
     }
