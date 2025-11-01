@@ -97,7 +97,8 @@ export class AppComponent{
       { path: '/doctor/schedule', icon: 'fas fa-calendar-alt', label: 'Mi Agenda', roles: ['doctor'] },
       
       // Secretaria
-      { path: '/appointments/manage', icon: 'fas fa-tasks', label: 'Gestionar Citas', roles: ['secretaria', 'administrador'] }
+      { path: '/appointments/manage', icon: 'fas fa-tasks', label: 'Gestionar Citas', roles: ['secretaria', 'administrador'] },
+      { path: '/secretary/patients', icon: 'fas fa-user-injured', label: 'Administración de Pacientes', roles: ['secretaria', 'administrador'] }
     ];
 
     return [...baseItems, ...roleSpecificItems].filter(item => 

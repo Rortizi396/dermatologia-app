@@ -535,14 +535,20 @@ app.use((err, req, res, next) => {
   return next(err);
 });
 
-// Obtener todos los pacientes
+// Obtener pacientes (por defecto solo activos; si includeInactive=1, devuelve todos)
 app.get('/api/pacientes', (req, res) => {
-  db.query("SELECT * FROM pacientes WHERE Activo = 'SI'", (err, results) => {
-    if (err) {
-      return res.status(500).json({ success: false, message: 'Error al obtener pacientes', error: err });
-    }
-    res.json({ success: true, data: results });
-  });
+  try {
+    const includeInactive = String(req.query.includeInactive || req.query.all || '0').trim() === '1';
+    const sql = includeInactive ? 'SELECT * FROM pacientes' : "SELECT * FROM pacientes WHERE Activo = 'SI'";
+    db.query(sql, (err, results) => {
+      if (err) {
+        return res.status(500).json({ success: false, message: 'Error al obtener pacientes', error: err });
+      }
+      return res.json({ success: true, data: results });
+    });
+  } catch (e) {
+    return res.status(500).json({ success: false, message: 'Error al procesar la solicitud de pacientes', error: e });
+  }
 });
 
 // Obtener todas las secretarias
@@ -2092,10 +2098,11 @@ app.put('/api/:tipo/:id', (req, res, next) => {
           return db.rollback(() => res.status(500).json({ success: false, message: 'Error al actualizar usuario', error: err }));
         }
 
-        // After updating the entity table, attempt to find corresponding usuario by correo
-        // Prefer new correo provided in request body; otherwise use oldRow's correo
-        const newCorreo = (data && (data.Correo || data.correo)) ? (data.Correo || data.correo) : null;
-        const correoToFind = newCorreo || (oldRow && (oldRow.Correo || oldRow.correo));
+  // After updating the entity table, attempt to find corresponding usuario by correo
+  // IMPORTANT: To correctly update Usuarios when the correo changes, first search by the previous correo
+  // stored in the entity row (oldRow). If not available, fallback to the new correo provided.
+  const newCorreo = (data && (data.Correo || data.correo)) ? (data.Correo || data.correo) : null;
+  const correoToFind = (oldRow && (oldRow.Correo || oldRow.correo)) || newCorreo;
 
         if (!correoToFind) {
           // Nothing to sync to usuarios; commit and finish

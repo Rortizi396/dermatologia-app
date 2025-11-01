@@ -81,6 +81,12 @@ const routes: Routes = [
     canActivate: [AuthGuard]
   },
   {
+    path: 'secretary/patients',
+    loadComponent: () => import('./components/secretary-patients/secretary-patients.component').then(m => m.SecretaryPatientsComponent),
+    canActivate: [AuthGuard, RoleGuard],
+    data: { roles: ['secretaria', 'administrador'] }
+  },
+  {
     path: 'dashboard/doctor',
     loadComponent: () => import('./components/doctor-dashboard/doctor-dashboard.component').then(m => m.DoctorDashboardComponent),
     canActivate: [AuthGuard]

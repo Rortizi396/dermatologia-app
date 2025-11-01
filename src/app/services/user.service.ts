@@ -53,6 +53,12 @@ export class UserService {
     return this.http.get<any>(`${this.apiUrl}/pacientes`);
   }
 
+  // Obtener pacientes con opción de incluir inactivos
+  getPacientes(includeInactive: boolean = false): Observable<any> {
+    const suffix = includeInactive ? '?includeInactive=1' : '';
+    return this.http.get<any>(`${this.apiUrl}/pacientes${suffix}`);
+  }
+
   // Obtener todos los administradores
   getAllAdministradores(): Observable<any> {
     return this.http.get<any>(`${this.apiUrl}/administradores`);
