@@ -282,7 +282,8 @@ function connectWithRetry(attempt = 0) {
           const seqFixes = [
             "SELECT setval(pg_get_serial_sequence('audit_log','id'), COALESCE((SELECT MAX(id) FROM audit_log), 0));",
             "SELECT setval(pg_get_serial_sequence('especialidades','idespecialidades'), COALESCE((SELECT MAX(idespecialidades) FROM especialidades), 0));",
-            "SELECT setval(pg_get_serial_sequence('usuarios','idusuarios'), COALESCE((SELECT MAX(idusuarios) FROM usuarios), 0));"
+            "SELECT setval(pg_get_serial_sequence('usuarios','idusuarios'), COALESCE((SELECT MAX(idusuarios) FROM usuarios), 0));",
+            "SELECT setval(pg_get_serial_sequence('especialidades_has_doctores','ref'), COALESCE((SELECT MAX(ref) FROM especialidades_has_doctores), 0));"
           ];
           seqFixes.forEach((sql) => db.query(sql, (e2) => { if (e2) console.warn('[DB INIT] sequence sync warn:', e2 && e2.message ? e2.message : e2); }));
         } catch (e) { /* ignore */ }
@@ -1030,19 +1031,32 @@ app.post('/api/users', (req, res) => {
           const placeholders = valuesRel.map(() => '(?, ?)').join(', ');
           const flatValues = valuesRel.flat();
           const queryRel = `INSERT INTO especialidades_has_doctores (Doctores_Colegiado, Especialidades_idEspecialidades) VALUES ${placeholders}`;
-          db.query(queryRel, flatValues, (errRel) => {
-            if (errRel) {
-              console.error('Error en especialidades_has_doctores:', errRel);
-              return res.status(500).json({ success: false, message: 'Doctor creado pero error en especialidades_has_doctores', error: errRel });
-            }
-            db.query('SELECT * FROM doctores WHERE Colegiado = ?', [colegiado], (errSel, rowsSel) => {
-              const created = (rowsSel && rowsSel.length > 0) ? rowsSel[0] : { tipo: 'doctor', correo };
-              insertAudit(req, 'user_create', 'user', idUsuario, null, JSON.stringify(created), (errAudit) => {
-                if (errAudit) console.warn('Audit insert failed for user_create', errAudit);
-                return res.json({ success: true, message: 'Doctor creado exitosamente', userId: idUsuario, tipo: 'doctor' });
+          const isPg = (db && db.dbType === 'postgres');
+          const tryInsertRel = (didRetry) => {
+            db.query(queryRel, flatValues, (errRel) => {
+              if (errRel) {
+                // Handle Postgres duplicate key on the implicit serial PK "ref" due to out-of-sync sequence
+                const code = errRel && errRel.code ? String(errRel.code) : '';
+                const constraint = errRel && errRel.constraint ? String(errRel.constraint) : '';
+                const detail = errRel && errRel.detail ? String(errRel.detail) : '';
+                if (isPg && !didRetry && code === '23505' && (/especialidades_has_doctores_pkey/i.test(constraint) || /Key \(ref\)=\(/i.test(detail))) {
+                  console.warn('[EHD INSERT] Duplicate PK on especialidades_has_doctores — syncing ref sequence then retrying once...');
+                  const seqSync = "SELECT setval(pg_get_serial_sequence('especialidades_has_doctores','ref'), COALESCE((SELECT MAX(ref) FROM especialidades_has_doctores), 0));";
+                  return db.query(seqSync, () => tryInsertRel(true));
+                }
+                console.error('Error en especialidades_has_doctores:', errRel);
+                return res.status(500).json({ success: false, message: 'Doctor creado pero error en especialidades_has_doctores', error: errRel });
+              }
+              db.query('SELECT * FROM doctores WHERE Colegiado = ?', [colegiado], (errSel, rowsSel) => {
+                const created = (rowsSel && rowsSel.length > 0) ? rowsSel[0] : { tipo: 'doctor', correo };
+                insertAudit(req, 'user_create', 'user', idUsuario, null, JSON.stringify(created), (errAudit) => {
+                  if (errAudit) console.warn('Audit insert failed for user_create', errAudit);
+                  return res.json({ success: true, message: 'Doctor creado exitosamente', userId: idUsuario, tipo: 'doctor' });
+                });
               });
             });
-          });
+          };
+          tryInsertRel(false);
         } else {
           return res.json({ success: true, message: 'Doctor creado exitosamente', userId: idUsuario, tipo: 'doctor' });
         }
