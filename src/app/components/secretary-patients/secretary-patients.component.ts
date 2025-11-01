@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, NgIf, NgFor } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { UserService } from '../../services/user.service';
@@ -8,7 +8,7 @@ import { ToastService } from '../../services/toast.service';
 @Component({
   selector: 'app-secretary-patients',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, NgIf, NgFor],
   templateUrl: './secretary-patients.component.html',
   styleUrls: ['./secretary-patients.component.css']
 })
@@ -28,6 +28,10 @@ export class SecretaryPatientsComponent implements OnInit {
   sortDir: 'asc' | 'desc' = 'asc';
   // Filtro de estado
   statusFilter: 'todos' | 'activos' | 'inactivos' = 'todos';
+  // Contadores
+  totalCount = 0;
+  activeCount = 0;
+  inactiveCount = 0;
   // Edición
   editingDpi: string | null = null;
   editTelefono = '';
@@ -47,6 +51,9 @@ export class SecretaryPatientsComponent implements OnInit {
         const arr = Array.isArray(resp) ? resp : (resp.data || resp || []);
         // Normalizar llaves para UI consistente
         this.patients = (arr || []).map((p: any) => this.normalizePatient(p));
+        this.totalCount = this.patients.length;
+        this.activeCount = this.patients.filter(p => p.Activo === 'SI').length;
+        this.inactiveCount = this.totalCount - this.activeCount;
         this.applyFilters();
         this.loading = false;
       },
@@ -146,5 +153,50 @@ export class SecretaryPatientsComponent implements OnInit {
       Correo: get(p.Correo, p.correo || ''),
       Activo: activo
     };
+  }
+
+  // UI helpers
+  setSort(field: 'apellidos' | 'nombres' | 'dpi' | 'correo') {
+    if (this.sortBy === field) {
+      this.sortDir = this.sortDir === 'asc' ? 'desc' : 'asc';
+    } else {
+      this.sortBy = field;
+      this.sortDir = 'asc';
+    }
+    this.applyFilters();
+  }
+
+  sortArrow(field: 'apellidos' | 'nombres' | 'dpi' | 'correo'): string {
+    if (this.sortBy !== field) return '';
+    return this.sortDir === 'asc' ? '▲' : '▼';
+    }
+
+  initials(p: any): string {
+    const n = (p.Nombres || '').trim();
+    const a = (p.Apellidos || '').trim();
+    const ni = n ? n.charAt(0).toUpperCase() : '';
+    const ai = a ? a.charAt(0).toUpperCase() : '';
+    return (ni + ai) || '·';
+  }
+
+  avatarStyle(p: any): {[k: string]: string} {
+    const base = `${p.Nombres || ''}${p.Apellidos || ''}${p.Correo || ''}`;
+    let hash = 0;
+    for (let i = 0; i < base.length; i++) hash = (hash * 31 + base.charCodeAt(i)) | 0;
+    const hue = Math.abs(hash) % 360;
+    return { backgroundColor: `hsl(${hue}, 70%, 50%)` };
+  }
+
+  copy(text: string) {
+    if (!text) return;
+    if (navigator && (navigator as any).clipboard && (navigator as any).clipboard.writeText) {
+      (navigator as any).clipboard.writeText(text).then(() => this.toast.show('Copiado al portapapeles'));
+    } else {
+      // Fallback
+      const ta = document.createElement('textarea');
+      ta.value = text; document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); this.toast.show('Copiado al portapapeles'); } catch {}
+      document.body.removeChild(ta);
+    }
   }
 }
