@@ -1336,7 +1336,11 @@ app.get('/api/usuarios/by-email/:correo', (req, res) => {
   const correo = req.params.correo;
   if (!correo) return res.status(400).json({ success: false, message: 'correo requerido' });
   db.query('SELECT Nombres, Apellidos FROM Usuarios WHERE correo = ? LIMIT 1', [correo], (err, rows) => {
-    if (err) return res.status(500).json({ success: false, message: 'Error de servidor', error: err });
+    if (err) {
+      // This endpoint is used as a best-effort enrichment in the frontend. Avoid noisy 500s.
+      try { console.warn('[USUARIOS BY-EMAIL] query error for', correo, err && err.message ? err.message : err); } catch (_) {}
+      return res.json({ success: true, data: null, message: 'by-email lookup not available' });
+    }
     if (!rows || rows.length === 0) return res.json({ success: true, data: null });
     return res.json({ success: true, data: { nombres: rows[0].Nombres || '', apellidos: rows[0].Apellidos || '' } });
   });

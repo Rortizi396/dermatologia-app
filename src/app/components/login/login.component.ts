@@ -65,6 +65,9 @@ export class LoginComponent implements OnInit {
           console.log('[Login] Parsed user:', user);
           console.log('[Login] Parsed token:', token);
           if (user && token) {
+            // Store token immediately so the interceptor can attach it for subsequent enrichment calls
+            // (e.g., getProfile). We'll update the stored user again after enrichment if needed.
+            try { this.authService.setCurrentUser(user, token); } catch (e) { /* no-op */ }
             // Normalize role field to `tipo` (support various API shapes: Tipo, TIPO, type)
             try {
               if (!user.tipo && (user.Tipo || user.TIPO || user.type)) {
@@ -98,9 +101,10 @@ export class LoginComponent implements OnInit {
             };
 
             const doEnrichment = () => {
-              // If we already have tipo, proceed immediately
+              // If we already have tipo, proceed immediately (user/token already stored)
               if (user && user.tipo) {
-                this.authService.setCurrentUser(user, token);
+                // Optionally refresh stored user (harmless duplicate)
+                try { this.authService.setCurrentUser(user, token); } catch {}
                 finishNavigation();
                 return;
               }
@@ -116,6 +120,7 @@ export class LoginComponent implements OnInit {
                       if (!user.tipo && (profile.tipo || profile.Tipo)) user.tipo = (profile.tipo || profile.Tipo || '').toString().toLowerCase();
                     }
                   } catch (e) { console.warn('Failed to merge profile after login', e); }
+                  // Update stored user with enriched fields
                   this.authService.setCurrentUser(user, token);
                   finishNavigation();
                 },

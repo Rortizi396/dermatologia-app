@@ -1,0 +1,60 @@
+name: DISABLED - Deploy to GitHub Pages (use branch-based Pages)
+
+# Esta acción está deshabilitada porque la cuenta tiene Actions bloqueado por billing
+# y actualmente estamos publicando con GitHub Pages desde main/docs directamente.
+# Si deseas reactivarla en el futuro, restaura los triggers de `push` y quita los `if: false`.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    if: ${{ false }} # disabled
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: dermatologia-app/package-lock.json
+
+      - name: Install dependencies
+        working-directory: dermatologia-app
+        run: npm ci
+
+      - name: Build Angular app for Pages (docs)
+        working-directory: dermatologia-app
+        run: npm run build:pages:docs
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dermatologia-app/docs
+
+  deploy:
+    if: ${{ false }} # disabled
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
