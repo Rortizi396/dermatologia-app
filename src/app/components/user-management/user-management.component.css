@@ -84,3 +84,16 @@
     padding: 0.25rem 0.5rem;
   }
 }
+
+/* Card mode for users tables on small screens */
+@media (max-width: 720px) {
+  .table.table-card thead { display: none; }
+  .table.table-card,
+  .table.table-card tbody,
+  .table.table-card tr,
+  .table.table-card td { display: block; width: 100%; }
+  .table.table-card tr { margin-bottom: 0.75rem; background: #fff; border-radius: 10px; box-shadow: 0 6px 14px rgba(2,6,23,0.04); padding: 0.6rem; border: 1px solid rgba(15,23,42,0.06); }
+  .table.table-card td { border-bottom: none; padding: 0.45rem 0.6rem; text-align: left; }
+  .table.table-card td:before { content: attr(data-label); display: block; font-weight: 700; color: #6b7280; margin-bottom: 0.18rem; }
+  .table.table-card td:last-child { padding-bottom: 0.6rem; }
+}
