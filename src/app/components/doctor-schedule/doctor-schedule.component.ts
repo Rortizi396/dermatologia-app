@@ -57,6 +57,7 @@ export class DoctorScheduleComponent implements OnInit {
 
     const userEmailRaw = (user as any)?.email || (user as any)?.correo || (user as any)?.Correo || '';
     const userEmail = String(userEmailRaw).trim().toLowerCase();
+    const userLocal = userEmail.includes('@') ? userEmail.split('@')[0] : userEmail;
     const userColegiadoRaw = (user as any)?.colegiado || (user as any)?.Colegiado || null;
     const userColegiado = userColegiadoRaw != null ? String(userColegiadoRaw).trim() : null;
 
@@ -64,7 +65,20 @@ export class DoctorScheduleComponent implements OnInit {
     if (!fallbackOnly && Array.isArray(this.doctors) && this.doctors.length > 0) {
       // Primero intentar por correo (requisito del negocio)
       if (userEmail) {
-        selected = this.doctors.find(d => String((d.Correo ?? d.correo ?? d.email) || '').trim().toLowerCase() === userEmail) || null;
+        const exact = this.doctors.find(d => String((d.Correo ?? d.correo ?? d.email) || '').trim().toLowerCase() === userEmail) || null;
+        if (exact) {
+          selected = exact;
+        } else {
+          // Intento flexible: comparar por la parte local del correo (antes de @)
+          const candidates = this.doctors.filter(d => {
+            const em = String((d.Correo ?? d.correo ?? d.email) || '').trim().toLowerCase();
+            const local = em.includes('@') ? em.split('@')[0] : em;
+            return !!local && local === userLocal;
+          });
+          if (candidates.length === 1) {
+            selected = candidates[0];
+          }
+        }
       }
       // Si no se encontró por correo, intentar por colegiado
       if (!selected && userColegiado) {
@@ -75,6 +89,7 @@ export class DoctorScheduleComponent implements OnInit {
     // Determinar el colegiado a usar
     const colegiadoToUse = selected ? (selected.Colegiado ?? selected.colegiado ?? selected.id) : (userColegiado ? Number(userColegiado) : null);
     if (colegiadoToUse) {
+      try { console.log('[doctor-schedule] Autoselect colegiado:', colegiadoToUse); } catch {}
       // Seleccionar directamente
       try {
         this.onDoctorSelect(Number(colegiadoToUse));
@@ -83,6 +98,7 @@ export class DoctorScheduleComponent implements OnInit {
       }
     } else {
       // No se encontró coincidencia; limpiar calendario
+      try { console.warn('[doctor-schedule] No se encontró doctor por correo/colegiado. Verifique que el correo del usuario coincida con el correo del doctor.'); } catch {}
       this.selectedDoctorId = null;
       this.events = [];
     }
