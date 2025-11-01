@@ -55,7 +55,7 @@ export class AppointmentService {
                   : (Array.isArray(resp?.rows) ? resp.rows : [])));
 
         const normalized = (raw || []).map((s: any) => {
-          const idRaw = s.idEspecialidad ?? s.idEspecialidades ?? s.ID ?? s.id ?? s.Id ?? s.IdEspecialidad;
+          const idRaw = s.idEspecialidad ?? s.idEspecialidades ?? s.idespecialidad ?? s.idespecialidades ?? s.ID ?? s.id ?? s.Id ?? s.IdEspecialidad;
           let idNum: number | null = null;
           if (typeof idRaw === 'number') {
             idNum = Number.isFinite(idRaw) ? idRaw : null;
