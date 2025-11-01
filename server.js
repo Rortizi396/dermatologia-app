@@ -1365,6 +1365,18 @@ app.post('/api/appointments', (req, res) => {
     creatorId,
     creatorType
   } = req.body;
+  // Extract userId from JWT if present; this is safer than trusting client creatorId
+  let tokenUserId = null;
+  try {
+    const auth = req.headers && req.headers.authorization ? req.headers.authorization : null;
+    if (auth && auth.toString().toLowerCase().startsWith('bearer ')) {
+      const token = auth.split(' ')[1];
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secreto');
+      tokenUserId = decoded && decoded.userId ? decoded.userId : null;
+    }
+  } catch (_) {
+    // ignore token errors in this context; we'll fallback below
+  }
   // Resolve doctor identifier (allows numeric id, colegiado, email or name)
   resolveProfessional(req, doctor, (errResolve, resolvedDoctor) => {
     if (errResolve) {
@@ -1389,11 +1401,28 @@ app.post('/api/appointments', (req, res) => {
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Pendiente')`;
       const tipoMap = { paciente: 'Paciente', doctor: 'Doctor', secretaria: 'Secretaria', administrador: 'Administrador' };
       const creatorTypeNormalized = tipoMap[(creatorType || '').toString().toLowerCase()] || null;
-      // If creatorId is missing and the creator is the Patient, use the patient DPI as a sensible identifier
+      // Determine a safe integer for Id_Creador (Postgres int range), prefer JWT userId
       let creatorIdValue = creatorId;
-      if ((!creatorIdValue || creatorIdValue === null) && creatorTypeNormalized === 'Paciente') {
-        creatorIdValue = patientDpi || null;
+      const INT_MAX = 2147483647;
+      const toIntOrNull = (v) => {
+        const n = Number(v);
+        if (!Number.isFinite(n)) return null;
+        const ni = Math.trunc(n);
+        if (ni < -INT_MAX || ni > INT_MAX) return null;
+        return ni;
+      };
+      // Prefer token userId if available
+      let normalizedCreator = toIntOrNull(tokenUserId);
+      if (normalizedCreator === null) {
+        normalizedCreator = toIntOrNull(creatorId);
       }
+      // If still null and it's a patient creating their own appointment, fall back to 0
+      if (normalizedCreator === null && creatorTypeNormalized === 'Paciente') {
+        normalizedCreator = 0;
+      }
+      // Final fallback for any role
+      if (normalizedCreator === null) normalizedCreator = 0;
+
       db.query(insertQuery, [
         patientDpi,
         specialty,
@@ -1401,7 +1430,7 @@ app.post('/api/appointments', (req, res) => {
         date,
         time,
         observations,
-        creatorIdValue,
+        normalizedCreator,
         creatorTypeNormalized
       ], (errInsert, result) => {
         if (errInsert) {

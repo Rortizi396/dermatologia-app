@@ -344,12 +344,14 @@ export class AppointmentCreateComponent implements OnInit {
             this.actionLoading = false;
             return;
           }
+          const currentUser: any = this.authService.currentUserValue || null;
           const appointmentData = {
             ...this.appointmentForm.value,
             // New appointments default to 'Pendiente'
             Confirmado: 'Pendiente',
-            creatorId: this.authService.currentUserValue ? this.authService.currentUserValue.id : null,
-            creatorType: this.authService.currentUserValue ? this.authService.currentUserValue.tipo : null
+            // Prefer backend to read creator from JWT; only send a small numeric id if we have it
+            creatorId: currentUser && Number.isFinite(Number(currentUser.id)) ? Number(currentUser.id) : null,
+            creatorType: currentUser ? currentUser.tipo : null
           };
           this.appointmentService.createAppointment(appointmentData).subscribe(
             response => {
@@ -362,7 +364,8 @@ export class AppointmentCreateComponent implements OnInit {
             },
             error => {
               console.error('Error creating appointment:', error);
-              this.toastService.show('Error al crear la cita. Intente nuevamente.', 'error');
+              const short = error?.error?.error?.short || error?.error?.message || 'Error al crear la cita. Intente nuevamente.';
+              this.toastService.show(short, 'error');
               this.actionLoading = false;
             }
           );
