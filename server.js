@@ -1462,7 +1462,8 @@ app.get('/api/users/profile', authenticateToken, (req, res) => {
 
 // Obtener nombres/apellidos por correo desde cualquier tabla conocida (doctores, pacientes, secretarias, administradores, usuarios)
 // Esto permite al frontend enriquecer el saludo aun si Usuarios no tiene Nombres/Apellidos poblados.
-app.get('/api/usuarios/by-email/:correo', (req, res) => {
+// Make this enrichment endpoint CORS-public without credentials to avoid preflight/credentials issues from GitHub Pages
+app.get('/api/usuarios/by-email/:correo', cors({ origin: '*', credentials: false }), (req, res) => {
   const correo = req.params.correo;
   if (!correo) return res.status(400).json({ success: false, message: 'correo requerido' });
 
