@@ -312,15 +312,37 @@ function insertAudit(req, eventType, resourceType, resourceId, oldValue, newValu
     }
     const ip = (req.headers['x-forwarded-for'] || req.connection.remoteAddress || req.socket.remoteAddress || '').toString();
     const ua = (req.headers['user-agent'] || '').toString();
-    const sql = `INSERT INTO audit_log (event_type, resource_type, resource_id, old_value, new_value, changed_by, ip, user_agent) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
-    db.query(sql, [eventType, resourceType, resourceId ? String(resourceId) : null, oldValue, newValue, changedBy, ip, ua], (err, result) => {
-      if (err) {
-        console.error('[AUDIT] Failed to insert audit_log:', err);
-        if (cb) return cb(err);
-        return;
-      }
-      if (cb) return cb(null, result.insertId);
-    });
+    const baseSql = `INSERT INTO audit_log (event_type, resource_type, resource_id, old_value, new_value, changed_by, ip, user_agent)`;
+    const valuesSql = ` VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+    // Log intent before writing (helps diagnose when no rows appear)
+    try {
+      console.log('[AUDIT] inserting', { eventType, resourceType, resourceId: resourceId ? String(resourceId) : null, changedBy, dbType: db && db.dbType });
+    } catch (_) {}
+    if (db && db.dbType === 'postgres') {
+      const sql = baseSql + valuesSql + ' RETURNING id';
+      db.query(sql, [eventType, resourceType, resourceId ? String(resourceId) : null, oldValue, newValue, changedBy, ip, ua], (err, rows) => {
+        if (err) {
+          console.error('[AUDIT] Failed to insert audit_log (pg):', err);
+          if (cb) return cb(err);
+          return;
+        }
+        const newId = Array.isArray(rows) && rows[0] && (rows[0].id || rows[0].ID) ? (rows[0].id || rows[0].ID) : undefined;
+        try { console.log('[AUDIT] inserted (pg) id=', newId); } catch (_) {}
+        if (cb) return cb(null, newId);
+      });
+    } else {
+      const sql = baseSql + valuesSql;
+      db.query(sql, [eventType, resourceType, resourceId ? String(resourceId) : null, oldValue, newValue, changedBy, ip, ua], (err, result) => {
+        if (err) {
+          console.error('[AUDIT] Failed to insert audit_log (mysql):', err);
+          if (cb) return cb(err);
+          return;
+        }
+        const newId = result && (result.insertId || result.lastInsertId) ? (result.insertId || result.lastInsertId) : undefined;
+        try { console.log('[AUDIT] inserted (mysql) id=', newId); } catch (_) {}
+        if (cb) return cb(null, newId);
+      });
+    }
   } catch (ex) {
     console.error('[AUDIT] Unexpected error in insertAudit:', ex);
     if (cb) cb(ex);
