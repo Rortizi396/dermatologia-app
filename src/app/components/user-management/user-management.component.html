@@ -88,6 +88,23 @@
   <!-- Tabla de usuarios -->
   <div class="card">
     <div class="card-body">
+      <!-- Controles superiores: tamaño de página y conteo -->
+      <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <div class="text-muted small">
+          <ng-container *ngIf="activeTab === 'activos'; else inactCount">
+            Mostrando {{ paginatedUsers.length }} de {{ filteredUsers.length }} usuarios activos
+          </ng-container>
+          <ng-template #inactCount>
+            Mostrando {{ paginatedInactivos.length }} de {{ filteredInactivos.length }} usuarios inactivos
+          </ng-template>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <label class="me-2 mb-0 text-muted small">Por página</label>
+          <select class="form-select form-select-sm" style="width:auto" [(ngModel)]="itemsPerPage" (change)="onChangePageSize()">
+            <option *ngFor="let opt of itemsPerPageOptions" [ngValue]="opt">{{ opt }}</option>
+          </select>
+        </div>
+      </div>
       <div *ngIf="activeTab === 'activos'">
         <div *ngIf="loading" class="text-center">
           <div class="spinner-border" role="status">
@@ -98,12 +115,30 @@
           <p>No se encontraron usuarios activos</p>
         </div>
         <div *ngIf="!loading && filteredUsers.length > 0" class="table-responsive">
-          <table class="table table-striped">
+          <table class="table table-striped table-hover align-middle">
             <thead>
               <tr>
-                <th>Nombre</th>
-                <th>Email</th>
-                <th>Tipo</th>
+                <th role="button" (click)="changeSort('activos','nombre')" title="Ordenar por nombre">
+                  Nombre
+                  <i class="bi" [ngClass]="{
+                    'bi-caret-up-fill': sortFieldActivos==='nombre' && sortDirActivos==='asc',
+                    'bi-caret-down-fill': sortFieldActivos==='nombre' && sortDirActivos==='desc'
+                  }"></i>
+                </th>
+                <th role="button" (click)="changeSort('activos','correo')" title="Ordenar por email">
+                  Email
+                  <i class="bi" [ngClass]="{
+                    'bi-caret-up-fill': sortFieldActivos==='correo' && sortDirActivos==='asc',
+                    'bi-caret-down-fill': sortFieldActivos==='correo' && sortDirActivos==='desc'
+                  }"></i>
+                </th>
+                <th role="button" (click)="changeSort('activos','tipo')" title="Ordenar por tipo">
+                  Tipo
+                  <i class="bi" [ngClass]="{
+                    'bi-caret-up-fill': sortFieldActivos==='tipo' && sortDirActivos==='asc',
+                    'bi-caret-down-fill': sortFieldActivos==='tipo' && sortDirActivos==='desc'
+                  }"></i>
+                </th>
                 <th>Estado</th>
                 <th>Acciones</th>
               </tr>
@@ -148,12 +183,30 @@
           <p>No se encontraron usuarios inactivos</p>
         </div>
         <div *ngIf="!loading && inactivos.length > 0" class="table-responsive">
-          <table class="table table-striped">
+          <table class="table table-striped table-hover align-middle">
             <thead>
               <tr>
-                <th>Nombre</th>
-                <th>Email</th>
-                <th>Tipo</th>
+                <th role="button" (click)="changeSort('inactivos','nombre')" title="Ordenar por nombre">
+                  Nombre
+                  <i class="bi" [ngClass]="{
+                    'bi-caret-up-fill': sortFieldInactivos==='nombre' && sortDirInactivos==='asc',
+                    'bi-caret-down-fill': sortFieldInactivos==='nombre' && sortDirInactivos==='desc'
+                  }"></i>
+                </th>
+                <th role="button" (click)="changeSort('inactivos','correo')" title="Ordenar por email">
+                  Email
+                  <i class="bi" [ngClass]="{
+                    'bi-caret-up-fill': sortFieldInactivos==='correo' && sortDirInactivos==='asc',
+                    'bi-caret-down-fill': sortFieldInactivos==='correo' && sortDirInactivos==='desc'
+                  }"></i>
+                </th>
+                <th role="button" (click)="changeSort('inactivos','tipo')" title="Ordenar por tipo">
+                  Tipo
+                  <i class="bi" [ngClass]="{
+                    'bi-caret-up-fill': sortFieldInactivos==='tipo' && sortDirInactivos==='asc',
+                    'bi-caret-down-fill': sortFieldInactivos==='tipo' && sortDirInactivos==='desc'
+                  }"></i>
+                </th>
                 <th>Estado</th>
               </tr>
             </thead>
@@ -184,16 +237,16 @@
       </div>
 
       <!-- Paginación -->
-      <nav *ngIf="totalPages > 1" class="mt-3">
+      <nav *ngIf="totalPagesView > 1" class="mt-3">
         <ul class="pagination justify-content-center">
-          <li class="page-item" [class.disabled]="currentPage === 1">
-            <a class="page-link" href="javascript:void(0)" (click)="changePage(currentPage - 1)">
+          <li class="page-item" [class.disabled]="currentPageView === 1">
+            <a class="page-link" href="javascript:void(0)" (click)="changePage(currentPageView - 1)">
               Anterior
             </a>
           </li>
           
-          <li *ngFor="let page of [].constructor(totalPages); let i = index" 
-              class="page-item" [class.active]="currentPage === i + 1">
+          <li *ngFor="let page of [].constructor(totalPagesView); let i = index" 
+              class="page-item" [class.active]="currentPageView === i + 1">
             <a class="page-link" href="javascript:void(0)" (click)="changePage(i + 1)">
               {{ i + 1 }}
             </a>

@@ -1,7 +1,7 @@
 // ...existing code...
 // components/user-management/user-management.component.ts
 import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, NgIf, NgFor } from '@angular/common';
 import { UserCreatePanelComponent } from './user-create-panel.component';
 import { UserService } from '../../services/user.service';
 import { User } from '../../interfaces/user.interface';
@@ -13,7 +13,7 @@ import { FormsModule } from '@angular/forms';
   templateUrl: './user-management.component.html',
   styleUrls: ['./user-management.component.css'],
   standalone: true,
-  imports: [CommonModule, FormsModule, UserCreatePanelComponent, CommonModule]
+  imports: [CommonModule, FormsModule, UserCreatePanelComponent, NgIf, NgFor]
 })
 export class UserManagementComponent implements OnInit {
   // Cache para evitar spamear el endpoint si no existe en backend desplegado
@@ -122,11 +122,21 @@ export class UserManagementComponent implements OnInit {
     }
   }
   editingUser: any = null;
-  totalPages: number = 1;
+  // Paginación y ordenamiento (activos)
+  totalPagesActivos: number = 1;
+  currentPageActivos: number = 1;
   paginatedUsers: User[] = [];
+  sortFieldActivos: 'nombre' | 'correo' | 'tipo' = 'nombre';
+  sortDirActivos: 'asc' | 'desc' = 'asc';
   activeTab: 'activos' | 'inactivos' = 'activos';
+  // Paginación y ordenamiento (inactivos)
   inactivos: User[] = [];
+  filteredInactivos: User[] = [];
   paginatedInactivos: User[] = [];
+  totalPagesInactivos: number = 1;
+  currentPageInactivos: number = 1;
+  sortFieldInactivos: 'nombre' | 'correo' | 'tipo' = 'nombre';
+  sortDirInactivos: 'asc' | 'desc' = 'asc';
 
   editUser(user: User): void {
     this.editingUser = { ...user };
@@ -217,9 +227,14 @@ export class UserManagementComponent implements OnInit {
   loading = true;
   searchTerm = '';
   private searchDebounceTimer: any = null;
-  currentPage = 1;
+  // Preferencias de paginación
+  itemsPerPageOptions = [5, 10, 20, 50];
   itemsPerPage = 10;
   totalItems = 0;
+
+  // Getters para la vista actual
+  get currentPageView(): number { return this.activeTab === 'activos' ? this.currentPageActivos : this.currentPageInactivos; }
+  get totalPagesView(): number { return this.activeTab === 'activos' ? this.totalPagesActivos : this.totalPagesInactivos; }
 
   constructor(
     private userService: UserService,
@@ -239,11 +254,12 @@ export class UserManagementComponent implements OnInit {
   setActiveTab(tab: 'activos' | 'inactivos', event?: Event) {
     if (event) event.preventDefault();
     this.activeTab = tab;
-    this.currentPage = 1;
     if (tab === 'activos') {
       this.filteredUsers = this.users;
+      this.currentPageActivos = 1;
       this.updatePagination();
     } else {
+      this.currentPageInactivos = 1;
       this.updatePaginationInactivos();
     }
   }
@@ -256,12 +272,15 @@ export class UserManagementComponent implements OnInit {
         const mapped = (raw || []).map((u: any) => this.normalizeUser(u));
         console.log('[loadUsers] total raw:', mapped.length);
         // Usuarios activos/inactivos con normalización robusta
-        this.users = mapped.filter((u: any) => this.isActive(u));
-        this.inactivos = mapped.filter((u: any) => this.isInactive(u));
-        this.filteredUsers = this.users;
-        this.totalItems = this.users.length;
-        this.updatePagination();
-        this.updatePaginationInactivos();
+  this.users = mapped.filter((u: any) => this.isActive(u));
+  this.inactivos = mapped.filter((u: any) => this.isInactive(u));
+  this.filteredUsers = this.users;
+  this.filteredInactivos = this.inactivos;
+  this.totalItems = this.users.length;
+  this.currentPageActivos = 1;
+  this.currentPageInactivos = 1;
+  this.updatePagination();
+  this.updatePaginationInactivos();
         // Enriquecer nombres faltantes con una consulta adicional por correo
         this.enrichMissingNames([...this.users, ...this.inactivos]).finally(() => {
           this.updatePagination();
@@ -362,10 +381,11 @@ export class UserManagementComponent implements OnInit {
     }
   }
   updatePaginationInactivos(): void {
-    this.totalPages = Math.ceil(this.inactivos.length / this.itemsPerPage) || 1;
-    const start = (this.currentPage - 1) * this.itemsPerPage;
+    const sorted = this.sortUsers(this.filteredInactivos, this.sortFieldInactivos, this.sortDirInactivos);
+    this.totalPagesInactivos = Math.ceil(sorted.length / this.itemsPerPage) || 1;
+    const start = (this.currentPageInactivos - 1) * this.itemsPerPage;
     const end = start + this.itemsPerPage;
-    this.paginatedInactivos = this.inactivos.slice(start, end);
+    this.paginatedInactivos = sorted.slice(start, end);
   }
 
   searchUsers(): void {
@@ -378,12 +398,12 @@ export class UserManagementComponent implements OnInit {
         if (this.activeTab === 'activos') {
           this.filteredUsers = this.users;
           this.totalItems = this.filteredUsers.length;
-          this.currentPage = 1;
+          this.currentPageActivos = 1;
           this.updatePagination();
         } else {
-          this.inactivos = this.inactivos || [];
-          this.totalItems = this.inactivos.length;
-          this.currentPage = 1;
+          this.filteredInactivos = this.inactivos || [];
+          this.totalItems = this.filteredInactivos.length;
+          this.currentPageInactivos = 1;
           this.updatePaginationInactivos();
         }
         return;
@@ -401,16 +421,13 @@ export class UserManagementComponent implements OnInit {
       if (this.activeTab === 'activos') {
         this.filteredUsers = this.users.filter(matches);
         this.totalItems = this.filteredUsers.length;
-        this.currentPage = 1;
+        this.currentPageActivos = 1;
         this.updatePagination();
       } else {
-        this.inactivos = this.inactivos || [];
-        const filteredInact = this.inactivos.filter(matches);
-        this.totalItems = filteredInact.length;
-        this.currentPage = 1;
-        // show filtered inactivos in paginatedInactivos
-        this.paginatedInactivos = filteredInact.slice(0, this.itemsPerPage);
-        this.totalPages = Math.ceil(filteredInact.length / this.itemsPerPage) || 1;
+        this.filteredInactivos = (this.inactivos || []).filter(matches);
+        this.totalItems = this.filteredInactivos.length;
+        this.currentPageInactivos = 1;
+        this.updatePaginationInactivos();
       }
     }, 150);
   }
@@ -458,18 +475,63 @@ export class UserManagementComponent implements OnInit {
     });
   }
   changePage(page: number): void {
-    this.currentPage = page;
     if (this.activeTab === 'activos') {
+      this.currentPageActivos = Math.min(Math.max(1, page), this.totalPagesActivos);
       this.updatePagination();
     } else {
+      this.currentPageInactivos = Math.min(Math.max(1, page), this.totalPagesInactivos);
       this.updatePaginationInactivos();
     }
   }
 
   updatePagination(): void {
-    this.totalPages = Math.ceil(this.filteredUsers.length / this.itemsPerPage) || 1;
-    const start = (this.currentPage - 1) * this.itemsPerPage;
+    const sorted = this.sortUsers(this.filteredUsers, this.sortFieldActivos, this.sortDirActivos);
+    this.totalPagesActivos = Math.ceil(sorted.length / this.itemsPerPage) || 1;
+    const start = (this.currentPageActivos - 1) * this.itemsPerPage;
     const end = start + this.itemsPerPage;
-    this.paginatedUsers = this.filteredUsers.slice(start, end);
+    this.paginatedUsers = sorted.slice(start, end);
+  }
+
+  changeSort(tab: 'activos' | 'inactivos', field: 'nombre' | 'correo' | 'tipo'): void {
+    if (tab === 'activos') {
+      if (this.sortFieldActivos === field) {
+        this.sortDirActivos = this.sortDirActivos === 'asc' ? 'desc' : 'asc';
+      } else {
+        this.sortFieldActivos = field;
+        this.sortDirActivos = 'asc';
+      }
+      this.updatePagination();
+    } else {
+      if (this.sortFieldInactivos === field) {
+        this.sortDirInactivos = this.sortDirInactivos === 'asc' ? 'desc' : 'asc';
+      } else {
+        this.sortFieldInactivos = field;
+        this.sortDirInactivos = 'asc';
+      }
+      this.updatePaginationInactivos();
+    }
+  }
+
+  onChangePageSize(): void {
+    // Reset pages and recalc when itemsPerPage changes
+    this.currentPageActivos = 1;
+    this.currentPageInactivos = 1;
+    this.updatePagination();
+    this.updatePaginationInactivos();
+  }
+
+  private sortUsers(list: any[], field: 'nombre' | 'correo' | 'tipo', dir: 'asc' | 'desc'): any[] {
+    const arr = Array.isArray(list) ? [...list] : [];
+    const collator = new Intl.Collator('es', { sensitivity: 'base' });
+    const factor = dir === 'asc' ? 1 : -1;
+    return arr.sort((a, b) => {
+      let av = '';
+      let bv = '';
+      if (field === 'nombre') { av = this.getUserDisplayName(a); bv = this.getUserDisplayName(b); }
+      else if (field === 'correo') { av = (a.correo || '').toString(); bv = (b.correo || '').toString(); }
+      else if (field === 'tipo') { av = (a.tipo || '').toString(); bv = (b.tipo || '').toString(); }
+      const cmp = collator.compare(av, bv);
+      return cmp * factor;
+    });
   }
 }
