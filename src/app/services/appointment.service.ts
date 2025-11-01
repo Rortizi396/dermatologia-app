@@ -40,15 +40,34 @@ export class AppointmentService {
   }
 
   getSpecialties(): Observable<any> {
-    // Normalize backend shape to frontend-friendly shape
+    // Normalize backend shape to frontend-friendly shape and be resilient to multiple response formats
     return this.http.get<any>(`${this.apiUrl}/specialties`).pipe(
       map((resp: any) => {
-        const raw = resp && resp.specialties ? resp.specialties : [];
-        const normalized = (raw || []).map((s: any) => ({
-          idEspecialidades: s.idEspecialidad ?? s.idEspecialidades,
-          Nombre: s.nombre ?? s.Nombre,
-          Descripcion: s.descripcion ?? s.Descripcion
-        }));
+        const raw: any[] = Array.isArray(resp)
+          ? resp
+          : (Array.isArray(resp?.specialties)
+              ? resp.specialties
+              : (Array.isArray(resp?.data)
+                  ? resp.data
+                  : (Array.isArray(resp?.rows) ? resp.rows : [])));
+
+        const normalized = (raw || []).map((s: any) => {
+          const idRaw = s.idEspecialidad ?? s.idEspecialidades ?? s.ID ?? s.id ?? s.Id ?? s.IdEspecialidad;
+          let idNum: number | null = null;
+          if (typeof idRaw === 'number') {
+            idNum = Number.isFinite(idRaw) ? idRaw : null;
+          } else if (typeof idRaw !== 'undefined' && idRaw !== null) {
+            const parsed = parseInt(String(idRaw), 10);
+            idNum = Number.isFinite(parsed) ? parsed : null;
+          }
+          return {
+            idEspecialidades: idNum,
+            Nombre: s.Nombre ?? s.nombre ?? s.NombreEspecialidad ?? s.name ?? s.especialidad ?? '',
+            Descripcion: s.Descripcion ?? s.descripcion ?? s.description ?? ''
+          };
+        });
+
+        // Return consistent object shape the caller expects
         return { specialties: normalized };
       })
     );
