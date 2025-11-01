@@ -91,24 +91,32 @@ table.app-table td, table.app-table th {
 	gap:0.5rem;
 }
 
-/* Primary action button (Confirmar) */
-.btn-accept {
-  background: linear-gradient(180deg,var(--brand-500),var(--brand-600));
-  color: #fff;
-  border: none;
-  padding: 0.35rem 0.6rem;
-  border-radius: 6px;
-  cursor: pointer;
+/* Simple, explicit button styles requested */
+.btn-accept,
+.btn-cancel,
+.btn-ghost {
+	padding: 0.35rem 0.6rem;
+	border-radius: 6px;
+	cursor: pointer;
 }
 
+/* Primary action button (Confirmar): light green background with white text */
+.btn-accept {
+	background: #9fe0a9; /* light green */
+	color: #ffffff;
+	border: 1px solid rgba(0,0,0,0.06);
+}
+.btn-accept:hover { filter: brightness(0.98); }
 .btn-accept:active { transform: translateY(1px); }
 
-/* Cancel action uses red->white gradient per request; styling applied with high specificity below */
+/* Cancel action button: solid red background with white text */
 .btn-cancel {
-  padding: 0.35rem 0.6rem;
-  border-radius: 6px;
-  cursor: pointer;
+	background: #ef4444; /* red */
+	color: #ffffff;
+	border: 1px solid rgba(0,0,0,0.06);
 }
+.btn-cancel:hover { filter: brightness(0.98); }
+.btn-cancel:active { transform: translateY(1px); }
 
 .btn-ghost {
 	background: transparent;
@@ -177,16 +185,8 @@ table.table tbody tr:hover { background: rgba(2,6,23,0.04); }
 .btn-accept, .btn-cancel, .btn-ghost { border-radius:6px; }
 
 /* buttons using company palette */
-.admin-appointments .btn-accept { background: linear-gradient(180deg, var(--brand-500), var(--brand-600)); color: #fff; border: none; }
-/* Cancel button: white -> red gradient with visible red border; higher specificity to override Bootstrap */
-.admin-appointments .btn-cancel {
-	background: linear-gradient(180deg, #ffffff 0%, var(--danger-500) 100%);
-	color: #7f1d1d; /* dark red text for contrast on white */
-	border: 1px solid rgba(239,68,68,0.85);
-	box-shadow: 0 1px 0 rgba(0,0,0,0.03);
-}
-.admin-appointments .btn-accept { background: linear-gradient(180deg, var(--brand-500), var(--brand-600)) !important; color: #fff !important; }
-.admin-appointments .btn-cancel { background: linear-gradient(180deg, var(--danger-500) 0%, #ffffff 100%) !important; color: var(--danger-500) !important; border: 1px solid rgba(239,68,68,0.95) !important; box-shadow: 0 1px 0 rgba(0,0,0,0.03) !important; }
+.admin-appointments .btn-accept { background: #9fe0a9 !important; color: #ffffff !important; border: 1px solid rgba(0,0,0,0.06) !important; }
+.admin-appointments .btn-cancel  { background: #ef4444 !important; color: #ffffff !important; border: 1px solid rgba(0,0,0,0.06) !important; }
 .btn-ghost { background: transparent; border: 1px solid rgba(15,23,42,0.06); }
 
 /* Responsive: turn table into cards on small screens */
@@ -204,33 +204,16 @@ table.table tbody tr:hover { background: rgba(2,6,23,0.04); }
 .modal.card .card-footer { display:flex; justify-content:flex-end; gap:0.6rem; padding-top:0.6rem; }
 
 /* Strong overrides using host selector to ensure styles apply over global frameworks */
-:host .btn-accept {
-	background: linear-gradient(180deg, var(--brand-500), var(--brand-600)) !important;
-	color: #fff !important;
-	border: 1px solid rgba(0,0,0,0.06) !important;
-}
-:host .btn-cancel {
-	background: linear-gradient(180deg, #ffffff 0%, var(--danger-500) 100%) !important;
-	color: #7f1d1d !important;
-	border: 1px solid rgba(239,68,68,0.9) !important;
-}
+:host .btn-accept { background: #9fe0a9 !important; color: #ffffff !important; border: 1px solid rgba(0,0,0,0.06) !important; }
+:host .btn-cancel { background: #ef4444 !important; color: #ffffff !important; border: 1px solid rgba(0,0,0,0.06) !important; }
 :host .badge {
 	background: var(--brand-50) !important;
 	color: var(--brand-700) !important;
 }
 
 /* Deep override for global frameworks (if Bootstrap still overrides backgrounds) */
-:host ::ng-deep .btn-cancel {
-	background-image: linear-gradient(180deg, #ffffff 0%, var(--danger-500) 100%) !important;
-	background-color: transparent !important;
-	color: #7f1d1d !important;
-	border: 1px solid rgba(239,68,68,0.95) !important;
-}
-
-:host ::ng-deep .btn-accept {
-	background-image: linear-gradient(180deg, var(--brand-500), var(--brand-600)) !important;
-	color: #fff !important;
-}
+:host ::ng-deep .btn-cancel { background: #ef4444 !important; color: #ffffff !important; border: 1px solid rgba(0,0,0,0.06) !important; }
+:host ::ng-deep .btn-accept { background: #9fe0a9 !important; color: #ffffff !important; }
 
 /* Strong overrides: usar encabezado de tabla sobrio y formal */
 table.table thead th {
@@ -239,22 +222,12 @@ table.table thead th {
 	border-bottom: 1px solid rgba(15,23,42,0.08) !important;
 }
 
-:host .btn-accept, :host ::ng-deep .btn-accept {
-	background: var(--brand-300) !important; /* verde claro relleno */
-	color: #fff !important;
-	border: none !important;
-}
+/* Ensure final override stays simple and consistent */
+:host .btn-accept, :host ::ng-deep .btn-accept { background: #9fe0a9 !important; color: #ffffff !important; border: 1px solid rgba(0,0,0,0.06) !important; }
+:host .btn-cancel, :host ::ng-deep .btn-cancel { background: #ef4444 !important; color: #ffffff !important; border: 1px solid rgba(0,0,0,0.06) !important; }
 
-:host .btn-cancel, :host ::ng-deep .btn-cancel {
-	background: var(--danger-500) !important; /* rojo sólido */
-	color: #fff !important;
-	border: none !important;
-}
-
-/* New: card header brand variant */
-.card-header--brand {
-  background: linear-gradient(180deg, #5acc76, #6ba3dc) !important;
-}
+/* New: card header brand variant - subtle brand tone */
+.card-header--brand { background: linear-gradient(180deg, #eaf7ed, #d4f0d9) !important; }
 
 /* New: enforce minimal width to avoid cramped columns on wide screens */
 .app-table--minwidth {
@@ -289,3 +262,14 @@ table.table thead th {
 .status-pendiente { background: #fff7ed; color: #9a3412; border-color: rgba(251,146,60,0.5); } /* amber-50/700 */
 .status-confirmada { background: #ecfdf5; color: #065f46; border-color: rgba(16,185,129,0.5); } /* green-50/700 */
 .status-cancelada { background: #fef2f2; color: #7f1d1d; border-color: rgba(239,68,68,0.5); } /* red-50/800 */
+
+/* Add proper modal overlay styling so actions are clearly focused */
+.modal-overlay {
+	position: fixed;
+	inset: 0;
+	background: rgba(2,6,23,0.5);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 1100;
+}
