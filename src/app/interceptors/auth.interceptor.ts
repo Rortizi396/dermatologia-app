@@ -16,7 +16,8 @@ export class AuthInterceptor implements HttpInterceptor {
     // excepto para endpoints públicos donde queremos evitar preflight CORS.
     // Caso específico: GET /api/doctores (lista de doctores pública)
     const isPublicDoctorsList = request.method === 'GET' && /\/doctores(\?.*)?$/i.test(request.url);
-    if (token && !isPublicDoctorsList) {
+    const isPublicUserByEmail = request.method === 'GET' && /\/usuarios\/by-email\//i.test(request.url);
+    if (token && !isPublicDoctorsList && !isPublicUserByEmail) {
       request = request.clone({
         setHeaders: {
           Authorization: `Bearer ${token}`
