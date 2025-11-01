@@ -4,6 +4,31 @@ import { jsPDF } from 'jspdf';
 export class PdfGeneratorUtil {
   generateAppointmentTicket(appointment: any): void {
     const doc = new jsPDF();
+
+    // Normalize backend field casing and provide sensible fallbacks
+    const pick = (o: any, keys: string[], def: any = '') => {
+      for (const k of keys) {
+        if (o && typeof o[k] !== 'undefined' && o[k] !== null) return o[k];
+      }
+      return def;
+    };
+
+    const idCitas = pick(appointment, ['idCitas','idcitas','id','ID'], '');
+    const fechaRaw = pick(appointment, ['Fecha','fecha'], '');
+    const horaRaw = pick(appointment, ['Hora','hora'], '');
+    const patientNames = pick(appointment, ['patientNames','patientnames','Nombres','nombres'], '');
+    const patientLastNames = pick(appointment, ['patientLastNames','patientlastnames','Apellidos','apellidos'], '');
+    const patientDpi = pick(appointment, ['patientDpi','patientdpi','Paciente','paciente','dpi','DPI'], '');
+    const patientPhone = pick(appointment, ['patientPhone','patientphone','Telefono','telefono'], '');
+    const patientEmail = pick(appointment, ['patientEmail','patientemail','Correo','correo','email','Email'], '');
+    const specialtyName = pick(appointment, ['specialtyName','specialtyname','NombreEspecialidad','Nombre','nombre'], '');
+    const doctorFirst = pick(appointment, ['doctorName','doctorname','Nombres','nombres','doctorFirst','doctorfirst'], '');
+    const doctorLast = pick(appointment, ['doctorLastNames','doctorlastnames','Apellidos','apellidos','doctorLast','doctorlast'], '');
+    const observaciones = pick(appointment, ['Observaciones','observaciones','observations'], '');
+
+    // Format date/time gracefully
+    const Fecha = (typeof fechaRaw === 'string' && fechaRaw.length > 10) ? fechaRaw.slice(0,10) : (fechaRaw || '');
+    const Hora = (typeof horaRaw === 'string' && horaRaw.length >= 5) ? horaRaw.slice(0,5) : (horaRaw || '');
     
     // Encabezado
     doc.setFontSize(20);
@@ -19,22 +44,22 @@ export class PdfGeneratorUtil {
     
     // Información de la cita
     doc.setFontSize(12);
-    doc.text(`Número de Cita: ${appointment.idCitas}`, 20, 45);
-    doc.text(`Fecha: ${appointment.Fecha}`, 20, 55);
-    doc.text(`Hora: ${appointment.Hora}`, 20, 65);
+  doc.text(`Número de Cita: ${idCitas || 'N/A'}`, 20, 45);
+  doc.text(`Fecha: ${Fecha || 'N/A'}`, 20, 55);
+  doc.text(`Hora: ${Hora || 'N/A'}`, 20, 65);
     
     // Información del paciente
-    doc.text(`Paciente: ${appointment.patientNames} ${appointment.patientLastNames}`, 20, 80);
-    doc.text(`DPI: ${appointment.patientDpi}`, 20, 90);
-    doc.text(`Teléfono: ${appointment.patientPhone}`, 20, 100);
-    doc.text(`Email: ${appointment.patientEmail}`, 20, 110);
+  doc.text(`Paciente: ${[patientNames, patientLastNames].filter(Boolean).join(' ') || 'N/A'}`, 20, 80);
+  doc.text(`DPI: ${patientDpi || 'N/A'}`, 20, 90);
+  doc.text(`Teléfono: ${patientPhone || 'N/A'}`, 20, 100);
+  doc.text(`Email: ${patientEmail || 'N/A'}`, 20, 110);
     
     // Información médica
-    doc.text(`Especialidad: ${appointment.specialtyName}`, 20, 125);
-    doc.text(`Doctor: ${appointment.doctorName}`, 20, 135);
+  doc.text(`Especialidad: ${specialtyName || 'N/A'}`, 20, 125);
+  doc.text(`Doctor: ${[doctorFirst, doctorLast].filter(Boolean).join(' ') || 'N/A'}`, 20, 135);
     
-    if (appointment.observations) {
-      doc.text(`Observaciones: ${appointment.observations}`, 20, 150);
+    if (observaciones) {
+      doc.text(`Observaciones: ${observaciones}`, 20, 150);
     }
     
     // Pie de página
@@ -44,6 +69,7 @@ export class PdfGeneratorUtil {
     doc.text('Llegar 15 minutos antes de la hora programada', 105, 185, { align: 'center' });
     
     // Guardar el PDF
-    doc.save(`cita-${appointment.idCitas}.pdf`);
+    const fileId = idCitas || new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
+    doc.save(`cita-${fileId}.pdf`);
   }
 }
