@@ -18,6 +18,7 @@ export class RegisterComponent {
   error = '';
   success = '';
   showPassword = false;
+  showConfirm = false;
 
   constructor(private fb: FormBuilder, private userService: UserService, private router: Router) {
     this.registerForm = this.fb.group({
@@ -26,13 +27,18 @@ export class RegisterComponent {
       apellidos: ['', Validators.required],
       telefono: ['', Validators.required],
       correo: ['', [Validators.required, Validators.email]],
-      password: ['', Validators.required],
+      password: ['', [Validators.required, Validators.minLength(4)]],
+      confirmar: ['', [Validators.required]],
       activo: [true]
     });
   }
 
   onSubmit(): void {
     if (this.registerForm.valid) {
+      if (this.registerForm.value.password !== this.registerForm.value.confirmar) {
+        this.error = 'Las contraseñas no coinciden';
+        return;
+      }
       this.loading = true;
       this.error = '';
       this.success = '';

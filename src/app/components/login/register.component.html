@@ -1,40 +1,87 @@
-<div class="form-container">
-  <h2 class="form-title">Registro de Paciente</h2>
-  <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
-    <div class="form-group">
-      <label class="form-label">DPI</label>
-      <input type="text" class="form-input" formControlName="dpi">
+<div class="register-card">
+  <div class="card form-card">
+    <div class="card-header">
+      <h2 class="m-0">Registro de Paciente</h2>
+      <small class="muted">Crea tu cuenta para gestionar tus citas</small>
     </div>
-    <div class="form-group">
-      <label class="form-label">Nombres</label>
-      <input type="text" class="form-input" formControlName="nombres">
-    </div>
-    <div class="form-group">
-      <label class="form-label">Apellidos</label>
-      <input type="text" class="form-input" formControlName="apellidos">
-    </div>
-    <div class="form-group">
-      <label class="form-label">Teléfono</label>
-      <input type="text" class="form-input" formControlName="telefono">
-    </div>
-    <div class="form-group">
-      <label class="form-label">Email</label>
-      <input type="email" class="form-input" formControlName="correo">
-    </div>
-    <div class="form-group">
-      <label class="form-label">Contraseña</label>
-      <div class="input-group">
-        <input [type]="showPassword ? 'text' : 'password'" class="form-input form-control" formControlName="password">
-        <button type="button" class="btn btn-outline-secondary" (click)="showPassword = !showPassword" [attr.aria-pressed]="showPassword" [attr.aria-label]="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'">
-          <i class="fas" [ngClass]="showPassword ? 'fa-eye-slash' : 'fa-eye'"></i>
+    <div class="card-body">
+      <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
+        <div class="input-group mb-2">
+          <label class="input-label">DPI</label>
+          <div class="input-with-icon">
+            <i class="bi bi-credit-card-2-front icon"></i>
+            <input type="text" class="input" formControlName="dpi" placeholder="0000 00000 0000" />
+          </div>
+        </div>
+
+        <div class="input-grid">
+          <div class="input-group">
+            <label class="input-label">Nombres</label>
+            <div class="input-with-icon">
+              <i class="bi bi-person icon"></i>
+              <input type="text" class="input" formControlName="nombres" placeholder="Nombre(s)" />
+            </div>
+          </div>
+          <div class="input-group">
+            <label class="input-label">Apellidos</label>
+            <div class="input-with-icon">
+              <i class="bi bi-people icon"></i>
+              <input type="text" class="input" formControlName="apellidos" placeholder="Apellido(s)" />
+            </div>
+          </div>
+        </div>
+
+        <div class="input-grid">
+          <div class="input-group">
+            <label class="input-label">Teléfono</label>
+            <div class="input-with-icon">
+              <i class="bi bi-telephone icon"></i>
+              <input type="text" class="input" formControlName="telefono" placeholder="(502) 5555-5555" />
+            </div>
+          </div>
+          <div class="input-group">
+            <label class="input-label">Correo electrónico</label>
+            <div class="input-with-icon">
+              <i class="bi bi-envelope icon"></i>
+              <input type="email" class="input" formControlName="correo" placeholder="tu@correo.com" />
+            </div>
+          </div>
+        </div>
+
+        <div class="input-grid">
+          <div class="input-group">
+            <label class="input-label">Contraseña</label>
+            <div class="input-with-icon">
+              <i class="bi bi-lock icon"></i>
+              <input [type]="showPassword ? 'text' : 'password'" class="input" formControlName="password" placeholder="Mínimo 4 caracteres" />
+              <button type="button" class="toggle-pass" (click)="showPassword = !showPassword" [attr.aria-pressed]="showPassword" [attr.aria-label]="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'">
+                <i class="bi" [ngClass]="showPassword ? 'bi-eye-slash' : 'bi-eye'"></i>
+              </button>
+            </div>
+          </div>
+          <div class="input-group">
+            <label class="input-label">Confirmar contraseña</label>
+            <div class="input-with-icon">
+              <i class="bi bi-lock-fill icon"></i>
+              <input [type]="showConfirm ? 'text' : 'password'" class="input" formControlName="confirmar" placeholder="Repite la contraseña" />
+              <button type="button" class="toggle-pass" (click)="showConfirm = !showConfirm" [attr.aria-pressed]="showConfirm" [attr.aria-label]="showConfirm ? 'Ocultar contraseña' : 'Mostrar contraseña'">
+                <i class="bi" [ngClass]="showConfirm ? 'bi-eye-slash' : 'bi-eye'"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div *ngIf="error" class="form-error mb-2">{{ error }}</div>
+        <div *ngIf="success" class="form-success mb-2">{{ success }}</div>
+
+        <button class="primary-btn" type="submit" [disabled]="loading">
+          <span *ngIf="loading" class="spinner-border spinner-border-sm me-2"></span>
+          Registrarse
         </button>
-      </div>
+        <div class="form-footer">
+          <a [routerLink]="['/login']" class="link">¿Ya tienes cuenta? Inicia sesión</a>
+        </div>
+      </form>
     </div>
-    <button class="form-button" type="submit" [disabled]="loading">Registrarse</button>
-    <div *ngIf="error" class="form-error" style="margin-top: 0.5rem;">{{ error }}</div>
-    <div *ngIf="success" class="form-success" style="margin-top: 0.5rem;">{{ success }}</div>
-  </form>
-  <div class="form-link" style="margin-top: 1rem;">
-    <a [routerLink]="['/login']">¿Ya tienes cuenta? Inicia sesión</a>
   </div>
 </div>
