@@ -762,25 +762,30 @@ app.post('/api/auth/reset-password', (req, res) => {
   if (!correo || !nuevaContrasenia) {
     return res.status(400).json({ success: false, message: 'correo y nuevaContrasenia son requeridos' });
   }
-  // Hash the new password
-  bcrypt.hash(nuevaContrasenia, 10, (errHash, hashed) => {
-    if (errHash) return res.status(500).json({ success: false, message: 'Error al procesar la contraseña' });
-    const sql = `UPDATE Usuarios SET contrasenia = ? WHERE correo = ?`;
-    db.query(sql, [hashed, correo], (err, result) => {
-      if (err) {
-        console.error('[RESET PASSWORD] db error', err);
-        return res.status(500).json({ success: false, message: 'Error de servidor al actualizar contraseña', error: err });
-      }
-      const affected = (result && (result.affectedRows || result.rowCount)) ? (result.affectedRows || result.rowCount) : 0;
-      if (affected > 0) {
-        // Insert audit log
+  // Primero verifica que el usuario exista (compatible con Postgres y MySQL)
+  db.query('SELECT idUsuarios FROM Usuarios WHERE correo = ? LIMIT 1', [correo], (findErr, found) => {
+    if (findErr) {
+      console.error('[RESET PASSWORD] lookup error', findErr);
+      return res.status(500).json({ success: false, message: 'Error de servidor al buscar usuario', error: findErr });
+    }
+    if (!found || (Array.isArray(found) && found.length === 0)) {
+      return res.status(404).json({ success: false, message: 'No se encontró un usuario con ese correo' });
+    }
+    // Hash y update
+    bcrypt.hash(nuevaContrasenia, 10, (errHash, hashed) => {
+      if (errHash) return res.status(500).json({ success: false, message: 'Error al procesar la contraseña' });
+      const sql = `UPDATE Usuarios SET contrasenia = ? WHERE correo = ?`;
+      db.query(sql, [hashed, correo], (err, _result) => {
+        if (err) {
+          console.error('[RESET PASSWORD] db error', err);
+          return res.status(500).json({ success: false, message: 'Error de servidor al actualizar contraseña', error: err });
+        }
+        // Audit y respuesta OK (evitamos depender de affectedRows/rowCount que varía por driver)
         insertAudit(req, 'reset_password', 'Usuarios', correo, null, 'contraseña actualizada', (ae) => {
           if (ae) console.warn('[RESET PASSWORD] audit insert error', ae);
           return res.json({ success: true, message: 'Contraseña actualizada correctamente' });
         });
-      } else {
-        return res.status(404).json({ success: false, message: 'No se encontró un usuario con ese correo' });
-      }
+      });
     });
   });
 });
