@@ -15,24 +15,25 @@
   box-shadow: 2px 0 12px rgba(56, 197, 150, 0.08);
   border-right: 1px solid var(--gris-medio, #e0e0e0);
   transition: width 0.3s ease;
+  overflow: hidden;
 }
 
 .sidebar-header {
-  padding: 1.5rem 1rem;
-  text-align: center;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 1rem 1rem 0.75rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.sidebar-header h5 {
-  margin: 0;
-  font-weight: bold;
-}
+.sidebar-header .brand { display: flex; align-items: center; gap: 10px; }
+.brand-mark { width: 36px; height: 36px; border-radius: 50%; background: rgba(255,255,255,0.18); display:flex; align-items:center; justify-content:center; font-weight: 700; letter-spacing: .5px; }
+.brand-text h5 { margin: 0; font-weight: 700; font-size: 1.05rem; }
+.brand-text .subtitle { opacity: .85; font-size: .78rem; }
 
 .sidebar-nav {
   flex: 1;
   list-style: none;
   padding: 0;
   margin: 0;
+  overflow-y: auto;
 }
 
 .sidebar-nav .nav-link {
@@ -73,6 +74,7 @@
   background: linear-gradient(90deg, var(--verde-claro, #a8e6cf) 0%, var(--verde-medio, #56c596) 100%);
   color: var(--texto, #333);
   border-left-color: var(--verde-oscuro, #379683);
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.03);
 }
 .sidebar-nav .nav-link i {
   width: 22px;
@@ -84,6 +86,16 @@
 .user-info small {
   font-size: 0.8rem;
 }
+
+/* Sidebar Footer */
+.sidebar-footer { padding: 0.75rem 0.9rem 1rem; border-top: 1px solid rgba(255,255,255,0.08); }
+.user-card { display: flex; align-items: center; gap: 10px; }
+.avatar { width: 36px; height: 36px; border-radius: 50%; background: rgba(255,255,255,0.18); color: #fff; display:flex; align-items:center; justify-content:center; font-weight: 700; }
+.user-info { line-height: 1.1; }
+.user-info .user-name { display:block; max-width: 150px; }
+.user-info .user-role { display:block; opacity: .85; font-size: .75rem; }
+.signout-btn { margin-top: 10px; width: 100%; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0.5rem 0.75rem; border-radius: 10px; color: #1f2a28; background: #ffffff; border: none; font-weight: 600; }
+.signout-btn:hover { filter: brightness(0.98); }
 
 /* Main Content Styles */
 .main-content {

@@ -119,6 +119,24 @@ export class AppComponent{
     return '';
   }
 
+  // Initials for circular avatar (e.g., "Pe Do" -> "PD"). Falls back to email local-part initials.
+  get userInitials(): string {
+    if (!this.currentUser) return '';
+    const u: any = this.currentUser as any;
+    const first = (u.nombres || u.Nombres || u.name || '').toString().trim();
+    const last = (u.apellidos || u.Apellidos || u.lastname || u.lastName || '').toString().trim();
+    let initials = '';
+    if (first) initials += first.charAt(0);
+    if (last) initials += last.charAt(0);
+    if (!initials && u.correo) {
+      const local = String(u.correo).split('@')[0] || '';
+      const parts = local.replace(/[._-]+/g, ' ').trim().split(/\s+/);
+      if (parts[0]) initials += parts[0].charAt(0);
+      if (parts[1]) initials += parts[1].charAt(0);
+    }
+    return initials.toUpperCase();
+  }
+
   logout(): void {
     this.authService.logout();
     this.router.navigate(['/login']);

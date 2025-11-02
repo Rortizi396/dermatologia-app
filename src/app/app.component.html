@@ -3,7 +3,13 @@
   <!-- Sidebar -->
   <nav *ngIf="showSidebar" class="sidebar" [class.open]="isMobileSidebarOpen">
     <div class="sidebar-header">
-      <h5>Centro Dermatológico</h5>
+      <div class="brand">
+        <div class="brand-mark">CD</div>
+        <div class="brand-text">
+          <h5>Centro Dermatológico</h5>
+          <small class="subtitle">Cuidado y bienestar</small>
+        </div>
+      </div>
     </div>
     
     <ul class="sidebar-nav">
@@ -37,14 +43,17 @@
     </ul>
     
     <div class="sidebar-footer">
-      <div class="user-info">
-        <small>Bienvenido,</small>
-        <strong>{{ userName }}</strong>
-        <br>
-        <small class="text-muted">{{ userRole | titlecase }}</small>
+      <div class="user-card">
+        <div class="avatar" aria-hidden="true">{{ userInitials }}</div>
+        <div class="user-info">
+          <small>Bienvenido,</small>
+          <strong class="user-name text-ellipsis" [title]="userName">{{ userName }}</strong>
+          <small class="user-role">{{ userRole | titlecase }}</small>
+        </div>
       </div>
-      <button class="btn btn-sm btn-outline-light btn-block mt-2" (click)="logout()">
-        <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+      <button class="btn signout-btn" (click)="logout()" title="Cerrar sesión">
+        <i class="fas fa-sign-out-alt"></i>
+        <span>Cerrar Sesión</span>
       </button>
     </div>
   </nav>
