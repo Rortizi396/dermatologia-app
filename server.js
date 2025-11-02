@@ -748,7 +748,8 @@ app.post('/api/auth/reset-password', (req, res) => {
         console.error('[RESET PASSWORD] db error', err);
         return res.status(500).json({ success: false, message: 'Error de servidor al actualizar contraseña', error: err });
       }
-      if (result && result.affectedRows && result.affectedRows > 0) {
+      const affected = (result && (result.affectedRows || result.rowCount)) ? (result.affectedRows || result.rowCount) : 0;
+      if (affected > 0) {
         // Insert audit log
         insertAudit(req, 'reset_password', 'Usuarios', correo, null, 'contraseña actualizada', (ae) => {
           if (ae) console.warn('[RESET PASSWORD] audit insert error', ae);

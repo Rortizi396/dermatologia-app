@@ -58,6 +58,13 @@ export class LoginComponent implements OnInit {
           if (response && response.data && response.data.user && response.data.token) {
             user = response.data.user;
             token = response.data.token;
+            // If backend also returns `data.tipo`, copy it when `user.tipo` is missing
+            try {
+              const dataTipo = (response.data.tipo || response.data.Tipo || '').toString();
+              if ((!user as any).tipo && dataTipo) {
+                (user as any).tipo = dataTipo.toLowerCase();
+              }
+            } catch (_) {}
           } else if (response && response.user && response.token) {
             user = response.user;
             token = response.token;
@@ -106,6 +113,13 @@ export class LoginComponent implements OnInit {
               } catch (_) {}
               // If target is a generic '/dashboard', ensure it's aligned with role-specific default
               if (target === '/dashboard') target = defaultForRole;
+              // Final guardrail: never send non-doctors to doctor dashboard
+              try {
+                if ((user && user.tipo) !== 'doctor' && target.indexOf('/dashboard/doctor') === 0) {
+                  target = '/dashboard';
+                }
+              } catch (_) {}
+              console.log('[Login] resolved tipo:', (user && (user as any).tipo), 'returnUrl:', this.returnUrl, 'final target:', target);
               console.log('[Login] Navegando a:', target);
               // Navegar a la returnUrl si existe, o al dashboard por defecto
               this.router.navigateByUrl(target);
