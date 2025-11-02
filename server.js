@@ -604,16 +604,21 @@ app.post('/api/auth/login', cors({ origin: '*', credentials: false }), (req, res
             // Obtener datos completos según tipo (case-insensitive) y preparar correo para búsquedas
             let query = '';
             let idValue = user.correo; // por defecto, usar el correo del usuario
-            const tipoUser = ((user.Tipo || '')).toString().toLowerCase();
-            if (tipoUser === 'paciente') {
-              query = 'SELECT * FROM pacientes WHERE Correo = ?';
-            } else if (tipoUser === 'doctor') {
-              query = 'SELECT * FROM doctores WHERE Correo = ?';
-            } else if (tipoUser === 'secretaria') {
-              query = 'SELECT * FROM secretarias WHERE Correo = ?';
-            } else if (tipoUser === 'administrador') {
-              query = 'SELECT * FROM administradores WHERE Correo = ?';
-            }
+            let tipoUser = ((user.Tipo || '')).toString().toLowerCase();
+            const setQueryFromTipo = () => {
+              if (tipoUser === 'paciente') {
+                query = 'SELECT * FROM pacientes WHERE Correo = ?';
+              } else if (tipoUser === 'doctor') {
+                query = 'SELECT * FROM doctores WHERE Correo = ?';
+              } else if (tipoUser === 'secretaria') {
+                query = 'SELECT * FROM secretarias WHERE Correo = ?';
+              } else if (tipoUser === 'administrador') {
+                query = 'SELECT * FROM administradores WHERE Correo = ?';
+              } else {
+                query = '';
+              }
+            };
+            setQueryFromTipo();
 
             const sendBasicUser = () => {
               const mappedUser = {
@@ -629,16 +634,18 @@ app.post('/api/auth/login', cors({ origin: '*', credentials: false }), (req, res
               return res.json({ success: true, message: 'Login exitoso', data: { user: mappedUser, tipo: mappedUser.tipo, token } });
             };
 
+            const continueWithQueryOrProbe = () => {
             if (!query) {
               // No detalle extra declared on Usuarios.Tipo: try to discover the user's
               // detail row by searching the common detail tables (pacientes, doctores,
               // secretarias, administradores). This helps when Usuarios.Tipo is empty
               // but the information exists in the entity tables.
               const detailChecks = [
-                { type: 'Paciente', table: 'pacientes' },
-                { type: 'Doctor', table: 'doctores' },
+                // Preferir administrador sobre otros si existe un registro coincidente
+                { type: 'Administrador', table: 'administradores' },
                 { type: 'Secretaria', table: 'secretarias' },
-                { type: 'Administrador', table: 'administradores' }
+                { type: 'Doctor', table: 'doctores' },
+                { type: 'Paciente', table: 'pacientes' }
               ];
 
               let idx = 0;
@@ -678,6 +685,22 @@ app.post('/api/auth/login', cors({ origin: '*', credentials: false }), (req, res
               tryNextDetail();
               return;
             }
+            };
+
+            // Override: si existe un registro en administradores con este correo, forzar tipo administrador
+            if (tipoUser !== 'administrador') {
+              db.query('SELECT * FROM administradores WHERE Correo = ? LIMIT 1', [user.correo], (errAdm, rowsAdm) => {
+                try {
+                  if (!errAdm && rowsAdm && rowsAdm.length > 0) {
+                    tipoUser = 'administrador';
+                    query = 'SELECT * FROM administradores WHERE Correo = ?';
+                  }
+                } catch (_) { /* ignore */ }
+                continueWithQueryOrProbe();
+              });
+            } else {
+              continueWithQueryOrProbe();
+            }
 
             db.query(query, [idValue], (err2, results2) => {
               try {
@@ -704,7 +727,7 @@ app.post('/api/auth/login', cors({ origin: '*', credentials: false }), (req, res
                   correo: user.correo,
                   telefono: fullData.Telefono || fullData.telefono || '',
                   activo: (fullData.Activo || fullData.activo || 'SI') === 'SI',
-                  tipo: (user.Tipo || '').toLowerCase(),
+                  tipo: (tipoUser || (user.Tipo || '')).toLowerCase(),
                   dpi: fullData.DPI || fullData.dpi,
                   colegiado: fullData.Colegiado || fullData.colegiado,
                   idAdministrador: fullData.idAdministrador,
