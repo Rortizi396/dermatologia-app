@@ -597,21 +597,18 @@ app.post('/api/auth/login', cors({ origin: '*', credentials: false }), (req, res
               return res.status(401).json({ success: false, message: 'Credenciales incorrectas' });
             }
 
-            // Obtener datos completos según tipo
+            // Obtener datos completos según tipo (case-insensitive) y preparar correo para búsquedas
             let query = '';
-            let idValue = null;
-            if (user.Tipo === 'Paciente') {
+            let idValue = user.correo; // por defecto, usar el correo del usuario
+            const tipoUser = ((user.Tipo || '')).toString().toLowerCase();
+            if (tipoUser === 'paciente') {
               query = 'SELECT * FROM pacientes WHERE Correo = ?';
-              idValue = user.correo;
-            } else if (user.Tipo === 'Doctor') {
+            } else if (tipoUser === 'doctor') {
               query = 'SELECT * FROM doctores WHERE Correo = ?';
-              idValue = user.correo;
-            } else if (user.Tipo === 'Secretaria') {
+            } else if (tipoUser === 'secretaria') {
               query = 'SELECT * FROM secretarias WHERE Correo = ?';
-              idValue = user.correo;
-            } else if (user.Tipo === 'Administrador') {
+            } else if (tipoUser === 'administrador') {
               query = 'SELECT * FROM administradores WHERE Correo = ?';
-              idValue = user.correo;
             }
 
             const sendBasicUser = () => {
@@ -648,7 +645,7 @@ app.post('/api/auth/login', cors({ origin: '*', credentials: false }), (req, res
                 }
                 const chk = detailChecks[idx++];
                 const sql = `SELECT * FROM ${chk.table} WHERE Correo = ? LIMIT 1`;
-                db.query(sql, [idValue], (errChk, rowsChk) => {
+                db.query(sql, [user.correo], (errChk, rowsChk) => {
                   try {
                     if (!errChk && rowsChk && rowsChk.length > 0) {
                       const fullData = rowsChk[0];
