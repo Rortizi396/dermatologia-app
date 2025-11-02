@@ -1,5 +1,5 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, NgIf, NgFor } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AppointmentService } from '../../services/appointment.service';
 import { ToastService } from '../../services/toast.service';
@@ -8,7 +8,7 @@ import { HttpClient } from '@angular/common/http';
 @Component({
   selector: 'app-secretary-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, NgIf, NgFor],
   templateUrl: './secretary-dashboard.component.html',
   styleUrls: ['./secretary-dashboard.component.css']
 })
@@ -86,6 +86,17 @@ export class SecretaryDashboardComponent implements OnInit {
   private loadClockPreference(): void {
     try { const v = localStorage.getItem(this.clockPrefKey()); if (v === '12') this.use24Hour = false; else this.use24Hour = true; } catch(e){}
 
+  }
+
+  private saveClockPreference(): void {
+    try { localStorage.setItem(this.clockPrefKey(), this.use24Hour ? '24' : '12'); } catch {}
+  }
+
+  toggleClockFormat(): void {
+    this.use24Hour = !this.use24Hour;
+    this.saveClockPreference();
+    if (this._clockInterval) { clearInterval(this._clockInterval); this._clockInterval = null; }
+    this.startClock();
   }
 
   loadAppointments(): void {
@@ -215,6 +226,14 @@ export class SecretaryDashboardComponent implements OnInit {
     if (st === 'confirmada') return 'bg-success';
     if (st === 'cancelada') return 'bg-danger';
     return 'bg-secondary';
+  }
+
+  getStatusSoftClass(c: any): string {
+    const st = (this.getStatus(c) || '').toLowerCase();
+    if (st === 'pendiente') return 'warning';
+    if (st === 'confirmada') return 'success';
+    if (st === 'cancelada') return 'danger';
+    return 'primary';
   }
 
   isSelectable(c: any): boolean {
