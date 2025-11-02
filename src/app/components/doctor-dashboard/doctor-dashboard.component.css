@@ -1,6 +1,6 @@
-.doctor-dashboard .clock-large .time { font-size: 3.6rem; font-weight:800; }
-.doctor-dashboard .date { font-size: 1.05rem; font-weight:600; }
-.apt-card { box-shadow: 0 6px 18px rgba(2,6,23,0.05); border-radius: 10px; }
+.doctor-dashboard .clock-large .time { font-size: 3.6rem; font-weight:800; color: var(--text-dark); }
+.doctor-dashboard .date { font-size: 1.05rem; font-weight:600; color: var(--text-light); }
+.apt-card { box-shadow: var(--shadow-1); border: 1px solid var(--border-color); background: var(--surface-1); border-radius: 10px; }
 .apt-card .actions .btn { padding: 0.45rem 0.7rem; }
 
 @media (max-width: 576px) {
@@ -8,11 +8,11 @@
   .apt-card .actions { width: 100%; justify-content: space-between; }
 }
 
-/* Summary card styles */
-.summary-card { max-width: 420px; width: 100%; border-radius: 12px; box-shadow: 0 8px 26px rgba(2,6,23,0.08); }
-.summary-card .summary-title { font-weight: 600; font-size: 1.05rem; letter-spacing: 0.2px; }
-.summary-card .summary-count { font-weight: 800; font-size: 3.25rem; color: #0d6efd; }
-.summary-card .summary-sub { margin-top: 6px; }
+/* Summary card styles (tokenized) */
+.summary-card { max-width: 420px; width: 100%; border-radius: var(--radius-md); box-shadow: var(--shadow-1); border: 1px solid var(--border-color); background: var(--surface-1); }
+.summary-card .summary-title { font-weight: 600; font-size: 1.05rem; letter-spacing: 0.2px; color: var(--text-dark); }
+.summary-card .summary-count { font-weight: 800; font-size: 3.25rem; color: var(--primary-green); }
+.summary-card .summary-sub { margin-top: 6px; color: var(--text-light); }
 
 /* spacing improvements so content isn't cramped */
 .doctor-dashboard .hero { margin-bottom: 1.5rem; }
@@ -23,7 +23,7 @@
 /* Mission/Vision spacing improvements */
 .mission-vision { gap: 1.25rem; margin-top: 1.4rem; }
 .mission-vision .col-md-6 { display: flex; }
-.mission-vision .card { width: 100%; padding: 1rem; margin-bottom: 0.8rem; box-shadow: 0 6px 18px rgba(2,6,23,0.04); border-radius: 10px; }
+.mission-vision .card { width: 100%; padding: 1rem; margin-bottom: 0.8rem; box-shadow: var(--shadow-1); border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--surface-1); }
 .mission-vision .card .card-body { padding-top: 0.5rem; }
 .mission-vision .card + .card { margin-top: 0.5rem; }
 

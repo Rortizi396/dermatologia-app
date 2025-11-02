@@ -38,6 +38,7 @@ export class DoctorDashboardComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+    this.loadClockPreference();
     this.startClock();
     this.loadUser();
     // refrescar citas cada 15 segundos
@@ -63,6 +64,20 @@ export class DoctorDashboardComponent implements OnInit, OnDestroy {
     };
     update();
     this._clockInterval = setInterval(update, 1000);
+  }
+
+  private clockPrefKey(): string { return 'clockFormat:doctor'; }
+  private loadClockPreference(): void {
+    try { const v = localStorage.getItem(this.clockPrefKey()); this.use24Hour = (v !== '12'); } catch {}
+  }
+  private saveClockPreference(): void {
+    try { localStorage.setItem(this.clockPrefKey(), this.use24Hour ? '24' : '12'); } catch {}
+  }
+  toggleClockFormat(): void {
+    this.use24Hour = !this.use24Hour;
+    this.saveClockPreference();
+    if (this._clockInterval) { clearInterval(this._clockInterval); this._clockInterval = null; }
+    this.startClock();
   }
 
   private loadUser(): void {
