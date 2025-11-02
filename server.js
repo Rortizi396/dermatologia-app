@@ -98,7 +98,11 @@ app.use((req, res, next) => {
     try {
       // Use permissive CORS for known public endpoints to ensure GitHub Pages preflights succeed
       const url = (req.originalUrl || req.url || '').toString();
-      const isPublic = url.startsWith('/api/doctores') || url.startsWith('/api/usuarios/by-email') || url.startsWith('/api/auth/login') || url.startsWith('/api/auth/register');
+      const isPublic = url.startsWith('/api/doctores')
+        || url.startsWith('/api/usuarios/by-email')
+        || url.startsWith('/api/auth/login')
+        || url.startsWith('/api/auth/register')
+        || url.startsWith('/api/citas'); // allow broad CORS on citas listing to avoid GH Pages preflight issues
       const handler = isPublic ? cors({ origin: '*', credentials: false }) : cors(corsOptions);
       return handler(req, res, () => res.sendStatus(204));
     } catch (_) {
