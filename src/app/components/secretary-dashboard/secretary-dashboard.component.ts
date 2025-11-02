@@ -17,8 +17,6 @@ export class SecretaryDashboardComponent implements OnInit {
   loading = false;
   page = 1;
   limit = 25;
-  dateFilter: string | null = null;
-  statusFilter: string | null = null;
   // Clock
   timeString: string = '';
   dateString: string = '';
@@ -101,7 +99,7 @@ export class SecretaryDashboardComponent implements OnInit {
 
   loadAppointments(): void {
     this.loading = true;
-    this.appointmentService.getCitasPaged(this.page, this.limit, this.dateFilter || undefined, this.statusFilter || undefined)
+    this.appointmentService.getCitasPaged(this.page, this.limit)
       .subscribe({
         next: (resp: any) => {
           // Resp expected: { data: [...], total, page }
