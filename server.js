@@ -1388,25 +1388,21 @@ app.get('/api/users', (req, res) => {
         }
         return res.status(500).json({ success: false, message: 'Error de servidor', error: err });
       }
-    // Obtener datos completos según tipo
+    // Normalizar tipo y obtener datos completos según tipo (case-insensitive)
     const usuariosCompletos = await Promise.all(usuarios.map(user => {
       return new Promise((resolve) => {
         let query = '';
-        let idField = '';
-        let idValue = '';
-        if (user.Tipo === 'Paciente') {
+        const tipo = ((user && (user.Tipo || user.tipo)) || '').toString().toLowerCase();
+        const idValue = user.correo;
+        if (tipo === 'paciente') {
           // No filtramos por Activo aquí; devolvemos los registros incluso si Activo = 'NO'
           query = "SELECT DPI AS dpi, Nombres AS nombres, Apellidos AS apellidos, Telefono AS telefono, Correo AS correo, Activo AS activo FROM pacientes WHERE Correo = ?";
-          idValue = user.correo;
-        } else if (user.Tipo === 'Doctor') {
+        } else if (tipo === 'doctor') {
           query = "SELECT Colegiado AS colegiado, Nombres AS nombres, Apellidos AS apellidos, Telefono AS telefono, Correo AS correo, Activo AS activo FROM doctores WHERE Correo = ?";
-          idValue = user.correo;
-        } else if (user.Tipo === 'Secretaria') {
+        } else if (tipo === 'secretaria') {
           query = "SELECT idSecretarias AS idSecretaria, Nombres AS nombres, Apellidos AS apellidos, Telefono AS telefono, Correo AS correo, Activo AS activo FROM secretarias WHERE Correo = ?";
-          idValue = user.correo;
-        } else if (user.Tipo === 'Administrador') {
+        } else if (tipo === 'administrador') {
           query = "SELECT idAdministradores AS idAdministrador, Nombres AS nombres, Apellidos AS apellidos, Correo AS correo, Activo AS activo FROM administradores WHERE Correo = ?";
-          idValue = user.correo;
         }
         if (query) {
           db.query(query, [idValue], (err2, results2) => {
@@ -1441,25 +1437,61 @@ app.get('/api/users/profile', authenticateToken, (req, res) => {
     if (!email) {
       return res.status(400).json({ success: false, message: 'Token sin email' });
     }
-    const sql = 'SELECT idUsuarios, correo, Tipo, Nombres, Apellidos, COALESCE(Estado, Activo) AS Estado FROM Usuarios WHERE correo = ? LIMIT 1';
-    db.query(sql, [email], (err, rows) => {
-      if (err) return res.status(500).json({ success: false, message: 'Error de servidor', error: err });
+    const tryProfile = (useEstadoFirst) => {
+      const sql = useEstadoFirst
+        ? 'SELECT idUsuarios, correo, Tipo, Nombres, Apellidos, COALESCE(Estado, Activo) AS Estado FROM Usuarios WHERE correo = ? LIMIT 1'
+        : "SELECT idUsuarios, correo, Tipo, Nombres, Apellidos, Activo AS Estado FROM Usuarios WHERE correo = ? LIMIT 1";
+      db.query(sql, [email], (err, rows) => {
+        if (err) {
+          const code = (err && (err.code || err.sqlState)) || '';
+          if (useEstadoFirst && (code === 'ER_BAD_FIELD_ERROR' || code === '42703')) {
+            // Retry without referencing Estado when column doesn't exist
+            return tryProfile(false);
+          }
+          return res.status(500).json({ success: false, message: 'Error de servidor', error: err });
+        }
       if (!rows || rows.length === 0) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
       const u = rows[0] || {};
       const tipoRaw = (u.Tipo || '').toString().toLowerCase();
       const tipo = tipoRaw === 'paciente' || tipoRaw === 'doctor' || tipoRaw === 'secretaria' || tipoRaw === 'administrador' ? tipoRaw : tipoRaw;
       const activoVal = (u.Estado || '').toString();
       const activo = activoVal ? (activoVal.toString().toUpperCase() !== 'NO') : true;
-      const mapped = {
-        id: u.idUsuarios,
-        correo: u.correo,
-        tipo,
-        nombres: u.Nombres || '',
-        apellidos: u.Apellidos || '',
-        activo
+      // If Usuarios table lacks names for this email, attempt to enrich from detail tables by Correo
+      const nombresU = u.Nombres || u.nombres || '';
+      const apellidosU = u.Apellidos || u.apellidos || '';
+      const finish = (nombres, apellidos) => {
+        const mapped = {
+          id: u.idUsuarios,
+          correo: u.correo,
+          tipo,
+          nombres: nombres,
+          apellidos: apellidos,
+          activo
+        };
+        return res.json({ success: true, message: 'Perfil obtenido', data: mapped });
       };
-      return res.json({ success: true, message: 'Perfil obtenido', data: mapped });
+      if (nombresU || apellidosU) {
+        return finish(nombresU, apellidosU);
+      }
+      const detailTables = ['pacientes','doctores','secretarias','administradores'];
+      let di = 0;
+      const probeNext = () => {
+        if (di >= detailTables.length) return finish('', '');
+        const t = detailTables[di++];
+        const sqlD = `SELECT Nombres, Apellidos FROM ${t} WHERE Correo = ? LIMIT 1`;
+        db.query(sqlD, [email], (e2, r2) => {
+          if (!e2 && r2 && r2.length > 0) {
+            const n = r2[0].Nombres || r2[0].nombres || '';
+            const a = r2[0].Apellidos || r2[0].apellidos || '';
+            if (n || a) return finish(n, a);
+          }
+          probeNext();
+        });
+      };
+      probeNext();
     });
+    };
+    tryProfile(true);
   } catch (ex) {
     return res.status(500).json({ success: false, message: 'Error inesperado', error: ex && ex.message ? ex.message : ex });
   }
