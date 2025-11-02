@@ -430,14 +430,8 @@ input[type="time"] {
 .cal-month-view .cal-cell,
 .cal-month-view .cal-day-cell,
 .cal-week-view .cal-time-events,
-.cal-week-view .cal-day-headers .cal-header {
-  border-color: var(--border-color) !important;
-}
-.cal-month-view .cal-header .cal-cell {
-  background: var(--surface-2);
-  color: var(--text-dark);
-}
+.cal-week-view .cal-day-headers .cal-header { border-color: var(--border-color) !important; }
+.cal-month-view .cal-header .cal-cell { background: var(--surface-2) !important; color: var(--text-dark) !important; }
+.cal-month-view .cal-days, .cal-month-view .cal-day-cell { background: var(--surface-1) !important; }
 .cal-month-view .cal-day-number,
-.cal-week-view .cal-time {
-  color: var(--text-dark);
-}
+.cal-week-view .cal-time { color: var(--text-dark) !important; }

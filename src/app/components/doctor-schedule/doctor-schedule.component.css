@@ -38,14 +38,11 @@
   margin-bottom: 1rem;
   font-size: 1.6rem;
 }
-.calendar-container mwl-calendar-month-view {
-  display: block;
-  padding: 0.5rem 0;
-}
+.calendar-container mwl-calendar-month-view { display: block; padding: 0.5rem 0; }
 
 /* Dark theme overrides for angular-calendar month view */
-[data-theme='dark'] .calendar-container { background: rgba(255,255,255,0.04); box-shadow: 0 2px 8px rgba(0,0,0,0.35); }
-[data-theme='dark'] .appointment-details { background: rgba(255,255,255,0.04); box-shadow: 0 2px 8px rgba(0,0,0,0.35); }
+[data-theme='dark'] .calendar-container { background: var(--surface-1); box-shadow: var(--shadow-1); border: 1px solid var(--border-color); }
+[data-theme='dark'] .appointment-details { background: var(--surface-1); box-shadow: var(--shadow-1); border: 1px solid var(--border-color); }
 [data-theme='dark'] .calendar-container .cal-month-view .cal-cell,
 [data-theme='dark'] .calendar-container .cal-month-view .cal-day-cell { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.08); }
 [data-theme='dark'] .calendar-container .cal-month-view .cal-header .cal-cell { background: rgba(255,255,255,0.06); color: #e5e7eb; }
@@ -113,9 +110,11 @@
 .calendar-toolbar .btn-group .btn { padding: .35rem .6rem; }
 
 /* Improve event and cell readability */
-.calendar-container .cal-month-view .cal-day-number { font-weight: 600; }
+.calendar-container .cal-month-view .cal-day-number { font-weight: 600; color: var(--text-dark) !important; }
 .calendar-container .cal-month-view .cal-open-day-events { display: none !important; }
-.calendar-container .cal-month-view .cal-cell { background: var(--surface-1); }
-.calendar-container .cal-month-view .cal-day-cell { border-color: var(--border-color); }
+.calendar-container .cal-month-view .cal-cell { background: var(--surface-1) !important; }
+.calendar-container .cal-month-view .cal-days, 
+.calendar-container .cal-month-view .cal-day-cell { background: var(--surface-1) !important; border-color: var(--border-color) !important; }
+.calendar-container .cal-month-view .cal-header .cal-cell { background: var(--surface-2) !important; color: var(--text-dark) !important; }
 .calendar-container .cal-month-view .cal-event, 
-.calendar-container .cal-month-view .cal-event-title { color: var(--text-dark); }
+.calendar-container .cal-month-view .cal-event-title { color: var(--text-dark) !important; }
