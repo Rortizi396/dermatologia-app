@@ -38,6 +38,7 @@ export class SecretaryPatientsComponent implements OnInit {
   editingDpi: string | null = null;
   editTelefono = '';
   editCorreo = '';
+  isSaving = false;
 
   constructor(private userService: UserService, private http: HttpClient, private toast: ToastService) {}
 
@@ -127,11 +128,24 @@ export class SecretaryPatientsComponent implements OnInit {
   saveEdit(): void {
     if (!this.editingDpi) return;
     const dpi = this.editingDpi;
-    const payload: any = { Telefono: this.editTelefono, Correo: this.editCorreo };
+    const tel = (this.editTelefono || '').toString().trim();
+    const mail = (this.editCorreo || '').toString().trim();
+    // Basic client-side validation: if email provided, ensure it looks valid
+    if (mail && !/.+@.+\..+/.test(mail)) {
+      this.toast.show('Correo inválido, por favor verifica', 'error');
+      return;
+    }
+    const payload: any = { Telefono: tel, Correo: mail };
+    this.isSaving = true;
     // Actualiza en tabla Pacientes y sincroniza con Usuarios por correo anterior (backend ya lo maneja)
     this.userService.updateUserByType('pacientes', dpi, payload).subscribe({
-      next: () => { this.cancelEdit(); this.toast.show('Paciente actualizado'); this.loadPatients(); },
-      error: (e: any) => { console.error('Error guardando paciente', e); this.toast.show('Error al guardar cambios', 'error'); }
+      next: () => { this.isSaving = false; this.cancelEdit(); this.toast.show('Paciente actualizado'); this.loadPatients(); },
+      error: (e: any) => {
+        this.isSaving = false;
+        console.error('Error guardando paciente', e);
+        const msg = (e && e.status === 409) ? 'El correo ya está registrado en otro usuario' : 'Error al guardar cambios';
+        this.toast.show(msg, 'error');
+      }
     });
   }
 

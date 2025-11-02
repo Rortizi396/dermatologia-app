@@ -2230,8 +2230,8 @@ app.put('/api/:tipo/:id', (req, res, next) => {
           return;
         }
 
-        // Find usuario by correo
-        db.query('SELECT * FROM usuarios WHERE correo = ? LIMIT 1', [correoToFind], (errUsrSel, usrRows) => {
+  // Find usuario by correo (table name normalized to match existing schema: 'Usuarios')
+  db.query('SELECT * FROM Usuarios WHERE correo = ? LIMIT 1', [correoToFind], (errUsrSel, usrRows) => {
           if (errUsrSel) {
             console.error('[TX] Error selecting usuario by correo:', errUsrSel);
             return db.rollback(() => res.status(500).json({ success: false, message: 'Error buscando usuario para sincronizar', error: errUsrSel }));
@@ -2264,10 +2264,17 @@ app.put('/api/:tipo/:id', (req, res, next) => {
           const userUpdateFields = [];
           const userUpdateValues = [];
 
-          // If correo changed, update usuarios.correo
-          if (data && (data.Correo || data.correo)) {
-            userUpdateFields.push('correo = ?');
-            userUpdateValues.push(data.Correo || data.correo);
+          // If correo changed, update Usuarios.correo ONLY when it's a non-empty, plausibly valid email
+          if (data && (typeof (data.Correo || data.correo) !== 'undefined')) {
+            const rawCorreo = (data.Correo || data.correo || '').toString().trim();
+            // very basic email check to avoid pushing clearly invalid/empty values that often trigger DB constraints
+            const looksEmail = rawCorreo.length > 0 && /.+@.+\..+/.test(rawCorreo);
+            if (looksEmail) {
+              userUpdateFields.push('correo = ?');
+              userUpdateValues.push(rawCorreo);
+            } else {
+              console.warn('[PUT /api/:tipo/:id] Skipping Usuarios.correo update due to empty/invalid value');
+            }
           }
           // If tipo/Tipo provided, update usuarios.Tipo (normalize)
           if (data && (data.tipo || data.Tipo)) {
@@ -2307,11 +2314,16 @@ app.put('/api/:tipo/:id', (req, res, next) => {
           }
 
           // Execute update on usuarios
-          const usrQuery = `UPDATE usuarios SET ${userUpdateFields.join(', ')} WHERE idUsuarios = ?`;
+          const usrQuery = `UPDATE Usuarios SET ${userUpdateFields.join(', ')} WHERE idUsuarios = ?`;
           db.query(usrQuery, [...userUpdateValues, idUsuarios], (errUsrUpd, resUsrUpd) => {
             if (errUsrUpd) {
               console.error('[TX] Error updating usuarios:', errUsrUpd);
-              return db.rollback(() => res.status(500).json({ success: false, message: 'Error actualizando tabla usuarios', error: errUsrUpd }));
+              // If duplicate email or unique violation, return a clearer 409 and keep transaction consistent via rollback
+              const code = (errUsrUpd && (errUsrUpd.code || errUsrUpd.sqlState)) || '';
+              const errno = (errUsrUpd && errUsrUpd.errno) || 0;
+              const isDuplicate = code === 'ER_DUP_ENTRY' || errno === 1062 || code === '23505';
+              const msg = isDuplicate ? 'El correo ya está registrado en otro usuario' : 'Error actualizando tabla usuarios';
+              return db.rollback(() => res.status(isDuplicate ? 409 : 500).json({ success: false, message: msg, error: errUsrUpd }));
             }
 
             // Commit transaction
@@ -2326,7 +2338,7 @@ app.put('/api/:tipo/:id', (req, res, next) => {
                 if (errNew4) return res.status(500).json({ success: false, message: 'Error leyendo registro actualizado', error: errNew4 });
                 const newRow4 = (rowsNew4 && rowsNew4.length > 0) ? rowsNew4[0] : null;
                 // Read updated usuario
-                db.query('SELECT * FROM usuarios WHERE idUsuarios = ?', [idUsuarios], (errUsrSel2, usrRows2) => {
+                db.query('SELECT * FROM Usuarios WHERE idUsuarios = ?', [idUsuarios], (errUsrSel2, usrRows2) => {
                   const newUsuarioRow = (usrRows2 && usrRows2.length > 0) ? usrRows2[0] : null;
                   insertAudit(req, 'user_update', 'user', id, JSON.stringify(oldRow), JSON.stringify(newRow4), (errA4) => {
                     if (errA4) console.warn('Audit insert failed for user_update', errA4);
