@@ -263,7 +263,8 @@ body {
   .btn { width: 100%; margin-bottom: 0.5rem; }
   /* Toolbar-specific overrides: keep inline layout */
   .toolbar .btn { width: auto; margin-bottom: 0; }
-  .toolbar .form-control { width: 1%; flex: 1 1 auto; }
+  /* Let input take remaining space reliably in flex, avoid width collapse */
+  .toolbar .form-control { flex: 1 1 0%; min-width: 0; }
   .toolbar.input-group { width: 100%; }
   .toolbar .input-group { width: 100%; }
   /* Ensure input-group children behave inline at this breakpoint too */
@@ -296,7 +297,8 @@ body {
 /* Forms: full width on small screens */
 @media (max-width: 576px) {
   .form-control, .form-select, .input-group, .btn { width: 100%; }
-  .input-group > .form-control { width: 1%; flex: 1 1 auto; }
+  /* In input-groups, make the input flex to fill and allow it to shrink without overflow */
+  .input-group > .form-control { flex: 1 1 0%; min-width: 0; }
   /* Keep appended buttons inside input-group at natural width */
   .input-group .btn { width: auto; flex: 0 0 auto; }
 }
