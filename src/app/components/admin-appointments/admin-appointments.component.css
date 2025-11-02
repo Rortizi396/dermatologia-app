@@ -82,8 +82,10 @@ table.app-table td, table.app-table th {
 
 .patient-cell {
 	font-weight: 600;
-	color: #0f172a;
+	color: var(--text-dark);
 }
+.patient-cell a { color: var(--text-dark); text-decoration: none; }
+[data-theme='dark'] .patient-cell a:hover { text-decoration: underline; }
 
 
 .table-actions {

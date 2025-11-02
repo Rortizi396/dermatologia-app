@@ -127,8 +127,11 @@ import { FormsModule } from '@angular/forms';
     .audit-history { background: var(--white); border-radius: 6px; }
     .audit-table { table-layout: fixed; width: 100%; }
     .audit-table th, .audit-table td { vertical-align: top; padding: .5rem; }
-    .audit-table td .cell-preview { max-height: 6.5em; overflow: auto; background: #f8f9fa; border-radius: 4px; padding: .35rem; }
-    .audit-table td .cell-preview pre { white-space: pre-wrap; word-break: break-word; margin: 0; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, 'Roboto Mono', 'Courier New', monospace; font-size: .8rem; }
+    .audit-table td .cell-preview { max-height: 6.5em; overflow: auto; background: #f8f9fa; border-radius: 4px; padding: .35rem; border: 1px solid rgba(15,23,42,0.06); }
+    .audit-table td .cell-preview pre { white-space: pre-wrap; word-break: break-word; margin: 0; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, 'Roboto Mono', 'Courier New', monospace; font-size: .8rem; color: var(--text-dark); }
+    /* Dark-mode: make previews dark with light text */
+    [data-theme='dark'] .audit-table td .cell-preview { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.12); }
+    [data-theme='dark'] .audit-table td .cell-preview pre { color: #e5e7eb; }
     .text-truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     @media (max-width: 768px) {
       .audit-table thead { display: none; }

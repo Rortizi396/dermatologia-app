@@ -20,13 +20,13 @@
 }
 .calendar-container {
   margin-bottom: 2rem;
-  background: #e8f5e9;
+  background: var(--white);
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(76, 175, 80, 0.12);
   padding: 1rem;
 }
 .appointment-details {
-  background: #f1f8e9;
+  background: var(--white);
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(76, 175, 80, 0.12);
   padding: 1rem;
@@ -40,6 +40,15 @@
   display: block;
   padding: 0.5rem 0;
 }
+
+/* Dark theme overrides for angular-calendar month view */
+[data-theme='dark'] .calendar-container { background: rgba(255,255,255,0.04); box-shadow: 0 2px 8px rgba(0,0,0,0.35); }
+[data-theme='dark'] .appointment-details { background: rgba(255,255,255,0.04); box-shadow: 0 2px 8px rgba(0,0,0,0.35); }
+[data-theme='dark'] .calendar-container .cal-month-view .cal-cell,
+[data-theme='dark'] .calendar-container .cal-month-view .cal-day-cell { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.08); }
+[data-theme='dark'] .calendar-container .cal-month-view .cal-header .cal-cell { background: rgba(255,255,255,0.06); color: #e5e7eb; }
+[data-theme='dark'] .calendar-container .cal-month-view .cal-day-number { color: #e5e7eb; }
+[data-theme='dark'] .calendar-container .cal-month-view .cal-events { background: rgba(255,255,255,0.06); }
 .appointment-details .card {
   margin-top: 1rem;
 }

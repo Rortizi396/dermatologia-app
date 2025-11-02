@@ -2,6 +2,7 @@
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
+import { ThemeService } from '../../services/theme.service';
 import { UserService } from '../../services/user.service';
 import { AuthService } from '../../services/auth.service';
 
@@ -23,7 +24,8 @@ export class LoginComponent implements OnInit {
     private userService: UserService,
     private authService: AuthService,
     private router: Router,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    public theme: ThemeService
   ) {
     // Redirigir si ya está logueado
     if (this.authService.isLoggedIn()) {
