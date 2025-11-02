@@ -292,6 +292,8 @@ body {
 @media (max-width: 576px) {
   .form-control, .form-select, .input-group, .btn { width: 100%; }
   .input-group > .form-control { width: 1%; flex: 1 1 auto; }
+  /* Keep appended buttons inside input-group at natural width */
+  .input-group .btn { width: auto; flex: 0 0 auto; }
 }
 
 /* Form controls sizing/alignment fixes: prevent clipped text in inputs */
@@ -310,6 +312,7 @@ body {
 }
 .input-group {
   align-items: stretch;    /* keep controls same height */
+  gap: 0.25rem;            /* small gap improves touch targets */
 }
 .form-control::placeholder { opacity: 0.85; }
 
