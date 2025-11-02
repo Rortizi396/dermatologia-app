@@ -65,6 +65,19 @@
   background: var(--surface-1);
 }
 
+/* Summary card */
+.summary-card { border: 1px solid var(--border-color); }
+.summary-item .label { font-size: 0.85rem; color: var(--text-light); }
+.summary-item .value { font-size: 1.25rem; font-weight: 700; color: var(--text-dark); }
+.summary-item .hint { font-size: 0.8rem; color: var(--text-light); }
+
+/* Empty state for charts */
+.empty-state {
+  padding: 0.75rem 0.5rem;
+  color: var(--text-light);
+  font-size: 0.95rem;
+}
+
 /* Responsive tweaks */
 @media (max-width: 576px) {
   .dashboard-clock { padding: 0.75rem; }

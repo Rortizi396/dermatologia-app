@@ -59,6 +59,41 @@
 
   <!-- Admin metrics & charts -->
   <div *ngIf="currentUser?.tipo === 'administrador'" class="row mt-1">
+    <!-- Resumen compacto -->
+    <div class="col-12 mb-3">
+      <div class="card summary-card">
+        <div class="card-body">
+          <div class="row">
+            <div class="col-12 col-md-6 col-lg-3 mb-2">
+              <div class="summary-item">
+                <div class="label">Usuarios</div>
+                <div class="value">{{ adminMetrics.totalUsers }}</div>
+                <div class="hint">Activos {{ adminMetrics.totalActiveUsers ?? 0 }} · Inactivos {{ adminMetrics.totalInactiveUsers ?? 0 }}</div>
+              </div>
+            </div>
+            <div class="col-12 col-md-6 col-lg-3 mb-2">
+              <div class="summary-item">
+                <div class="label">Doctores</div>
+                <div class="value">{{ adminMetrics.totalDoctors }}</div>
+                <div class="hint">Secretarias {{ adminMetrics.totalSecretaries }}</div>
+              </div>
+            </div>
+            <div class="col-12 col-md-6 col-lg-3 mb-2">
+              <div class="summary-item">
+                <div class="label">Especialidades</div>
+                <div class="value">{{ adminMetrics.totalSpecialties }}</div>
+              </div>
+            </div>
+            <div class="col-12 col-md-6 col-lg-3 mb-2">
+              <div class="summary-item">
+                <div class="label">Citas (semana)</div>
+                <div class="value">{{ adminMetrics.totalAppointments }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
     <div class="col-12 col-md-4 mb-3">
       <div class="card metric-card">
         <div class="card-body text-center">
@@ -102,6 +137,7 @@
       <div class="card">
         <div class="card-header">Citas por día (semana actual)</div>
         <div class="card-body">
+          <div *ngIf="!adminChartsEnabled" class="empty-state">Gráficas desactivadas. Presiona "Mostrar gráficas".</div>
           <div id="appointmentsWeekChart" class="svg-chart" aria-hidden="true"></div>
         </div>
       </div>
@@ -110,12 +146,14 @@
       <div class="card mb-3">
         <div class="card-header">Usuarios nuevos este mes</div>
         <div class="card-body">
+          <div *ngIf="!adminChartsEnabled" class="empty-state">Gráficas desactivadas. Presiona "Mostrar gráficas".</div>
           <div id="newUsersMonthChart" class="svg-chart" aria-hidden="true"></div>
         </div>
       </div>
       <div class="card">
         <div class="card-header">Usuarios dados de baja este mes</div>
         <div class="card-body">
+          <div *ngIf="!adminChartsEnabled" class="empty-state">Gráficas desactivadas. Presiona "Mostrar gráficas".</div>
           <div id="deactivatedUsersMonthChart" class="svg-chart" aria-hidden="true"></div>
         </div>
       </div>
