@@ -259,10 +259,15 @@ body {
     margin: 0.5rem;
   }
   
-  .btn {
-    width: 100%;
-    margin-bottom: 0.5rem;
-  }
+  /* Stack buttons by default on small screens, except inside toolbars/input-groups */
+  .btn { width: 100%; margin-bottom: 0.5rem; }
+  /* Toolbar-specific overrides: keep inline layout */
+  .toolbar .btn { width: auto; margin-bottom: 0; }
+  .toolbar .form-control { width: 1%; flex: 1 1 auto; }
+  .toolbar.input-group { width: 100%; }
+  .toolbar .input-group { width: 100%; }
+  /* Ensure input-group children behave inline at this breakpoint too */
+  .input-group .btn { width: auto; flex: 0 0 auto; }
 }
 
 /* Global responsive utility helpers */
