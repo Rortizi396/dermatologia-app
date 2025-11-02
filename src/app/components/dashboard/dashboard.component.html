@@ -5,7 +5,7 @@
     <h5 class="m-0">Dashboard</h5>
     <div class="d-flex align-items-center gap-2">
       <button class="btn btn-outline-secondary btn-sm" (click)="toggleClockFormat()" title="Alternar 12/24h">{{ use24Hour ? '24h' : '12h' }}</button>
-      <button *ngIf="currentUser?.tipo === 'administrador'" class="btn btn-outline-primary btn-sm" (click)="renderAdminCharts()">Mostrar gráficas</button>
+      <button *ngIf="currentUser?.tipo === 'administrador'" class="btn btn-outline-primary btn-sm" (click)="renderAdminCharts()">Recargar gráficas</button>
       <button class="btn btn-outline-success btn-sm" (click)="loadDashboardData()">Refrescar</button>
     </div>
   </div>
@@ -137,7 +137,7 @@
       <div class="card">
         <div class="card-header">Citas por día (semana actual)</div>
         <div class="card-body">
-          <div *ngIf="!adminChartsEnabled" class="empty-state">Gráficas desactivadas. Presiona "Mostrar gráficas".</div>
+          <div *ngIf="!adminChartsEnabled" class="empty-state">Gráficas desactivadas. Presiona "Recargar gráficas".</div>
           <div id="appointmentsWeekChart" class="svg-chart" aria-hidden="true"></div>
         </div>
       </div>
@@ -146,14 +146,14 @@
       <div class="card mb-3">
         <div class="card-header">Usuarios nuevos este mes</div>
         <div class="card-body">
-          <div *ngIf="!adminChartsEnabled" class="empty-state">Gráficas desactivadas. Presiona "Mostrar gráficas".</div>
+          <div *ngIf="!adminChartsEnabled" class="empty-state">Gráficas desactivadas. Presiona "Recargar gráficas".</div>
           <div id="newUsersMonthChart" class="svg-chart" aria-hidden="true"></div>
         </div>
       </div>
       <div class="card">
         <div class="card-header">Usuarios dados de baja este mes</div>
         <div class="card-body">
-          <div *ngIf="!adminChartsEnabled" class="empty-state">Gráficas desactivadas. Presiona "Mostrar gráficas".</div>
+          <div *ngIf="!adminChartsEnabled" class="empty-state">Gráficas desactivadas. Presiona "Recargar gráficas".</div>
           <div id="deactivatedUsersMonthChart" class="svg-chart" aria-hidden="true"></div>
         </div>
       </div>

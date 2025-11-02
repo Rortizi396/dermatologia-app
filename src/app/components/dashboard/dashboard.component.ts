@@ -82,8 +82,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private appointmentsWeekChart: any = null;
   private newUsersChart: any = null;
   private deactivatedUsersChart: any = null;
-  // Alternar para habilitar/deshabilitar el renderizado de gráficos (poner false para evitar cargas pesadas durante la depuración)
-  adminChartsEnabled = false;
+  // Renderizado de gráficos habilitado por defecto para que "cumplan su función"
+  adminChartsEnabled = true;
   // UI flag while charts are being prepared
   renderingCharts = false;
 
