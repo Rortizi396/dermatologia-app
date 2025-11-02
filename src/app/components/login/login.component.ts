@@ -16,6 +16,7 @@ export class LoginComponent implements OnInit {
   loading = false;
   error = '';
   returnUrl: string = '';
+  showPassword = false;
 
   constructor(
     private fb: FormBuilder,
@@ -41,6 +42,15 @@ export class LoginComponent implements OnInit {
       email: ['', [Validators.required, Validators.email]],
       password: ['', Validators.required]
     });
+  }
+
+  togglePassword(): void {
+    this.showPassword = !this.showPassword;
+    const input = document.getElementById('password') as HTMLInputElement | null;
+    if (input) {
+      input.type = this.showPassword ? 'text' : 'password';
+      input.focus();
+    }
   }
 
   onSubmit(): void {

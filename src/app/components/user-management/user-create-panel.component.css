@@ -62,7 +62,7 @@ select.form-input option {
 }
 .tabs button {
   background: transparent;
-  color: #0f172a;
+  color: var(--text-dark);
   border: none;
   border-radius: 8px;
   padding: 8px 12px;
@@ -122,7 +122,7 @@ select.form-input option {
 }
 .form-label {
   font-weight: 600;
-  color: #0f172a;
+  color: var(--text-dark);
 }
 .form-input {
   width: 100%;

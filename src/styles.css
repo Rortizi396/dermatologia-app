@@ -294,6 +294,23 @@ body {
 }
 .form-control::placeholder { opacity: 0.85; }
 
+/* Dark theme: stronger input borders and lighter placeholders for visibility */
+[data-theme='dark'] .form-control,
+[data-theme='dark'] .form-select,
+[data-theme='dark'] .input-group-text {
+  border-color: rgba(255,255,255,0.35) !important;
+}
+[data-theme='dark'] .form-control::placeholder,
+[data-theme='dark'] .form-select::placeholder {
+  color: rgba(255,255,255,0.7);
+}
+
+/* Dark theme: make date/time picker icons visible (Chromium/WebKit) */
+[data-theme='dark'] input[type="date"]::-webkit-calendar-picker-indicator,
+[data-theme='dark'] input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) brightness(1.6);
+}
+
 /* Ensure selects and textareas respect theme colors */
 select.form-select,
 textarea.form-control,

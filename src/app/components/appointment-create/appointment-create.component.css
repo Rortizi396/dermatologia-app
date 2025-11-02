@@ -6,7 +6,7 @@
 
 .appointment-form .card-header {
   background: linear-gradient(135deg, var(--lighter-green) 0%, var(--white) 100%);
-  color: var(--text-dark);
+  color: #ffffff;
   font-weight: 600;
 }
 

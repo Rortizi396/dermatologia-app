@@ -37,6 +37,9 @@
             <div class="input-with-icon">
               <i class="fas fa-lock icon"></i>
               <input type="password" id="password" formControlName="password" class="input" placeholder="Contraseña" />
+              <button type="button" class="toggle-pass" (click)="togglePassword()" [attr.aria-pressed]="showPassword" [attr.aria-label]="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'">
+                <i class="fas" [ngClass]="showPassword ? 'fa-eye-slash' : 'fa-eye'"></i>
+              </button>
             </div>
             <div *ngIf="loginForm.get('password')?.invalid && loginForm.get('password')?.touched" class="input-error">
               La contraseña es requerida
