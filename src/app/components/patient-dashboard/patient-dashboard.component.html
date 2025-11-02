@@ -1,3 +1,14 @@
+<!-- Toolbar: muestra el formato horario y un acceso rápido a reservar -->
+<div class="toolbar d-flex align-items-center justify-content-between p-2 mb-3 flex-wrap gap-2">
+  <h5 class="m-0">Inicio del paciente</h5>
+  <div class="d-flex align-items-center gap-2 flex-wrap">
+    <button class="btn btn-outline-primary" (click)="toggleClockFormat()">
+      Formato: {{ use24Hour ? '24 h' : '12 h' }}
+    </button>
+    <a class="btn btn-success" routerLink="/appointments/create">Reservar cita</a>
+  </div>
+</div>
+
 <div class="patient-hero d-flex flex-column align-items-center justify-content-center py-4">
   <div class="hero-clock w-100 d-flex justify-content-center">
     <div class="clock-wrapper d-flex align-items-center flex-column flex-sm-row">
@@ -52,4 +63,4 @@
 <!-- CTA below the cards -->
 <div class="cta-wrapper w-100 d-flex justify-content-center mt-4 mb-5">
   <a class="btn btn-lg cta-btn" routerLink="/appointments/create">Reservar nueva cita</a>
-</div>
+  </div>

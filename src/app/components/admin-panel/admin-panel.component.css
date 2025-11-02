@@ -1,6 +1,4 @@
-.admin-panel {
-  padding: 2rem;
-}
+.admin-panel { padding: 1rem; gap: 1rem; }
 .entity-selector {
   margin-bottom: 1.5rem;
 }
@@ -11,19 +9,15 @@ select {
 }
 
 /* Sidebar box where admin quick actions live */
-.sidebar-box {
-  background: transparent;
-  border-radius: 8px;
-  padding: 12px;
-}
+.sidebar-box { background: transparent; border-radius: 8px; padding: 12px; }
 
-.admin-sidebar h4 {
-  margin: 0 0 8px 0;
-}
+.admin-sidebar { width: 240px; max-width: 100%; position: sticky; top: 0; height: fit-content; border-right: 1px solid var(--border-color); }
+.admin-sidebar h5 { margin: 0 0 8px 0; }
 
 .list-group .list-group-item {
   cursor: pointer;
 }
+.list-group .list-group-item.active { background: var(--brand-50); color: var(--brand-700); }
 
 .quick-actions .list-group-item {
   display:flex;
@@ -33,4 +27,9 @@ select {
 
 .quick-actions .list-group-item svg {
   flex: 0 0 20px;
+}
+
+@media (max-width: 991px) {
+  .admin-panel { flex-direction: column; }
+  .admin-sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--border-color); }
 }
