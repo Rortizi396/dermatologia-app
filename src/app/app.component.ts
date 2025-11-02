@@ -6,6 +6,7 @@ import { ToastService } from './services/toast.service';
 import { User } from './interfaces/user.interface';
 import { filter } from 'rxjs/operators';
 import { UserService } from './services/user.service';
+import { ThemeService, ThemeMode } from './services/theme.service';
 
 @Component({
   selector: 'app-root',
@@ -26,7 +27,8 @@ export class AppComponent{
     private authService: AuthService,
     @Inject(Router) private router: Router
     , private toastService: ToastService,
-    private userService: UserService
+    private userService: UserService,
+    private theme: ThemeService
   ) {}
 
   // Expose toast observable for global container
@@ -35,6 +37,9 @@ export class AppComponent{
   }
 
   ngOnInit(): void {
+    // Apply saved theme on boot
+    const currentTheme = this.theme.theme; // triggers apply in service ctor too
+
     // Suscribirse a cambios en el usuario autenticado
     this.authService.currentUser.subscribe(user => {
       this.currentUser = user;
@@ -79,6 +84,10 @@ export class AppComponent{
   toggleSidebar(): void {
     this.showSidebar = !this.showSidebar;
   }
+
+  // Theme handling
+  get isDarkTheme(): boolean { return this.theme.theme === 'dark'; }
+  toggleTheme(): void { this.theme.toggle(); }
 
   toggleMobileSidebar(): void {
     this.isMobileSidebarOpen = !this.isMobileSidebarOpen;

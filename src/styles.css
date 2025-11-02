@@ -136,6 +136,30 @@
   --bp-lg: 992px;
   --bp-xl: 1200px;
 }
+
+/* Dark theme overrides */
+[data-theme='dark'] {
+  --verde-claro: #8cdcc0;
+  --verde-medio: #3aa882;
+  --verde-oscuro: #2d6f65;
+  --gris-claro: #1d2125;
+  --gris-medio: #2a2f34;
+  --texto: #e9ecef;
+
+  --primary-green: #2e7d32;
+  --light-green: #43a047;
+  --lighter-green: #1b5e20;
+  --dark-green: #1b5e20;
+  --accent-teal: #12877c;
+  --text-dark: #e9ecef;
+  --text-light: #c2c7cc;
+  --background-light: #121417;
+  --white: #0f1113;
+  --success: #2e7d32;
+  --warning: #bf8600;
+  --danger: #b71c1c;
+  --info: #0f7c87;
+}
 * {
   margin: 0;
   padding: 0;

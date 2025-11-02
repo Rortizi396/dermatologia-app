@@ -28,6 +28,12 @@
 .brand-text h5 { margin: 0; font-weight: 700; font-size: 1.05rem; }
 .brand-text .subtitle { opacity: .85; font-size: .78rem; }
 
+/* Theme toggle */
+.theme-toggle { margin-left: auto; background: rgba(255,255,255,0.14); border: none; color: #fff; width: 36px; height: 36px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+.theme-toggle:hover { background: rgba(255,255,255,0.22); }
+.theme-toggle .icon { font-size: 16px; line-height: 1; }
+.theme-toggle .icon.dark { filter: brightness(0.95); }
+
 .sidebar-nav {
   flex: 1;
   list-style: none;

@@ -9,6 +9,9 @@
           <h5>Centro Dermatológico</h5>
           <small class="subtitle">Cuidado y bienestar</small>
         </div>
+        <button type="button" class="theme-toggle" (click)="toggleTheme()" [attr.aria-pressed]="isDarkTheme" [title]="isDarkTheme ? 'Tema oscuro' : 'Tema claro'">
+          <span class="icon" [class.dark]="isDarkTheme" aria-hidden="true">{{ isDarkTheme ? '🌙' : '☀️' }}</span>
+        </button>
       </div>
     </div>
     
