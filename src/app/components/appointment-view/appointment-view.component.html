@@ -3,14 +3,14 @@
   <div class="row justify-content-center">
     <div class="col-md-8">
       <div class="card">
-        <div class="card-header bg-info text-white">
+        <div class="card-header">
           <h4 class="mb-0">Consultar Cita</h4>
         </div>
         <div class="card-body">
           <!-- Formulario de búsqueda -->
           <div class="form-group">
             <label for="appointmentId">Número de Cita</label>
-            <div class="input-group">
+            <div class="input-group toolbar p-2">
               <input
                 type="number"
                 class="form-control"
@@ -25,7 +25,7 @@
                   (click)="searchAppointment()"
                   [disabled]="!appointmentId || loading"
                 >
-                  <span *ngIf="loading" class="spinner-border spinner-border-sm mr-2"></span>
+                  <span *ngIf="loading" class="spinner-border spinner-border-sm me-2"></span>
                   Buscar
                 </button>
               </div>
@@ -97,12 +97,12 @@
 
               <div class="action-row">
                 <button class="btn btn-success" (click)="confirmAppointment()" *ngIf="appointment.Confirmado === 'Pendiente'" [disabled]="actionLoading">
-                  <span *ngIf="actionLoading" class="spinner-border spinner-border-sm mr-2"></span>
+                  <span *ngIf="actionLoading" class="spinner-border spinner-border-sm me-2"></span>
                   <svg class="icon" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" aria-hidden><path d="M2 2.5a.5.5 0 0 1 .5-.5H6v1H3v10h10V3h-3V2h3.5a.5.5 0 0 1 .5.5v10a1 1 0 0 1-1 1H4.5a1 1 0 0 1-1-1v-10z"/></svg>
                   Confirmar Cita
                 </button>
                 <button class="btn btn-danger" (click)="cancelAppointment()" *ngIf="appointment.Confirmado === 'Pendiente' || appointment.Confirmado === 'Confirmada'" [disabled]="actionLoading">
-                  <span *ngIf="actionLoading" class="spinner-border spinner-border-sm mr-2"></span>
+                  <span *ngIf="actionLoading" class="spinner-border spinner-border-sm me-2"></span>
                   <svg class="icon" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" aria-hidden><path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm3.536 10.95L11.95 12.536 8 8.586 4.05 12.536 3.464 11.95 7.414 8 3.464 4.05 4.05 3.464 8 7.414l3.95-3.95.586.586L8.586 8l3.95 3.95z"/></svg>
                   Cancelar Cita
                 </button>

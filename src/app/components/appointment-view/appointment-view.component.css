@@ -4,11 +4,11 @@
 }
 
 .app-card {
-  border-radius: 12px;
-  box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-1);
   overflow: hidden;
-  background: var(--white);
-  border: 1px solid rgba(0,0,0,0.04);
+  background: var(--surface-1);
+  border: 1px solid var(--border-color);
 }
 
 .app-card .header {
@@ -48,7 +48,7 @@
 .badge-cancelada { background:#ffecec; color:#8a1a1a; border:1px solid #f3bdbd }
 
 .app-card .info-line { margin-bottom:6px }
-.app-card .info-line strong { color:#1f5f2f }
+.app-card .info-line strong { color: var(--text-dark); }
 
 .action-row { padding: 14px 18px; display:flex; gap:12px; align-items:center }
 .action-row .btn { min-width:160px }
@@ -81,3 +81,8 @@
 }
 .toast-success { background: linear-gradient(90deg,#2ecc71,#27ae60) }
 .toast-error { background: linear-gradient(90deg,#e74c3c,#c0392b) }
+
+/* Dark mode adjustments for status badges */
+[data-theme='dark'] .badge-confirmada { background: rgba(46,125,50,0.18); color:#9fe0a9; border-color: rgba(46,125,50,0.35); }
+[data-theme='dark'] .badge-pendiente { background: rgba(191,134,0,0.18); color:#ffd166; border-color: rgba(191,134,0,0.35); }
+[data-theme='dark'] .badge-cancelada { background: rgba(183,28,28,0.18); color:#fca5a5; border-color: rgba(183,28,28,0.35); }
