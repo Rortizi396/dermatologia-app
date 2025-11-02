@@ -3,12 +3,13 @@ import { CommonModule, NgIf, NgFor } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { UserService } from '../../services/user.service';
+import { UserCreatePanelComponent } from '../user-management/user-create-panel.component';
 import { ToastService } from '../../services/toast.service';
 
 @Component({
   selector: 'app-secretary-patients',
   standalone: true,
-  imports: [CommonModule, FormsModule, NgIf, NgFor],
+  imports: [CommonModule, FormsModule, NgIf, NgFor, UserCreatePanelComponent],
   templateUrl: './secretary-patients.component.html',
   styleUrls: ['./secretary-patients.component.css']
 })

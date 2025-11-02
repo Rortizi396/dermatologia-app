@@ -16,6 +16,7 @@ export class UserCreateComponent {
   loading = false;
   error = '';
   success = '';
+  showPassword = false;
 
   tipos = [
     { value: 'paciente', label: 'Paciente' },

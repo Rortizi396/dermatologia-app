@@ -16,6 +16,8 @@ export class ForgotPasswordComponent {
   error: string | null = null;
   success: string | null = null;
   form: any;
+  showNew = false;
+  showConfirm = false;
 
   constructor(private fb: FormBuilder, private http: HttpClient, private router: Router) {
     this.form = this.fb.group({

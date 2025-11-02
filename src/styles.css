@@ -334,3 +334,23 @@ input[type="time"] {
   background: rgba(46, 125, 50, 0.12);
   color: #9fe0a9;
 }
+
+/* Modern toolbars (filters) */
+.filters-bar { background: var(--white); border: 1px solid var(--gris-medio); }
+[data-theme='dark'] .filters-bar { border-color: rgba(255,255,255,0.18); }
+
+/* Modern table headers */
+.table thead th {
+  background: linear-gradient(180deg, rgba(0,0,0,0.02), transparent);
+  color: var(--text-dark);
+  border-bottom: 1px solid rgba(0,0,0,0.08);
+}
+[data-theme='dark'] .table thead th {
+  background: rgba(255,255,255,0.02);
+  color: var(--text-dark);
+  border-bottom-color: rgba(255,255,255,0.14);
+}
+
+/* Input-group button sizing to match inputs */
+.input-group .btn { border-top-left-radius: 0; border-bottom-left-radius: 0; }
+.input-group .form-control { border-top-right-radius: 0; border-bottom-right-radius: 0; }

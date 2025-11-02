@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, Input } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { UserService } from '../../services/user.service';
@@ -15,6 +15,10 @@ import { SpecialtyCreateComponent } from './specialty-create.component';
   imports: [CommonModule, ReactiveFormsModule, SpecialtyCreateComponent]
 })
 export class UserCreatePanelComponent implements OnInit {
+  // Permitir restringir pestañas visibles desde el padre (por ejemplo, solo 'paciente')
+  @Input() allowedTabs: Array<'paciente'|'doctor'|'secretaria'|'administrador'|'especialidad'> = ['paciente','doctor','secretaria','administrador','especialidad'];
+  // Personalizar etiqueta del botón de toggle (por defecto: "Crear usuario")
+  @Input() createLabel: string | null = null;
   onSpecialtyCheckboxChange(event: any) {
     const specialtyId = +event.target.value;
     const checked = event.target.checked;
@@ -44,6 +48,11 @@ export class UserCreatePanelComponent implements OnInit {
   success = '';
   specialties: Specialty[] = [];
   canCreateAdmin = false;
+  // Visibilidad de contraseñas por formulario
+  showPassPaciente = false;
+  showPassDoctor = false;
+  showPassSecretaria = false;
+  showPassAdmin = false;
 
   constructor(
     private fb: FormBuilder,
@@ -99,6 +108,10 @@ export class UserCreatePanelComponent implements OnInit {
     });
     // Pre-chequeo de permisos para crear administradores
     try { this.canCreateAdmin = this.authService.hasRole('administrador'); } catch { this.canCreateAdmin = false; }
+    // Si allowedTabs contiene solo una, seleccionarla y esconder tabs
+    if (this.allowedTabs && this.allowedTabs.length === 1) {
+      this.selectedTab = this.allowedTabs[0];
+    }
   }
 
   selectTab(tab: string) {

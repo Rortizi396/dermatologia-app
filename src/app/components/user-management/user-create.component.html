@@ -15,7 +15,12 @@
     </div>
     <div class="form-group mb-2">
       <label>Contraseña</label>
-      <input type="password" class="form-control" formControlName="password">
+      <div class="input-group">
+        <input [type]="showPassword ? 'text' : 'password'" class="form-control" formControlName="password">
+        <button type="button" class="btn btn-outline-secondary" (click)="showPassword = !showPassword" [attr.aria-pressed]="showPassword" [attr.aria-label]="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'">
+          <i class="fas" [ngClass]="showPassword ? 'fa-eye-slash' : 'fa-eye'"></i>
+        </button>
+      </div>
     </div>
     <div class="form-group mb-2">
       <label>Tipo de usuario</label>

@@ -1,15 +1,15 @@
 <div class="user-create-panel">
   <button class="toggle-panels-btn" (click)="showPanels = !showPanels" [attr.aria-expanded]="showPanels" aria-controls="user-create-panels">
     <span class="icon" aria-hidden="true">{{ showPanels ? '−' : '+' }}</span>
-    <span class="toggle-label">{{ showPanels ? 'Ocultar panel' : 'Crear usuario' }}</span>
+    <span class="toggle-label">{{ showPanels ? 'Ocultar panel' : (createLabel || 'Crear usuario') }}</span>
   </button>
   <div id="user-create-panels" class="panels" [class.open]="showPanels">
-    <div class="tabs">
-      <button [class.active]="selectedTab === 'paciente'" (click)="selectTab('paciente')">Paciente</button>
-      <button [class.active]="selectedTab === 'doctor'" (click)="selectTab('doctor')">Doctor</button>
-      <button [class.active]="selectedTab === 'secretaria'" (click)="selectTab('secretaria')">Secretaria</button>
-      <button [class.active]="selectedTab === 'administrador'" (click)="selectTab('administrador')">Administrador</button>
-      <button [class.active]="selectedTab === 'especialidad'" (click)="selectTab('especialidad')">Especialidad</button>
+    <div class="tabs" *ngIf="allowedTabs.length > 1">
+      <button *ngIf="allowedTabs.includes('paciente')" [class.active]="selectedTab === 'paciente'" (click)="selectTab('paciente')">Paciente</button>
+      <button *ngIf="allowedTabs.includes('doctor')" [class.active]="selectedTab === 'doctor'" (click)="selectTab('doctor')">Doctor</button>
+      <button *ngIf="allowedTabs.includes('secretaria')" [class.active]="selectedTab === 'secretaria'" (click)="selectTab('secretaria')">Secretaria</button>
+      <button *ngIf="allowedTabs.includes('administrador')" [class.active]="selectedTab === 'administrador'" (click)="selectTab('administrador')">Administrador</button>
+      <button *ngIf="allowedTabs.includes('especialidad')" [class.active]="selectedTab === 'especialidad'" (click)="selectTab('especialidad')">Especialidad</button>
     </div>
 
   <div *ngIf="selectedTab === 'paciente'" class="form-container">
@@ -38,7 +38,12 @@
         </div>
         <div class="form-group">
           <label class="form-label">Contraseña</label>
-          <input type="password" class="form-input" formControlName="password">
+          <div class="input-group">
+            <input [type]="showPassPaciente ? 'text' : 'password'" class="form-input form-control" formControlName="password">
+            <button type="button" class="btn btn-outline-secondary" (click)="showPassPaciente = !showPassPaciente" [attr.aria-pressed]="showPassPaciente">
+              <i class="fas" [ngClass]="showPassPaciente ? 'fa-eye-slash' : 'fa-eye'"></i>
+            </button>
+          </div>
         </div>
         </div>
         <button class="form-button" type="submit" [disabled]="loading">Crear Paciente</button>
@@ -85,7 +90,12 @@
         </div>
         <div class="form-group">
           <label class="form-label">Contraseña</label>
-          <input type="password" class="form-input" formControlName="password">
+          <div class="input-group">
+            <input [type]="showPassDoctor ? 'text' : 'password'" class="form-input form-control" formControlName="password">
+            <button type="button" class="btn btn-outline-secondary" (click)="showPassDoctor = !showPassDoctor" [attr.aria-pressed]="showPassDoctor">
+              <i class="fas" [ngClass]="showPassDoctor ? 'fa-eye-slash' : 'fa-eye'"></i>
+            </button>
+          </div>
         </div>
         </div>
         <button class="form-button" type="submit" [disabled]="loading">Crear Doctor</button>
@@ -116,7 +126,12 @@
         </div>
         <div class="form-group">
           <label class="form-label">Contraseña</label>
-          <input type="password" class="form-input" formControlName="password">
+          <div class="input-group">
+            <input [type]="showPassSecretaria ? 'text' : 'password'" class="form-input form-control" formControlName="password">
+            <button type="button" class="btn btn-outline-secondary" (click)="showPassSecretaria = !showPassSecretaria" [attr.aria-pressed]="showPassSecretaria">
+              <i class="fas" [ngClass]="showPassSecretaria ? 'fa-eye-slash' : 'fa-eye'"></i>
+            </button>
+          </div>
         </div>
         </div>
         <button class="form-button" type="submit" [disabled]="loading">Crear Secretaria</button>
@@ -146,7 +161,12 @@
         </div>
         <div class="form-group">
           <label class="form-label">Contraseña</label>
-          <input type="password" class="form-input" formControlName="password" [disabled]="!canCreateAdmin">
+          <div class="input-group">
+            <input [type]="showPassAdmin ? 'text' : 'password'" class="form-input form-control" formControlName="password" [disabled]="!canCreateAdmin">
+            <button type="button" class="btn btn-outline-secondary" (click)="showPassAdmin = !showPassAdmin" [disabled]="!canCreateAdmin" [attr.aria-pressed]="showPassAdmin">
+              <i class="fas" [ngClass]="showPassAdmin ? 'fa-eye-slash' : 'fa-eye'"></i>
+            </button>
+          </div>
         </div>
         </div>
         <button class="form-button" type="submit" [disabled]="loading || !canCreateAdmin">Crear Administrador</button>
