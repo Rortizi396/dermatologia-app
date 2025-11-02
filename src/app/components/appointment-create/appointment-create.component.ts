@@ -382,6 +382,14 @@ export class AppointmentCreateComponent implements OnInit {
     this.pdfGenerator.generateAppointmentTicket(appointment);
   }
 
+  resetForm(): void {
+    // Clear the form and restore defaults for availability flags
+    this.appointmentForm.reset();
+    this.availableTimes = [...this.allTimes];
+    this.isDoctorAvailable = true;
+    this.canSubmitFlag = false;
+  }
+
   // Habilita el botón sólo cuando los campos clave son válidos
   get canSubmit(): boolean {
     const specValid = this.appointmentForm.get('specialty')?.valid;

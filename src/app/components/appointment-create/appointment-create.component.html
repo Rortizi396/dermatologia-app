@@ -1,8 +1,15 @@
 <!-- appointment-create.component.html -->
 <div class="container mt-4">
-  <h2>Crear Nueva Cita</h2>
+  <!-- Toolbar/header -->
+  <div class="toolbar d-flex align-items-center justify-content-between p-3 mb-3">
+    <h2 class="m-0">Crear Nueva Cita</h2>
+    <button type="button" class="btn btn-outline-secondary ms-2" (click)="resetForm()">
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6V4l-4 4 4 4V8c2.757 0 5 2.243 5 5a4.997 4.997 0 0 1-4 4.9v2.021A7.002 7.002 0 0 0 19 13c0-3.86-3.141-7-7-7z"/></svg>
+      Limpiar
+    </button>
+  </div>
   
-  <form [formGroup]="appointmentForm" (ngSubmit)="onSubmit()">
+  <form class="appointment-form" [formGroup]="appointmentForm" (ngSubmit)="onSubmit()" autocomplete="off">
     <!-- Datos del paciente -->
     <div class="card mb-3">
       <div class="card-header">Datos del Paciente</div>
@@ -11,17 +18,26 @@
           <div class="col-md-6">
             <div class="form-group">
               <label>DPI</label>
-              <input type="text" class="form-control" formControlName="patientDpi" (blur)="onPatientDpiBlur()">
+              <input
+                type="text"
+                inputmode="numeric"
+                pattern="[0-9]*"
+                maxlength="13"
+                class="form-control"
+                formControlName="patientDpi"
+                placeholder="Ingrese 13 dígitos"
+                (blur)="onPatientDpiBlur()">
               <div *ngIf="appointmentForm.get('patientDpi')?.invalid && appointmentForm.get('patientDpi')?.touched" 
                    class="text-danger">
                 DPI debe tener 13 dígitos
               </div>
+              <div class="form-text text-muted">Al ingresar un DPI válido, se cargarán automáticamente los datos del paciente.</div>
             </div>
           </div>
           <div class="col-md-6">
             <div class="form-group">
               <label>Teléfono</label>
-              <input type="tel" class="form-control" formControlName="patientPhone">
+              <input type="tel" class="form-control" formControlName="patientPhone" placeholder="Cargado automáticamente" [disabled]="true">
             </div>
           </div>
         </div>
@@ -30,20 +46,20 @@
           <div class="col-md-6">
             <div class="form-group">
               <label>Nombres</label>
-              <input type="text" class="form-control" formControlName="patientNames">
+              <input type="text" class="form-control" formControlName="patientNames" placeholder="Cargado automáticamente" [disabled]="true">
             </div>
           </div>
           <div class="col-md-6">
             <div class="form-group">
               <label>Apellidos</label>
-              <input type="text" class="form-control" formControlName="patientLastNames">
+              <input type="text" class="form-control" formControlName="patientLastNames" placeholder="Cargado automáticamente" [disabled]="true">
             </div>
           </div>
         </div>
         
         <div class="form-group">
           <label>Correo Electrónico</label>
-          <input type="email" class="form-control" formControlName="patientEmail">
+          <input type="email" class="form-control" formControlName="patientEmail" placeholder="Cargado automáticamente" [disabled]="true">
         </div>
       </div>
     </div>
@@ -97,6 +113,12 @@
                 <option value="">Seleccione una hora</option>
                 <option *ngFor="let hora of availableTimes" [value]="hora">{{hora}}</option>
               </select>
+              <div *ngIf="appointmentForm.get('time')?.hasError('notAvailable')" class="text-danger mt-1">
+                El doctor no está disponible en esa hora. Seleccione otra.
+              </div>
+              <div *ngIf="appointmentForm.get('doctor')?.value && appointmentForm.get('date')?.value && availableTimes.length === 0" class="text-muted mt-1">
+                No hay horas disponibles para la fecha seleccionada.
+              </div>
             </div>
           </div>
         </div>
