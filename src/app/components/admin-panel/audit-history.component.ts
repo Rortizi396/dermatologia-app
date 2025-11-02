@@ -13,7 +13,7 @@ import { FormsModule } from '@angular/forms';
         <button type="button" class="tab-btn" [class.active]="activeTab==='appointments'" (click)="setTab('appointments')" aria-pressed="{{activeTab==='appointments'}}">Citas</button>
       </div>
 
-      <div class="filters mb-3">
+      <div class="filters mb-3 toolbar p-2">
         <div class="filter-row">
           <div class="filter-item">
             <label class="filter-label">Evento</label>
@@ -47,8 +47,8 @@ import { FormsModule } from '@angular/forms';
         </div>
       </div>
 
-      <div *ngIf="activeTab==='users'" class="audit-table-wrap">
-        <table class="table table-sm audit-table">
+      <div *ngIf=\"activeTab==='users'\" class="audit-table-wrap">
+        <table class="table table-sm audit-table table-modern table-card">
           <thead>
             <tr>
               <th style="width:56px">ID</th>
@@ -83,8 +83,8 @@ import { FormsModule } from '@angular/forms';
         </table>
       </div>
 
-      <div *ngIf="activeTab==='appointments'" class="audit-table-wrap">
-        <table class="table table-sm audit-table">
+      <div *ngIf=\"activeTab==='appointments'\" class="audit-table-wrap">
+        <table class="table table-sm audit-table table-modern table-card">
           <thead>
             <tr>
               <th style="width:56px">ID</th>
@@ -124,10 +124,10 @@ import { FormsModule } from '@angular/forms';
     </div>
   `,
   styles: [`
-    .audit-history { background: var(--white); border-radius: 6px; }
+    .audit-history { background: var(--surface-1); border: 1px solid var(--border-color); border-radius: var(--radius-md); box-shadow: var(--shadow-1); }
     .audit-table { table-layout: fixed; width: 100%; }
     .audit-table th, .audit-table td { vertical-align: top; padding: .5rem; }
-    .audit-table td .cell-preview { max-height: 6.5em; overflow: auto; background: #f8f9fa; border-radius: 4px; padding: .35rem; border: 1px solid rgba(15,23,42,0.06); }
+    .audit-table td .cell-preview { max-height: 6.5em; overflow: auto; background: var(--surface-2); border-radius: 6px; padding: .35rem; border: 1px solid var(--border-color); }
     .audit-table td .cell-preview pre { white-space: pre-wrap; word-break: break-word; margin: 0; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, 'Roboto Mono', 'Courier New', monospace; font-size: .8rem; color: var(--text-dark); }
     /* Dark-mode: make previews dark with light text */
     [data-theme='dark'] .audit-table td .cell-preview { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.12); }
@@ -141,7 +141,7 @@ import { FormsModule } from '@angular/forms';
       .cell-id { font-weight: 600; }
     }
     .filter-label { display:block; font-size: .78rem; color: var(--text-light); margin-bottom: .35rem; }
-    .audit-history { border: 1px solid var(--gris-medio); }
+  .audit-history { border: 1px solid var(--border-color); }
     .event-badge { padding: .35rem .6rem; border-radius: 999px; font-weight:600; font-size:.82rem; }
     .event-badge.confirm { background: linear-gradient(90deg, var(--light-green), var(--primary-green)); color: #fff; }
     .event-badge.cancel { background: linear-gradient(90deg, #ffb3b3, var(--danger)); color: #fff; }

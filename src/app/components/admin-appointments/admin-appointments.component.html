@@ -8,7 +8,7 @@
       <div class="card-body">
   <div class="section-subtitle">Mostrando {{ (uiPageHoy-1)*uiLimitHoy + 1 }}–{{ min(uiPageHoy*uiLimitHoy, citasHoy.length) }} de {{ citasHoy.length }}</div>
         <div class="table-scroll">
-        <table class="table table-sm mb-1 app-table app-table--minwidth">
+  <table class="table table-sm mb-1 app-table app-table--minwidth table-modern table-card">
           <thead>
             <tr>
               <th class="col-patient">Paciente</th>
@@ -37,7 +37,7 @@
           </tbody>
         </table>
         </div>
-        <div class="table-footer">
+  <div class="table-footer toolbar p-2">
           <div class="pager">
             <button class="btn btn-ghost" (click)="prevPage('hoy')" [disabled]="uiPageHoy===1">Anterior</button>
             <span>Página {{ uiPageHoy }} de {{ getTotalPages('hoy') }}</span>
@@ -61,7 +61,7 @@
       <div class="card-body">
   <div class="section-subtitle">Mostrando {{ (uiPageProx-1)*uiLimitProx + 1 }}–{{ min(uiPageProx*uiLimitProx, citasProximas.length) }} de {{ citasProximas.length }}</div>
         <div class="table-scroll">
-        <table class="table table-sm mb-1 app-table app-table--minwidth">
+  <table class="table table-sm mb-1 app-table app-table--minwidth table-modern table-card">
           <thead>
             <tr>
               <th class="col-date">Fecha</th>
@@ -94,7 +94,7 @@
           </tbody>
         </table>
         </div>
-        <div class="table-footer">
+  <div class="table-footer toolbar p-2">
           <div class="pager">
             <button class="btn btn-ghost" (click)="prevPage('prox')" [disabled]="uiPageProx===1">Anterior</button>
             <span>Página {{ uiPageProx }} de {{ getTotalPages('prox') }}</span>
@@ -118,7 +118,7 @@
       <div class="card-body">
   <div class="section-subtitle">Mostrando {{ (uiPagePend-1)*uiLimitPend + 1 }}–{{ min(uiPagePend*uiLimitPend, citasPendientes.length) }} de {{ citasPendientes.length }}</div>
         <div class="table-scroll">
-        <table class="table table-sm mb-1 app-table app-table--minwidth">
+  <table class="table table-sm mb-1 app-table app-table--minwidth table-modern table-card">
           <thead>
             <tr>
               <th class="col-date">Fecha</th>
@@ -151,7 +151,7 @@
           </tbody>
         </table>
         </div>
-        <div class="table-footer">
+  <div class="table-footer toolbar p-2">
           <div class="pager">
             <button class="btn btn-ghost" (click)="prevPage('pend')" [disabled]="uiPagePend===1">Anterior</button>
             <span>Página {{ uiPagePend }} de {{ getTotalPages('pend') }}</span>
@@ -175,7 +175,7 @@
       <div class="card-body">
   <div class="section-subtitle">Mostrando {{ (uiPageConf-1)*uiLimitConf + 1 }}–{{ min(uiPageConf*uiLimitConf, citasConfirmadas.length) }} de {{ citasConfirmadas.length }}</div>
         <div class="table-scroll">
-        <table class="table table-sm mb-1 app-table app-table--minwidth">
+  <table class="table table-sm mb-1 app-table app-table--minwidth table-modern table-card">
           <thead>
             <tr>
               <th class="col-date">Fecha</th>
@@ -203,7 +203,7 @@
           </tbody>
         </table>
         </div>
-        <div class="table-footer">
+  <div class="table-footer toolbar p-2">
           <div class="pager">
             <button class="btn btn-ghost" (click)="prevPage('conf')" [disabled]="uiPageConf===1">Anterior</button>
             <span>Página {{ uiPageConf }} de {{ getTotalPages('conf') }}</span>

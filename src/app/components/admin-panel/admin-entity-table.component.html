@@ -27,7 +27,7 @@
     <p>No hay datos para mostrar.</p>
   </div>
   <div *ngIf="!loading && items.length > 0" class="table-responsive">
-    <table class="entity-table">
+    <table class="table entity-table table-modern table-card">
       <thead>
         <tr>
           <th *ngFor="let key of items[0] | keyvalue">{{ key.key?.toString() | titlecase }}</th>
