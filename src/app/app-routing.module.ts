@@ -16,7 +16,8 @@ const routes: Routes = [
   {
     path: 'doctor/schedule',
     component: require('./components/doctor-schedule/doctor-schedule.component').DoctorScheduleComponent,
-    canActivate: [AuthGuard]
+    canActivate: [AuthGuard, RoleGuard],
+    data: { roles: ['doctor'] }
   },
   {
     path: 'register',
@@ -41,7 +42,8 @@ const routes: Routes = [
   {
     path: 'appointments/manage',
     loadComponent: () => import('./components/admin-appointments/admin-appointments.component').then(m => m.AdminAppointmentsComponent),
-    canActivate: [AuthGuard]
+    canActivate: [AuthGuard, RoleGuard],
+    data: { roles: ['secretaria', 'administrador'] }
   },
   // Redirección automática a login
   { path: '', redirectTo: '/login', pathMatch: 'full' },
@@ -73,12 +75,14 @@ const routes: Routes = [
   {
     path: 'dashboard/paciente',
     loadComponent: () => import('./components/patient-dashboard/patient-dashboard.component').then(m => m.PatientDashboardComponent),
-    canActivate: [AuthGuard]
+    canActivate: [AuthGuard, RoleGuard],
+    data: { roles: ['paciente'] }
   },
   {
     path: 'dashboard/secretaria',
     loadComponent: () => import('./components/secretary-dashboard/secretary-dashboard.component').then(m => m.SecretaryDashboardComponent),
-    canActivate: [AuthGuard]
+    canActivate: [AuthGuard, RoleGuard],
+    data: { roles: ['secretaria'] }
   },
   {
     path: 'secretary/patients',
@@ -89,7 +93,8 @@ const routes: Routes = [
   {
     path: 'dashboard/doctor',
     loadComponent: () => import('./components/doctor-dashboard/doctor-dashboard.component').then(m => m.DoctorDashboardComponent),
-    canActivate: [AuthGuard]
+    canActivate: [AuthGuard, RoleGuard],
+    data: { roles: ['doctor'] }
   },
   { 
     path: 'appointments/create', 

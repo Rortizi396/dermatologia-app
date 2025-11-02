@@ -82,19 +82,30 @@ export class LoginComponent implements OnInit {
             // Enrich user data before navigating: try profile endpoint, else fall back to scanning /api/users
             const finishNavigation = () => {
               this.loading = false;
-              let target = this.returnUrl || '/dashboard';
-              // If user is paciente and no explicit returnUrl provided, send to patient-specific dashboard
+              // Compute a safe default based on role
+              const defaultForRole = (() => {
+                const t = user && user.tipo ? String(user.tipo) : '';
+                if (t === 'paciente') return '/dashboard/paciente';
+                if (t === 'secretaria') return '/dashboard/secretaria';
+                if (t === 'doctor') return '/dashboard/doctor';
+                // administrador u otros -> dashboard general
+                return '/dashboard';
+              })();
+              let target = this.returnUrl || defaultForRole;
+              // If a returnUrl exists but doesn't match the user's role section, ignore it
               try {
-                if ((!this.returnUrl || this.returnUrl === '/dashboard')) {
-                  if (user && user.tipo === 'paciente') {
-                    target = '/dashboard/paciente';
-                  } else if (user && user.tipo === 'secretaria') {
-                    target = '/dashboard/secretaria';
-                  } else if (user && user.tipo === 'doctor') {
-                    target = '/dashboard/doctor';
+                if (this.returnUrl) {
+                  const t = String(user.tipo || '');
+                  const badDoctor = this.returnUrl.indexOf('/dashboard/doctor') === 0 && t !== 'doctor';
+                  const badPaciente = this.returnUrl.indexOf('/dashboard/paciente') === 0 && t !== 'paciente';
+                  const badSecret = this.returnUrl.indexOf('/dashboard/secretaria') === 0 && t !== 'secretaria';
+                  if (badDoctor || badPaciente || badSecret) {
+                    target = defaultForRole;
                   }
                 }
-              } catch (e) {}
+              } catch (_) {}
+              // If target is a generic '/dashboard', ensure it's aligned with role-specific default
+              if (target === '/dashboard') target = defaultForRole;
               console.log('[Login] Navegando a:', target);
               // Navegar a la returnUrl si existe, o al dashboard por defecto
               this.router.navigateByUrl(target);
