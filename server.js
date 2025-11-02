@@ -96,7 +96,11 @@ app.use(cors(corsOptions));
 app.use((req, res, next) => {
   if (req.method === 'OPTIONS') {
     try {
-      return cors(corsOptions)(req, res, () => res.sendStatus(204));
+      // Use permissive CORS for known public endpoints to ensure GitHub Pages preflights succeed
+      const url = (req.originalUrl || req.url || '').toString();
+      const isPublic = url.startsWith('/api/doctores') || url.startsWith('/api/usuarios/by-email') || url.startsWith('/api/auth/login') || url.startsWith('/api/auth/register');
+      const handler = isPublic ? cors({ origin: '*', credentials: false }) : cors(corsOptions);
+      return handler(req, res, () => res.sendStatus(204));
     } catch (_) {
       return res.sendStatus(204);
     }
@@ -563,7 +567,8 @@ app.get('/api/secretarias', (req, res) => {
 
 // (Handler duplicado de creación de citas eliminado - usar el handler canónico más abajo que resuelve el identificador del doctor)
 
-app.post('/api/auth/login', (req, res) => {
+// Make login CORS-public for GitHub Pages SPA (returns token in body, no cookies)
+app.post('/api/auth/login', cors({ origin: '*', credentials: false }), (req, res) => {
   try {
     const { email, password } = req.body || {};
     if (!email || !password) {
