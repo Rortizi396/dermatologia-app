@@ -124,7 +124,7 @@ import { FormsModule } from '@angular/forms';
     </div>
   `,
   styles: [`
-    .audit-history { background: #fff; border-radius: 6px; }
+    .audit-history { background: var(--white); border-radius: 6px; }
     .audit-table { table-layout: fixed; width: 100%; }
     .audit-table th, .audit-table td { vertical-align: top; padding: .5rem; }
     .audit-table td .cell-preview { max-height: 6.5em; overflow: auto; background: #f8f9fa; border-radius: 4px; padding: .35rem; }

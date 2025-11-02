@@ -100,7 +100,7 @@
 .user-info { line-height: 1.1; }
 .user-info .user-name { display:block; max-width: 150px; }
 .user-info .user-role { display:block; opacity: .85; font-size: .75rem; }
-.signout-btn { margin-top: 10px; width: 100%; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0.5rem 0.75rem; border-radius: 10px; color: #1f2a28; background: #ffffff; border: none; font-weight: 600; }
+.signout-btn { margin-top: 10px; width: 100%; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0.5rem 0.75rem; border-radius: 10px; color: var(--text-dark); background: var(--white); border: none; font-weight: 600; }
 .signout-btn:hover { filter: brightness(0.98); }
 
 /* Main Content Styles */
@@ -123,7 +123,7 @@
 .content-wrapper {
   flex: 1;
   padding: 1rem;
-  background-color: #f8f9fa;
+  background-color: var(--background-light);
   overflow-y: auto;
 }
 

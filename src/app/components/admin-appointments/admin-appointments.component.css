@@ -24,7 +24,7 @@
 }
 
 .ficha-card {
-	background: rgb(255, 255, 255);
+	background: var(--white);
 	border-radius: 8px;
 	padding: 1rem;
 	box-shadow: 0 6px 18px rgba(16,24,40,0.06);
@@ -136,7 +136,7 @@ table.app-table td, table.app-table th {
 }
 
 .modal {
-	background:#fff;
+	background: var(--white);
 	padding:1rem;
 	border-radius:8px;
 	width: 420px;
@@ -193,7 +193,7 @@ table.table tbody tr:hover { background: rgba(2,6,23,0.04); }
 @media (max-width: 720px) {
 	table.table thead { display: none; }
 	table.table, table.table tbody, table.table tr, table.table td { display: block; width: 100%; }
-	table.table tr { margin-bottom: 0.75rem; background: #fff; border-radius: 8px; box-shadow: 0 6px 14px rgba(2,6,23,0.04); padding: 0.6rem; }
+	table.table tr { margin-bottom: 0.75rem; background: var(--white); border-radius: 8px; box-shadow: 0 6px 14px rgba(2,6,23,0.04); padding: 0.6rem; }
 	table.table td { padding: 0.45rem 0.6rem; border-bottom: none; }
 	table.table td:before { content: attr(data-label); display: block; font-weight: 700; color: var(--muted-600); margin-bottom: 0.18rem; }
 }
@@ -255,7 +255,7 @@ table.table thead th {
 .table-footer { display:flex; align-items:center; justify-content: space-between; gap: 0.75rem; padding-top: 0.5rem; margin-top: 0.5rem; border-top: 1px solid rgba(15,23,42,0.06); }
 .table-footer .pager { display:flex; align-items:center; gap: 0.5rem; }
 .table-footer .page-size { display:flex; align-items:center; gap: 0.4rem; }
-.table-footer select { padding: 0.25rem 0.45rem; border-radius: 6px; border: 1px solid rgba(15,23,42,0.18); background: #fff; }
+.table-footer select { padding: 0.25rem 0.45rem; border-radius: 6px; border: 1px solid rgba(15,23,42,0.18); background: var(--white); }
 
 /* Nueva: badge de estado con esquema formal */
 .status-badge { display:inline-block; padding: 0.18rem 0.55rem; border-radius: 999px; font-weight: 600; font-size: 0.82rem; border: 1px solid transparent; }

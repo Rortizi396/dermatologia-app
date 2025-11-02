@@ -50,7 +50,7 @@
   border: 1px solid var(--gris-medio);
   border-radius: 6px;
   font-size: 1rem;
-  background: #fff;
+  background: var(--white);
   color: var(--texto);
   transition: border-color 0.2s;
 }
@@ -61,7 +61,7 @@
 
 .form-button {
   background: linear-gradient(90deg, var(--verde-claro), var(--verde-medio));
-  color: var(--texto);
+  color: #ffffff;
   font-weight: 600;
   border: none;
   border-radius: 6px;
@@ -192,7 +192,7 @@ body {
 
 .card-header {
   background: linear-gradient(135deg, var(--primary-green) 0%, var(--light-green) 100%);
-  color: var(--white);
+  color: #ffffff;
   border-radius: 12px 12px 0 0 !important;
   padding: 1.2rem;
   font-weight: 600;
@@ -217,15 +217,17 @@ body {
 }
 
 .form-control {
-  border: 2px solid #e9ecef;
+  border: 1.5px solid var(--gris-medio);
   border-radius: 8px;
   padding: 0.75rem;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
+  background: var(--white);
+  color: var(--text-dark);
 }
 
 .form-control:focus {
   border-color: var(--light-green);
-  box-shadow: 0 0 0 0.2rem rgba(139, 195, 74, 0.25);
+  box-shadow: 0 0 0 0.2rem rgba(139, 195, 74, 0.22);
 }
 
 /* Responsividad */
@@ -291,3 +293,27 @@ body {
   align-items: stretch;    /* keep controls same height */
 }
 .form-control::placeholder { opacity: 0.85; }
+
+/* Ensure selects and textareas respect theme colors */
+select.form-select,
+textarea.form-control,
+input.form-control,
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="date"],
+input[type="time"] {
+  background: var(--white);
+  color: var(--text-dark);
+  border-color: var(--gris-medio);
+}
+
+/* Dark theme fine-tunes for feedback blocks */
+[data-theme='dark'] .form-error {
+  background: rgba(183, 28, 28, 0.12);
+  color: #ffb3b3;
+}
+[data-theme='dark'] .form-success {
+  background: rgba(46, 125, 50, 0.12);
+  color: #9fe0a9;
+}
