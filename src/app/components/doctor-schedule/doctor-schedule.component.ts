@@ -231,4 +231,19 @@ export class DoctorScheduleComponent implements OnInit {
         confirmadoIconClass: iconClass
     };
   }
+
+  // Calendar navigation for toolbar
+  prevMonth() {
+    const d = new Date(this.viewDate);
+    d.setMonth(d.getMonth() - 1);
+    this.viewDate = d;
+  }
+  nextMonth() {
+    const d = new Date(this.viewDate);
+    d.setMonth(d.getMonth() + 1);
+    this.viewDate = d;
+  }
+  today() {
+    this.viewDate = new Date();
+  }
 }
