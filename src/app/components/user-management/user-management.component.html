@@ -1,94 +1,43 @@
 <!-- components/user-management/user-management.component.html -->
 <div class="container-fluid">
-  <div class="row mb-2">
-    <div class="col-12">
-      <!-- Botón de crear usuario, arriba a la izquierda dentro del panel -->
+  <!-- Toolbar principal: título, crear, buscar, filtro por rol, refrescar -->
+  <div class="toolbar d-flex align-items-center justify-content-between p-2 mb-3 flex-wrap gap-2">
+    <div class="d-flex align-items-center gap-2">
+      <h5 class="m-0">Gestión de Usuarios</h5>
       <app-user-create-panel></app-user-create-panel>
     </div>
-  </div>
-  <div class="row mb-3">
-    <div class="col-12">
-      <div class="d-flex align-items-center">
-        <h2 style="margin:0;">Gestión de Usuarios</h2>
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+      <div class="input-group">
+        <input type="text" class="form-control" placeholder="Buscar usuarios..." [(ngModel)]="searchTerm" (input)="searchUsers()" />
       </div>
-    </div>
-  </div>
-
-  <!-- Búsqueda -->
-  <div class="row mb-4">
-    <div class="col-md-6">
-      <div class="input-group toolbar p-2">
-        <input
-          type="text"
-          class="form-control"
-          placeholder="Buscar usuarios..."
-          [(ngModel)]="searchTerm"
-          (input)="searchUsers()"
-        />
-      </div>
+      <select class="form-select" style="min-width:160px" [(ngModel)]="roleFilter" (change)="onRoleFilterChange()">
+        <option [ngValue]="''">Todos los roles</option>
+        <option *ngFor="let r of roleOptions" [ngValue]="r">{{ r | titlecase }}</option>
+      </select>
+      <button class="btn btn-outline-success" (click)="loadUsers()">Refrescar</button>
     </div>
   </div>
 
   <!-- Tabs para activos/inactivos -->
-  <div class="d-flex justify-content-center mb-4">
+  <div class="d-flex justify-content-center mb-3">
     <ul class="nav nav-pills nav-justified user-tabs" style="list-style:none; padding:0; margin:0;">
       <li class="nav-item" style="display:inline-block; margin-right:8px;">
-        <button type="button" class="nav-link btn" [class.active]="activeTab === 'activos'" (click)="setActiveTab('activos', $event)"
-          aria-pressed="{{ activeTab === 'activos' }}">
+        <button type="button" class="nav-link btn" [class.active]="activeTab === 'activos'" (click)="setActiveTab('activos', $event)" aria-pressed="{{ activeTab === 'activos' }}">
           <i class="bi bi-person-lines-fill"></i> <span class="d-none d-md-inline">Usuarios activos</span>
         </button>
       </li>
       <li class="nav-item" style="display:inline-block;">
-        <button type="button" class="nav-link btn" [class.active]="activeTab === 'inactivos'" (click)="setActiveTab('inactivos', $event)"
-          aria-pressed="{{ activeTab === 'inactivos' }}">
+        <button type="button" class="nav-link btn" [class.active]="activeTab === 'inactivos'" (click)="setActiveTab('inactivos', $event)" aria-pressed="{{ activeTab === 'inactivos' }}">
           <i class="bi bi-person-x-fill"></i> <span class="d-none d-md-inline">Usuarios inactivos</span>
         </button>
       </li>
     </ul>
   </div>
-  <style>
-    .user-tabs { display:flex; gap:12px; justify-content:center; }
-    .user-tabs .nav-link {
-      font-size: 1.02rem;
-      font-weight: 600;
-      border-radius: 10px;
-      padding: 8px 20px;
-      transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
-      background: var(--white);
-      color: var(--text-dark);
-      border: 1px solid rgba(15,23,42,0.06);
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      cursor: pointer;
-      box-shadow: 0 1px 2px rgba(16,24,40,0.04);
-    }
-    .user-tabs .nav-link:focus { outline: none; box-shadow: 0 0 0 3px rgba(59,130,246,0.12); }
-    .user-tabs .nav-link.active { transform: translateY(-2px); }
-    .user-tabs .nav-link.active[aria-pressed="true"] {
-      color: #ffffff !important;
-      box-shadow: 0 6px 18px rgba(2,6,23,0.08);
-    }
-    .user-tabs .nav-link.active[aria-pressed="true"]:not(:hover) { transform: translateY(-2px); }
-  /* icon-specific styles can be added here if needed */
-    .user-tabs .nav-link.active[aria-pressed="true"]:first-child { background: linear-gradient(90deg,#0ea5e9,#0284c7); border-color: transparent; }
-    .user-tabs .nav-link.active[aria-pressed="true"]:last-child { background: linear-gradient(90deg,#ef4444,#f97316); border-color: transparent; }
-    .user-tabs .nav-link:hover { transform: translateY(-1px); }
-    @media (max-width:600px) { .user-tabs { gap:8px } .user-tabs .nav-link { padding:8px 12px; font-size:0.95rem } }
-    @media (max-width: 600px) {
-      .user-tabs .nav-link {
-        font-size: 0.95rem;
-        padding: 8px 10px;
-      }
-      .user-tabs .nav-link span {
-        display: none;
-      }
-    }
-  </style>
-  <!-- Tabla de usuarios -->
+
+  <!-- Contenido principal dentro de tarjeta -->
   <div class="card">
     <div class="card-body">
-      <!-- Controles superiores: tamaño de página y conteo -->
+      <!-- Controles superiores: conteo y tamaño de página -->
       <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
         <div class="text-muted small">
           <ng-container *ngIf="activeTab === 'activos'; else inactCount">
@@ -105,6 +54,8 @@
           </select>
         </div>
       </div>
+
+      <!-- Tabla de usuarios activos -->
       <div *ngIf="activeTab === 'activos'">
         <div *ngIf="loading" class="text-center">
           <div class="spinner-border" role="status">
@@ -120,24 +71,15 @@
               <tr>
                 <th role="button" (click)="changeSort('activos','nombre')" title="Ordenar por nombre">
                   Nombre
-                  <i class="bi" [ngClass]="{
-                    'bi-caret-up-fill': sortFieldActivos==='nombre' && sortDirActivos==='asc',
-                    'bi-caret-down-fill': sortFieldActivos==='nombre' && sortDirActivos==='desc'
-                  }"></i>
+                  <i class="bi" [ngClass]="{ 'bi-caret-up-fill': sortFieldActivos==='nombre' && sortDirActivos==='asc', 'bi-caret-down-fill': sortFieldActivos==='nombre' && sortDirActivos==='desc' }"></i>
                 </th>
                 <th role="button" (click)="changeSort('activos','correo')" title="Ordenar por email">
                   Email
-                  <i class="bi" [ngClass]="{
-                    'bi-caret-up-fill': sortFieldActivos==='correo' && sortDirActivos==='asc',
-                    'bi-caret-down-fill': sortFieldActivos==='correo' && sortDirActivos==='desc'
-                  }"></i>
+                  <i class="bi" [ngClass]="{ 'bi-caret-up-fill': sortFieldActivos==='correo' && sortDirActivos==='asc', 'bi-caret-down-fill': sortFieldActivos==='correo' && sortDirActivos==='desc' }"></i>
                 </th>
                 <th role="button" (click)="changeSort('activos','tipo')" title="Ordenar por tipo">
                   Tipo
-                  <i class="bi" [ngClass]="{
-                    'bi-caret-up-fill': sortFieldActivos==='tipo' && sortDirActivos==='asc',
-                    'bi-caret-down-fill': sortFieldActivos==='tipo' && sortDirActivos==='desc'
-                  }"></i>
+                  <i class="bi" [ngClass]="{ 'bi-caret-up-fill': sortFieldActivos==='tipo' && sortDirActivos==='asc', 'bi-caret-down-fill': sortFieldActivos==='tipo' && sortDirActivos==='desc' }"></i>
                 </th>
                 <th>Estado</th>
                 <th>Acciones</th>
@@ -148,19 +90,10 @@
                 <td data-label="Nombre">{{ getUserDisplayName(user) }}</td>
                 <td data-label="Email">{{ user.correo }}</td>
                 <td data-label="Tipo">
-                  <span class="badge" [ngClass]="{
-                    'badge-primary': user.tipo === 'administrador',
-                    'badge-success': user.tipo === 'doctor',
-                    'badge-info': user.tipo === 'secretaria',
-                    'badge-secondary': user.tipo === 'paciente'
-                  }">
-                    {{ user.tipo }}
-                  </span>
+                  <span class="badge-soft" [ngClass]="{ 'primary': user.tipo === 'administrador', 'success': user.tipo === 'doctor', 'warning': user.tipo === 'secretaria', 'danger': user.tipo === 'paciente' }">{{ user.tipo }}</span>
                 </td>
                 <td data-label="Estado">
-                  <span class="badge" [ngClass]="isActive(user) ? 'badge-success' : 'badge-danger'">
-                    {{ isActive(user) ? 'Activo' : 'Inactivo' }}
-                  </span>
+                  <span class="badge-soft" [ngClass]="isActive(user) ? 'success' : 'danger'">{{ isActive(user) ? 'Activo' : 'Inactivo' }}</span>
                 </td>
                 <td data-label="Acciones">
                   <button class="btn btn-sm btn-danger" (click)="darDeBaja(user)" title="Dar de baja">
@@ -172,6 +105,7 @@
           </table>
         </div>
       </div>
+
       <!-- Tabla de usuarios inactivos -->
       <div *ngIf="activeTab === 'inactivos'">
         <div *ngIf="loading" class="text-center">
@@ -188,26 +122,18 @@
               <tr>
                 <th role="button" (click)="changeSort('inactivos','nombre')" title="Ordenar por nombre">
                   Nombre
-                  <i class="bi" [ngClass]="{
-                    'bi-caret-up-fill': sortFieldInactivos==='nombre' && sortDirInactivos==='asc',
-                    'bi-caret-down-fill': sortFieldInactivos==='nombre' && sortDirInactivos==='desc'
-                  }"></i>
+                  <i class="bi" [ngClass]="{ 'bi-caret-up-fill': sortFieldInactivos==='nombre' && sortDirInactivos==='asc', 'bi-caret-down-fill': sortFieldInactivos==='nombre' && sortDirInactivos==='desc' }"></i>
                 </th>
                 <th role="button" (click)="changeSort('inactivos','correo')" title="Ordenar por email">
                   Email
-                  <i class="bi" [ngClass]="{
-                    'bi-caret-up-fill': sortFieldInactivos==='correo' && sortDirInactivos==='asc',
-                    'bi-caret-down-fill': sortFieldInactivos==='correo' && sortDirInactivos==='desc'
-                  }"></i>
+                  <i class="bi" [ngClass]="{ 'bi-caret-up-fill': sortFieldInactivos==='correo' && sortDirInactivos==='asc', 'bi-caret-down-fill': sortFieldInactivos==='correo' && sortDirInactivos==='desc' }"></i>
                 </th>
                 <th role="button" (click)="changeSort('inactivos','tipo')" title="Ordenar por tipo">
                   Tipo
-                  <i class="bi" [ngClass]="{
-                    'bi-caret-up-fill': sortFieldInactivos==='tipo' && sortDirInactivos==='asc',
-                    'bi-caret-down-fill': sortFieldInactivos==='tipo' && sortDirInactivos==='desc'
-                  }"></i>
+                  <i class="bi" [ngClass]="{ 'bi-caret-up-fill': sortFieldInactivos==='tipo' && sortDirInactivos==='asc', 'bi-caret-down-fill': sortFieldInactivos==='tipo' && sortDirInactivos==='desc' }"></i>
                 </th>
                 <th>Estado</th>
+                <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -215,18 +141,13 @@
                 <td data-label="Nombre">{{ getUserDisplayName(user) }}</td>
                 <td data-label="Email">{{ user.correo }}</td>
                 <td data-label="Tipo">
-                  <span class="badge" [ngClass]="{
-                    'badge-primary': user.tipo === 'administrador',
-                    'badge-success': user.tipo === 'doctor',
-                    'badge-info': user.tipo === 'secretaria',
-                    'badge-secondary': user.tipo === 'paciente'
-                  }">
-                    {{ user.tipo }}
-                  </span>
+                  <span class="badge-soft" [ngClass]="{ 'primary': user.tipo === 'administrador', 'success': user.tipo === 'doctor', 'warning': user.tipo === 'secretaria', 'danger': user.tipo === 'paciente' }">{{ user.tipo }}</span>
                 </td>
                 <td data-label="Estado">
-                  <span class="badge badge-danger">Inactivo</span>
-                  <button class="btn btn-sm btn-success ml-2" (click)="darDeAlta(user)" title="Dar de alta">
+                  <span class="badge-soft danger">Inactivo</span>
+                </td>
+                <td data-label="Acciones">
+                  <button class="btn btn-sm btn-success" (click)="darDeAlta(user)" title="Dar de alta">
                     <i class="bi bi-person-check"></i> Dar de alta
                   </button>
                 </td>
@@ -245,8 +166,7 @@
               <span class="d-none d-sm-inline">Anterior</span>
             </a>
           </li>
-          <li *ngFor="let page of [].constructor(totalPagesView); let i = index" 
-              class="page-item" [class.active]="currentPageView === i + 1">
+          <li *ngFor="let page of [].constructor(totalPagesView); let i = index" class="page-item" [class.active]="currentPageView === i + 1">
             <a class="page-link" href="javascript:void(0)" (click)="changePage(i + 1)" [attr.aria-label]="'Ir a página ' + (i + 1)">
               {{ i + 1 }}
             </a>
@@ -259,3 +179,6 @@
           </li>
         </ul>
       </nav>
+    </div>
+  </div>
+</div>

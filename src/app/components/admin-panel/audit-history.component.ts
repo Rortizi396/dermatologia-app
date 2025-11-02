@@ -8,6 +8,17 @@ import { FormsModule } from '@angular/forms';
   template: `
     <div class="audit-history card p-3">
 
+      <!-- Toolbar principal -->
+      <div class="toolbar d-flex align-items-center justify-content-between p-2 mb-2 flex-wrap gap-2">
+        <h5 class="m-0">Historial de cambios</h5>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+          <div class="input-group">
+            <input class="form-control" placeholder="Búsqueda rápida (evento, recurso, usuario, contenido)" [(ngModel)]="quickSearch" />
+          </div>
+          <button class="btn btn-outline-success" (click)="load()">Actualizar</button>
+        </div>
+      </div>
+
       <div class="tabs mb-3" role="tablist" aria-label="Tipo de historial">
         <button type="button" class="tab-btn" [class.active]="activeTab==='users'" (click)="setTab('users')" aria-pressed="{{activeTab==='users'}}">Usuarios</button>
         <button type="button" class="tab-btn" [class.active]="activeTab==='appointments'" (click)="setTab('appointments')" aria-pressed="{{activeTab==='appointments'}}">Citas</button>
@@ -61,7 +72,7 @@ import { FormsModule } from '@angular/forms';
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let r of records">
+            <tr *ngFor="let r of filteredRecords">
               <td class="cell-id">{{ r.id }}</td>
               <td>
                 <span class="badge event-badge {{ getEventBadgeClass(r) }}">{{ getEventLabel(r) }}</span>
@@ -98,7 +109,7 @@ import { FormsModule } from '@angular/forms';
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let r of records">
+            <tr *ngFor="let r of filteredRecords">
               <td class="cell-id">{{ r.id }}</td>
               <td><span class="badge event-badge {{ getEventBadgeClass(r) }}">{{ getEventLabel(r) }}</span></td>
               <td>
@@ -171,6 +182,7 @@ export class AuditHistoryComponent implements OnInit {
   records: any[] = [];
   activeTab: 'users'|'appointments' = 'appointments';
   undoing: Record<number, boolean> = {} as any;
+  quickSearch: string = '';
   // Use runtime API base to work on GitHub Pages and local dev
   private apiBase = ((window as any).__env && (window as any).__env.apiUrl) ? (window as any).__env.apiUrl : '/api';
   // filters
@@ -206,6 +218,16 @@ export class AuditHistoryComponent implements OnInit {
   applyFilters() { this.load(); }
   clearFilters() {
     this.filterEvent = null; this.filterResourceId = null; this.filterChangedBy = null; this.filterSince = null; this.filterUntil = null; this.filterLimit = 200; this.load();
+  }
+  get filteredRecords(): any[] {
+    const q = (this.quickSearch || '').toString().toLowerCase().trim();
+    if (!q) return this.records || [];
+    const includes = (s: any) => (s ?? '').toString().toLowerCase().includes(q);
+    return (this.records || []).filter(r => {
+      try {
+        return includes(this.getEventLabel(r)) || includes(r.resource_type) || includes(r.resource_id) || includes(r.changed_by) || includes(r.old_preview) || includes(r.new_preview) || includes(r.event_type);
+      } catch { return false; }
+    });
   }
   // Map event_type values to readable Spanish labels
   getEventLabel(r: any) {

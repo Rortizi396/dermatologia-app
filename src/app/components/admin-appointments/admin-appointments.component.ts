@@ -42,6 +42,8 @@ export class AdminAppointmentsComponent implements OnInit {
   actionType: 'confirm' | 'cancel' | null = null;
   actionTarget: any = null;
   actionLoading = false;
+  // Búsqueda rápida global (filtra todas las secciones en cliente)
+  searchTerm: string = '';
 
   constructor(private svc: AppointmentService, private toast: ToastService) {}
 
@@ -56,6 +58,30 @@ export class AdminAppointmentsComponent implements OnInit {
     this.loadByStatus('confirmada');
     this.loadByStatus('cancelada');
   }
+  // ---- Filtro/búsqueda en cliente ----
+  private norm(v: any): string { try { return (v ?? '').toString().toLowerCase(); } catch { return ''; } }
+  private citaToSearchText(c: any): string {
+    if (!c) return '';
+    const paciente = c.pacienteInfo ? `${c.pacienteInfo.nombres || ''} ${c.pacienteInfo.apellidos || ''}` : (c.pacienteNombre || c.paciente || c.pacienteInfo?.nombre || c.pacienteInfo?.fullName || '');
+    const doctor = c.doctorInfo ? `${c.doctorInfo.nombres || ''} ${c.doctorInfo.apellidos || ''}` : (c.profesional_Responsable || '');
+    const especialidad = c.especialidadInfo?.Nombre || c.consulta_Especialidad || '';
+    const numero = c.numero || c.CitaNumero || c.Cita_Numero || c.idCitas || c.id || '';
+    const tel = this.getPhone(c) || '';
+    const estado = this.formatEstado(c) || '';
+    const fecha = c.fecha || c.Fecha || '';
+    const hora = c.hora || c.Hora || '';
+    return this.norm(`${paciente} ${doctor} ${especialidad} ${numero} ${tel} ${estado} ${fecha} ${hora}`);
+  }
+  private filterList(list: any[]): any[] {
+    const q = this.norm(this.searchTerm);
+    if (!q) return list || [];
+    return (list || []).filter(c => this.citaToSearchText(c).includes(q));
+  }
+  get filteredHoy(): any[] { return this.filterList(this.citasHoy); }
+  get filteredProx(): any[] { return this.filterList(this.citasProximas); }
+  get filteredPend(): any[] { return this.filterList(this.citasPendientes); }
+  get filteredConf(): any[] { return this.filterList(this.citasConfirmadas); }
+  get filteredCanc(): any[] { return this.filterList(this.citasCanceladas); }
 
   private toYMD(d: Date){ return d.toISOString().slice(0,10); }
 
@@ -199,11 +225,11 @@ export class AdminAppointmentsComponent implements OnInit {
   // Paginación UI (cliente)
   private listLength(section: 'hoy'|'prox'|'pend'|'conf'|'canc'){
     switch(section){
-      case 'hoy': return this.citasHoy.length;
-      case 'prox': return this.citasProximas.length;
-      case 'pend': return this.citasPendientes.length;
-      case 'conf': return this.citasConfirmadas.length;
-      case 'canc': return this.citasCanceladas.length;
+      case 'hoy': return this.filteredHoy.length;
+      case 'prox': return this.filteredProx.length;
+      case 'pend': return this.filteredPend.length;
+      case 'conf': return this.filteredConf.length;
+      case 'canc': return this.filteredCanc.length;
     }
   }
   getTotalPages(section: 'hoy'|'prox'|'pend'|'conf'|'canc'){

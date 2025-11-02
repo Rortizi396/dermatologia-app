@@ -7,8 +7,7 @@ import { AuditHistoryComponent } from '../admin-panel/audit-history.component';
   standalone: true,
   imports: [CommonModule, AuditHistoryComponent],
   template: `
-    <div>
-      <h2>Historial de cambios</h2>
+    <div class="container-fluid p-0">
       <app-audit-history></app-audit-history>
     </div>
   `

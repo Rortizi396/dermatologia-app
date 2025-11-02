@@ -1,12 +1,21 @@
 <div class="admin-appointments p-2">
-  <h3>Administración de citas</h3>
+  <!-- Toolbar global -->
+  <div class="toolbar d-flex align-items-center justify-content-between p-2 mb-3 flex-wrap gap-2">
+    <h5 class="m-0">Administración de Citas</h5>
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+      <div class="input-group">
+        <input type="text" class="form-control" [(ngModel)]="searchTerm" placeholder="Buscar por paciente, doctor, número, estado..." />
+      </div>
+      <button class="btn btn-outline-success" (click)="refreshAll()">Refrescar</button>
+    </div>
+  </div>
   
   <div class="grid">
     <!-- Hoy -->
     <section class="card ficha">
-      <header class="card-header card-header--brand">Hoy <small class="muted">({{ today | date:'dd/MM/yyyy' }})</small> <span class="badge">{{ totalHoy }}</span></header>
+    <header class="card-header card-header--brand">Hoy <small class="muted">({{ today | date:'dd/MM/yyyy' }})</small> <span class="badge">{{ filteredHoy.length }}</span></header>
       <div class="card-body">
-  <div class="section-subtitle">Mostrando {{ (uiPageHoy-1)*uiLimitHoy + 1 }}–{{ min(uiPageHoy*uiLimitHoy, citasHoy.length) }} de {{ citasHoy.length }}</div>
+  <div class="section-subtitle">Mostrando {{ (uiPageHoy-1)*uiLimitHoy + 1 }}–{{ min(uiPageHoy*uiLimitHoy, filteredHoy.length) }} de {{ filteredHoy.length }}</div>
         <div class="table-scroll">
   <table class="table table-sm mb-1 app-table app-table--minwidth table-modern table-card">
           <thead>
@@ -20,7 +29,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let c of citasHoy | slice:(uiPageHoy-1)*uiLimitHoy:(uiPageHoy)*uiLimitHoy">
+            <tr *ngFor="let c of filteredHoy | slice:(uiPageHoy-1)*uiLimitHoy:(uiPageHoy)*uiLimitHoy">
               <td class="patient-cell" data-label="Paciente" [title]="(c.pacienteInfo?.nombres ? (c.pacienteInfo.nombres + ' ' + (c.pacienteInfo.apellidos||'')) : (c.pacienteNombre || c.paciente || c.pacienteInfo?.nombre || c.pacienteInfo?.fullName)) || '-'">
                 <div class="text-wrap">{{ (c.pacienteInfo?.nombres ? (c.pacienteInfo.nombres + ' ' + (c.pacienteInfo.apellidos||'')) : (c.pacienteNombre || c.paciente || c.pacienteInfo?.nombre || c.pacienteInfo?.fullName)) || '-' }}</div>
               </td>
@@ -33,7 +42,7 @@
                 <button *ngIf="isPendiente(c)" type="button" class="btn btn-sm btn-cancel" (click)="openActionModal('cancel', c)">Cancelar</button>
               </td>
             </tr>
-            <tr *ngIf="citasHoy.length === 0"><td colspan="6" class="text-center text-muted">No hay citas hoy</td></tr>
+            <tr *ngIf="filteredHoy.length === 0"><td colspan="6" class="text-center text-muted">No hay citas hoy</td></tr>
           </tbody>
         </table>
         </div>
@@ -57,9 +66,9 @@
 
     <!-- Próximas 7 días -->
     <section class="card ficha">
-      <header class="card-header card-header--brand">Próximos 7 días <span class="badge">{{ totalProx }}</span></header>
+    <header class="card-header card-header--brand">Próximos 7 días <span class="badge">{{ filteredProx.length }}</span></header>
       <div class="card-body">
-  <div class="section-subtitle">Mostrando {{ (uiPageProx-1)*uiLimitProx + 1 }}–{{ min(uiPageProx*uiLimitProx, citasProximas.length) }} de {{ citasProximas.length }}</div>
+  <div class="section-subtitle">Mostrando {{ (uiPageProx-1)*uiLimitProx + 1 }}–{{ min(uiPageProx*uiLimitProx, filteredProx.length) }} de {{ filteredProx.length }}</div>
         <div class="table-scroll">
   <table class="table table-sm mb-1 app-table app-table--minwidth table-modern table-card">
           <thead>
@@ -75,7 +84,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let c of citasProximas | slice:(uiPageProx-1)*uiLimitProx:(uiPageProx)*uiLimitProx">
+            <tr *ngFor="let c of filteredProx | slice:(uiPageProx-1)*uiLimitProx:(uiPageProx)*uiLimitProx">
               <td data-label="Fecha" class="col-date">{{ c.fecha | date:'dd/MM/yyyy' }}</td>
               <td data-label="Número" class="col-num">{{ c.numero || c.CitaNumero || '-' }}</td>
               <td class="patient-cell" data-label="Paciente" [title]="(c.pacienteInfo?.nombres ? (c.pacienteInfo.nombres + ' ' + (c.pacienteInfo.apellidos||'')) : (c.pacienteNombre || c.paciente || c.pacienteInfo?.nombre || c.pacienteInfo?.fullName)) || '-'">
@@ -90,7 +99,7 @@
                 <button *ngIf="isPendiente(c)" type="button" class="btn btn-sm btn-cancel" (click)="openActionModal('cancel', c)">Cancelar</button>
               </td>
             </tr>
-            <tr *ngIf="citasProximas.length === 0"><td colspan="8" class="text-center text-muted">No hay citas próximas</td></tr>
+            <tr *ngIf="filteredProx.length === 0"><td colspan="8" class="text-center text-muted">No hay citas próximas</td></tr>
           </tbody>
         </table>
         </div>
@@ -114,9 +123,9 @@
 
     <!-- Pendientes -->
     <section class="card ficha">
-      <header class="card-header card-header--brand">Pendientes <span class="badge">{{ totalPendientes }}</span></header>
+    <header class="card-header card-header--brand">Pendientes <span class="badge">{{ filteredPend.length }}</span></header>
       <div class="card-body">
-  <div class="section-subtitle">Mostrando {{ (uiPagePend-1)*uiLimitPend + 1 }}–{{ min(uiPagePend*uiLimitPend, citasPendientes.length) }} de {{ citasPendientes.length }}</div>
+  <div class="section-subtitle">Mostrando {{ (uiPagePend-1)*uiLimitPend + 1 }}–{{ min(uiPagePend*uiLimitPend, filteredPend.length) }} de {{ filteredPend.length }}</div>
         <div class="table-scroll">
   <table class="table table-sm mb-1 app-table app-table--minwidth table-modern table-card">
           <thead>
@@ -132,7 +141,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let c of citasPendientes | slice:(uiPagePend-1)*uiLimitPend:(uiPagePend)*uiLimitPend">
+            <tr *ngFor="let c of filteredPend | slice:(uiPagePend-1)*uiLimitPend:(uiPagePend)*uiLimitPend">
               <td data-label="Fecha" class="col-date">{{ c.fecha ? (c.fecha | date:'dd/MM/yyyy') : '-' }}</td>
               <td data-label="Número" class="col-num">{{ c.numero || c.CitaNumero || '-' }}</td>
               <td class="patient-cell" data-label="Paciente" [title]="(c.pacienteInfo?.nombres ? (c.pacienteInfo.nombres + ' ' + (c.pacienteInfo.apellidos||'')) : (c.pacienteNombre || c.paciente || c.pacienteInfo?.nombre || c.pacienteInfo?.fullName)) || '-'">
@@ -147,7 +156,7 @@
                 <button type="button" class="btn btn-sm btn-cancel" (click)="openActionModal('cancel', c)">Cancelar</button>
               </td>
             </tr>
-            <tr *ngIf="citasPendientes.length === 0"><td colspan="8" class="text-center text-muted">No hay citas pendientes</td></tr>
+            <tr *ngIf="filteredPend.length === 0"><td colspan="8" class="text-center text-muted">No hay citas pendientes</td></tr>
           </tbody>
         </table>
         </div>
@@ -171,9 +180,9 @@
 
     <!-- Confirmadas -->
     <section class="card ficha">
-      <header class="card-header card-header--brand">Confirmadas <span class="badge">{{ totalConfirmadas }}</span></header>
+    <header class="card-header card-header--brand">Confirmadas <span class="badge">{{ filteredConf.length }}</span></header>
       <div class="card-body">
-  <div class="section-subtitle">Mostrando {{ (uiPageConf-1)*uiLimitConf + 1 }}–{{ min(uiPageConf*uiLimitConf, citasConfirmadas.length) }} de {{ citasConfirmadas.length }}</div>
+  <div class="section-subtitle">Mostrando {{ (uiPageConf-1)*uiLimitConf + 1 }}–{{ min(uiPageConf*uiLimitConf, filteredConf.length) }} de {{ filteredConf.length }}</div>
         <div class="table-scroll">
   <table class="table table-sm mb-1 app-table app-table--minwidth table-modern table-card">
           <thead>
@@ -188,7 +197,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let c of citasConfirmadas | slice:(uiPageConf-1)*uiLimitConf:(uiPageConf)*uiLimitConf">
+            <tr *ngFor="let c of filteredConf | slice:(uiPageConf-1)*uiLimitConf:(uiPageConf)*uiLimitConf">
               <td data-label="Fecha" class="col-date">{{ c.fecha ? (c.fecha | date:'dd/MM/yyyy') : '-' }}</td>
               <td data-label="Número" class="col-num">{{ c.numero || c.CitaNumero || '-' }}</td>
               <td class="patient-cell" data-label="Paciente" [title]="(c.pacienteInfo?.nombres ? (c.pacienteInfo.nombres + ' ' + (c.pacienteInfo.apellidos||'')) : (c.pacienteNombre || c.paciente || c.pacienteInfo?.nombre || c.pacienteInfo?.fullName)) || '-'">
@@ -199,7 +208,7 @@
               <td data-label="Especialidad" class="text-wrap">{{ c.especialidadInfo?.Nombre || '-' }}</td>
               <td data-label="Estado" class="col-status"><span class="status-badge" [ngClass]="getStatusClass(c)">{{ formatEstado(c) }}</span></td>
             </tr>
-            <tr *ngIf="citasConfirmadas.length === 0"><td colspan="7" class="text-center text-muted">No hay citas confirmadas</td></tr>
+            <tr *ngIf="filteredConf.length === 0"><td colspan="7" class="text-center text-muted">No hay citas confirmadas</td></tr>
           </tbody>
         </table>
         </div>
@@ -223,11 +232,11 @@
 
     <!-- Canceladas -->
     <section class="card ficha">
-      <header class="card-header card-header--brand">Canceladas <span class="badge">{{ totalCanceladas }}</span></header>
+  <header class="card-header card-header--brand">Canceladas <span class="badge">{{ filteredCanc.length }}</span></header>
       <div class="card-body">
-  <div class="section-subtitle">Mostrando {{ (uiPageCanc-1)*uiLimitCanc + 1 }}–{{ min(uiPageCanc*uiLimitCanc, citasCanceladas.length) }} de {{ citasCanceladas.length }}</div>
+  <div class="section-subtitle">Mostrando {{ (uiPageCanc-1)*uiLimitCanc + 1 }}–{{ min(uiPageCanc*uiLimitCanc, filteredCanc.length) }} de {{ filteredCanc.length }}</div>
         <div class="table-scroll">
-        <table class="table table-sm mb-1 app-table app-table--minwidth">
+    <table class="table table-sm mb-1 app-table app-table--minwidth table-modern table-card">
           <thead>
             <tr>
               <th class="col-date">Fecha</th>
@@ -240,7 +249,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let c of citasCanceladas | slice:(uiPageCanc-1)*uiLimitCanc:(uiPageCanc)*uiLimitCanc">
+            <tr *ngFor="let c of filteredCanc | slice:(uiPageCanc-1)*uiLimitCanc:(uiPageCanc)*uiLimitCanc">
               <td class="col-date">{{ c.fecha ? (c.fecha | date:'dd/MM/yyyy') : '-' }}</td>
               <td class="col-num">{{ c.numero || c.CitaNumero || '-' }}</td>
               <td class="patient-cell" [title]="(c.pacienteInfo?.nombres ? (c.pacienteInfo.nombres + ' ' + (c.pacienteInfo.apellidos||'')) : (c.pacienteNombre || c.paciente || c.pacienteInfo?.nombre || c.pacienteInfo?.fullName)) || '-'">
@@ -251,7 +260,7 @@
               <td class="text-wrap">{{ c.especialidadInfo?.Nombre || '-' }}</td>
               <td class="col-status"><span class="status-badge" [ngClass]="getStatusClass(c)">{{ formatEstado(c) }}</span></td>
             </tr>
-            <tr *ngIf="citasCanceladas.length === 0"><td colspan="7" class="text-center text-muted">No hay citas canceladas</td></tr>
+            <tr *ngIf="filteredCanc.length === 0"><td colspan="7" class="text-center text-muted">No hay citas canceladas</td></tr>
           </tbody>
         </table>
         </div>

@@ -16,6 +16,9 @@ import { FormsModule } from '@angular/forms';
   imports: [CommonModule, FormsModule, UserCreatePanelComponent, NgIf, NgFor]
 })
 export class UserManagementComponent implements OnInit {
+  // Filtro por rol
+  roleFilter: string = '';
+  roleOptions: string[] = ['paciente', 'secretaria', 'doctor', 'administrador'];
   // Cache para evitar spamear el endpoint si no existe en backend desplegado
   private byEmailEndpointAvailable: boolean | null = null;
   // Helper to normalize "tipo" and common fields
@@ -249,6 +252,10 @@ export class UserManagementComponent implements OnInit {
       setTimeout(() => this.loadUsers(), 200);
     });
   }
+  onRoleFilterChange(): void {
+    // Reaplicar filtros combinando rol y texto
+    this.searchUsers();
+  }
 
   // Cambia la pestaña activa de forma controlada (evita la navegación por defecto)
   setActiveTab(tab: 'activos' | 'inactivos', event?: Event) {
@@ -271,6 +278,11 @@ export class UserManagementComponent implements OnInit {
         const raw = Array.isArray(response) ? response : (response.data || response || []);
         const mapped = (raw || []).map((u: any) => this.normalizeUser(u));
         console.log('[loadUsers] total raw:', mapped.length);
+        // Refrescar opciones de rol disponibles basadas en datos
+        const tiposSet = new Set<string>();
+        mapped.forEach((u: any) => { if (u && u.tipo) tiposSet.add(String(u.tipo)); });
+        const ordered = ['administrador','doctor','secretaria','paciente'];
+        this.roleOptions = Array.from(tiposSet).sort((a,b)=> ordered.indexOf(a) - ordered.indexOf(b)).filter(Boolean);
         // Usuarios activos/inactivos con normalización robusta
   this.users = mapped.filter((u: any) => this.isActive(u));
   this.inactivos = mapped.filter((u: any) => this.isInactive(u));
@@ -393,15 +405,21 @@ export class UserManagementComponent implements OnInit {
     if (this.searchDebounceTimer) clearTimeout(this.searchDebounceTimer);
     this.searchDebounceTimer = setTimeout(() => {
       const q = (this.searchTerm || '').toString().trim().toLowerCase();
+      const role = (this.roleFilter || '').toString().trim().toLowerCase();
+      const roleMatch = (u: any) => {
+        if (!role) return true;
+        const t = (u?.tipo || '').toString().toLowerCase();
+        return t === role;
+      };
       if (!q) {
-        // reset
+        // aplicar solo filtro por rol
         if (this.activeTab === 'activos') {
-          this.filteredUsers = this.users;
+          this.filteredUsers = (this.users || []).filter(roleMatch);
           this.totalItems = this.filteredUsers.length;
           this.currentPageActivos = 1;
           this.updatePagination();
         } else {
-          this.filteredInactivos = this.inactivos || [];
+          this.filteredInactivos = (this.inactivos || []).filter(roleMatch);
           this.totalItems = this.filteredInactivos.length;
           this.currentPageInactivos = 1;
           this.updatePaginationInactivos();
@@ -412,7 +430,8 @@ export class UserManagementComponent implements OnInit {
       const matches = (user: any) => {
         try {
           const name = ((user.nombres || '') + ' ' + (user.apellidos || '')).toLowerCase();
-          return name.includes(q) || (user.correo || '').toLowerCase().includes(q) || (user.tipo || '').toLowerCase().includes(q);
+          const text = name.includes(q) || (user.correo || '').toLowerCase().includes(q) || (user.tipo || '').toLowerCase().includes(q);
+          return text && roleMatch(user);
         } catch (ex) {
           return false;
         }
