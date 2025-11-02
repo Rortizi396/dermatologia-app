@@ -11,28 +11,30 @@ export class AuthService {
   public currentUser: Observable<User | null>;
 
   constructor() {
-    const storedUser = localStorage.getItem('currentUser');
-    let user = null;
-    const storedToken = localStorage.getItem('token');
+    // Prefer localStorage (remembered) and fall back to sessionStorage (non-remembered)
+    const storedUserLocal = localStorage.getItem('currentUser');
+    const storedUserSession = sessionStorage.getItem('currentUser');
+    let user: User | null = null;
+    const raw = storedUserLocal ?? storedUserSession;
 
-    if (storedUser && storedUser !== 'undefined' && storedUser !== 'null') {
-    try {
-      user = JSON.parse(storedUser);
-    } catch (e) {
-      console.error('Error parsing user from localStorage:', e);
-      user = null;
+    if (raw && raw !== 'undefined' && raw !== 'null') {
+      try {
+        user = JSON.parse(raw);
+      } catch (e) {
+        console.error('Error parsing user from storage:', e);
+        user = null;
+      }
     }
-  }
-  
-  this.currentUserSubject = new BehaviorSubject<User | null>(user);
-  this.currentUser = this.currentUserSubject.asObservable();
+
+    this.currentUserSubject = new BehaviorSubject<User | null>(user);
+    this.currentUser = this.currentUserSubject.asObservable();
   }
 
   public get currentUserValue(): User | null {
     return this.currentUserSubject.value;
   }
 
-  setCurrentUser(user: User, token: string): void {
+  setCurrentUser(user: User, token: string, remember: boolean = true): void {
     console.log('setCurrentUser llamado con:', { user, token });
     if (user && typeof user === 'object' && token && typeof token === 'string') {
     try {
@@ -66,37 +68,47 @@ export class AuthService {
         console.warn('No se pudo normalizar nombres/apellidos en setCurrentUser', e);
       }
 
-      // Guardar en localStorage
-      localStorage.setItem('currentUser', JSON.stringify(user));
-      localStorage.setItem('token', token);
+  // Guardar en el almacenamiento seleccionado
+  const store = remember ? localStorage : sessionStorage;
+  // Limpieza defensiva del otro storage para no dejar residuos
+  try { (remember ? sessionStorage : localStorage).removeItem('currentUser'); } catch {}
+  try { (remember ? sessionStorage : localStorage).removeItem('token'); } catch {}
+  store.setItem('currentUser', JSON.stringify(user));
+  store.setItem('token', token);
 
       // Actualizar BehaviorSubject
       this.currentUserSubject.next(user);
 
       console.log('Usuario y token guardados exitosamente');
     } catch (error) {
-      console.error('Error al guardar en localStorage:', error);
+      console.error('Error al guardar credenciales:', error);
       this.handleAuthError();
     }
   } else {
     console.error('Error: Intento de guardar usuario o token undefined');
     // Limpiar en caso de error
     this.handleAuthError();
-    localStorage.removeItem('currentUser');
-    localStorage.removeItem('token');
+    try { localStorage.removeItem('currentUser'); } catch {}
+    try { localStorage.removeItem('token'); } catch {}
+    try { sessionStorage.removeItem('currentUser'); } catch {}
+    try { sessionStorage.removeItem('token'); } catch {}
     this.currentUserSubject.next(null);
   }
   }
   
   private handleAuthError(): void {
-  localStorage.removeItem('currentUser');
-  localStorage.removeItem('token');
+  try { localStorage.removeItem('currentUser'); } catch {}
+  try { localStorage.removeItem('token'); } catch {}
+  try { sessionStorage.removeItem('currentUser'); } catch {}
+  try { sessionStorage.removeItem('token'); } catch {}
   this.currentUserSubject.next(null);
 }
 
   logout(): void {
-    localStorage.removeItem('currentUser');
-    localStorage.removeItem('token');
+    try { localStorage.removeItem('currentUser'); } catch {}
+    try { localStorage.removeItem('token'); } catch {}
+    try { sessionStorage.removeItem('currentUser'); } catch {}
+    try { sessionStorage.removeItem('token'); } catch {}
     this.currentUserSubject.next(null);
   }
 
@@ -119,7 +131,7 @@ export class AuthService {
   }
 
   getToken(): string | null {
-    return localStorage.getItem('token');
+    return localStorage.getItem('token') ?? sessionStorage.getItem('token');
   }
 
   // Verificar si el token está expirado (ejemplo básico)

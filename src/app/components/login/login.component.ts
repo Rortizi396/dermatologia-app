@@ -42,17 +42,13 @@ export class LoginComponent implements OnInit {
   initForm(): void {
     this.loginForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
-      password: ['', Validators.required]
+      password: ['', Validators.required],
+      remember: [true]
     });
   }
 
   togglePassword(): void {
     this.showPassword = !this.showPassword;
-    const input = document.getElementById('password') as HTMLInputElement | null;
-    if (input) {
-      input.type = this.showPassword ? 'text' : 'password';
-      input.focus();
-    }
   }
 
   onSubmit(): void {
@@ -86,7 +82,7 @@ export class LoginComponent implements OnInit {
           if (user && token) {
             // Store token immediately so the interceptor can attach it for subsequent enrichment calls
             // (e.g., getProfile). We'll update the stored user again after enrichment if needed.
-            try { this.authService.setCurrentUser(user, token); } catch (e) { /* no-op */ }
+            try { this.authService.setCurrentUser(user, token, !!this.loginForm.value.remember); } catch (e) { /* no-op */ }
             // Normalize role field to `tipo` (support various API shapes: Tipo, TIPO, type)
             try {
               if (!user.tipo && (user.Tipo || user.TIPO || user.type)) {
@@ -141,7 +137,7 @@ export class LoginComponent implements OnInit {
               // If we already have tipo, proceed immediately (user/token already stored)
               if (user && user.tipo) {
                 // Optionally refresh stored user (harmless duplicate)
-                try { this.authService.setCurrentUser(user, token); } catch {}
+                try { this.authService.setCurrentUser(user, token, !!this.loginForm.value.remember); } catch {}
                 finishNavigation();
                 return;
               }
@@ -158,7 +154,7 @@ export class LoginComponent implements OnInit {
                     }
                   } catch (e) { console.warn('Failed to merge profile after login', e); }
                   // Update stored user with enriched fields
-                  this.authService.setCurrentUser(user, token);
+                  this.authService.setCurrentUser(user, token, !!this.loginForm.value.remember);
                   finishNavigation();
                 },
                 error: (_) => {
@@ -174,13 +170,13 @@ export class LoginComponent implements OnInit {
                           if (!user.tipo && (found.tipo || found.Tipo)) user.tipo = (found.tipo || found.Tipo || '').toString().toLowerCase();
                         }
                       } catch (e) { console.warn('Error scanning users list after login', e); }
-                      this.authService.setCurrentUser(user, token);
+                      this.authService.setCurrentUser(user, token, !!this.loginForm.value.remember);
                       finishNavigation();
                     },
                     error: (e) => {
                       // give up — store whatever we have and continue
                       console.warn('Failed to fetch users list for profile enrichment', e);
-                      this.authService.setCurrentUser(user, token);
+                      this.authService.setCurrentUser(user, token, !!this.loginForm.value.remember);
                       finishNavigation();
                     }
                   });
@@ -189,7 +185,7 @@ export class LoginComponent implements OnInit {
             };
 
             // start enrichment then navigate
-            try { doEnrichment(); } catch (e) { console.warn('Enrichment failed', e); this.authService.setCurrentUser(user, token); this.loading = false; this.router.navigateByUrl(this.returnUrl || '/dashboard'); }
+            try { doEnrichment(); } catch (e) { console.warn('Enrichment failed', e); this.authService.setCurrentUser(user, token, !!this.loginForm.value.remember); this.loading = false; this.router.navigateByUrl(this.returnUrl || '/dashboard'); }
           } else {
             console.error('Estructura incorrecta de respuesta:', response);
             this.error = 'Error en la estructura de la respuesta del servidor';
