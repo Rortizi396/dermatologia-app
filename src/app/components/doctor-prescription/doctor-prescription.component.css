@@ -6,8 +6,8 @@
 
 /* Anchos de columnas */
 .rx-table col.col-qty { width: 88px; }
-.rx-table col.col-name { width: 30%; }
-.rx-table col.col-dose { width: calc(100% - (88px + 40px + 30%)); }
+.rx-table col.col-name { width: 28%; }
+.rx-table col.col-dose { width: calc(100% - (88px + 40px + 28%)); }
 .rx-table col.col-actions { width: 40px; }
 .rx-table td.actions { white-space: nowrap; }
 /* col-dose toma el resto automáticamente */
