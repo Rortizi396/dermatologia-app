@@ -34,35 +34,42 @@
         <button type="button" class="btn btn-outline-primary btn-sm" (click)="addItem()" [disabled]="items.length >= maxItems">Agregar ítem</button>
       </div>
 
-      <!-- Encabezado de columnas con mismas proporciones que las filas -->
-      <div class="rx-head small text-muted mb-1">
-        <div class="qty">Cantidad</div>
-        <div class="name">Medicamento</div>
-        <div class="dose">Dosis</div>
-        <div class="actions"></div>
-      </div>
-
-      <div formArrayName="items" class="rx-items">
-        <ng-container *ngFor="let it of items.controls; let i = index">
-          <div class="rx-row mb-2" [formGroupName]="i">
-            <div class="qty">
+      <!-- Tabla semántica para alinear encabezados y columnas sin superposición -->
+      <table class="rx-table">
+        <colgroup>
+          <col class="col-qty" />
+          <col class="col-name" />
+          <col class="col-dose" />
+          <col class="col-actions" />
+        </colgroup>
+        <thead>
+          <tr class="small text-muted">
+            <th>Cantidad</th>
+            <th>Medicamento</th>
+            <th>Dosis</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody formArrayName="items">
+          <tr *ngFor="let it of items.controls; let i = index" [formGroupName]="i">
+            <td class="qty">
               <input type="number" class="form-control" placeholder="0.00" step="0.01" min="0.01" formControlName="cantidad">
-            </div>
-            <div class="name position-relative">
+            </td>
+            <td class="name position-relative">
               <input type="text" class="form-control" placeholder="Nombre del medicamento" formControlName="nombre" (input)="onNameInput(i)" autocomplete="off">
               <ul class="list-group suggestions" *ngIf="(suggestions[i] || []).length > 0">
                 <li class="list-group-item list-group-item-action" *ngFor="let s of suggestions[i]" (click)="applySuggestion(i, s)">{{ s }}</li>
               </ul>
-            </div>
-            <div class="dose">
+            </td>
+            <td class="dose">
               <input type="text" class="form-control" placeholder="Indicaciones / Dosis" formControlName="dosis">
-            </div>
-            <div class="actions text-end">
+            </td>
+            <td class="actions text-end">
               <button type="button" class="btn btn-outline-danger" (click)="removeItem(i)" [disabled]="items.length <= 1" title="Eliminar"><i class="fas fa-trash"></i></button>
-            </div>
-          </div>
-        </ng-container>
-      </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
 
       <div class="mt-3 obs-container">
         <label class="form-label d-block mb-1">Observaciones adicionales (opcional)</label>

@@ -1,22 +1,22 @@
-.rx-head, .rx-row {
-	display: grid;
-	align-items: end;
-	column-gap: 8px;
-	grid-template-columns: 88px minmax(260px, 32%) minmax(320px, 1fr) 40px;
-}
+.rx-table { width: 100%; table-layout: fixed; border-collapse: separate; border-spacing: 8px 10px; }
+.rx-table thead th { text-align: left; font-weight: 500; padding: 0 4px; }
+.rx-table td { padding: 0 4px; vertical-align: bottom; }
+.rx-table .form-control { width: 100%; height: 38px; }
+.rx-table input[type="number"] { text-align: right; }
 
-/* Inputs compactos y números alineados a la derecha */
-.rx-row .form-control { height: 38px; }
-.rx-row input[type="number"] { text-align: right; }
+/* Anchos de columnas */
+.rx-table col.col-qty { width: 88px; }
+.rx-table col.col-name { width: 34%; }
+.rx-table col.col-actions { width: 44px; }
+/* col-dose toma el resto automáticamente */
 
-/* Responsive: menos columnas fijas y wrap limpio */
-@media (max-width: 992px) {
-	.rx-head, .rx-row { grid-template-columns: 88px 1fr 1fr 40px; }
-}
-
+/* Responsive: apilar en móviles sin perder legibilidad */
 @media (max-width: 768px) {
-	.rx-head { display: none; }
-	.rx-row { grid-template-columns: 100%; row-gap: 8px; }
+  .rx-table, .rx-table thead, .rx-table tbody, .rx-table tr, .rx-table th, .rx-table td { display: block; }
+  .rx-table thead { display: none; }
+  .rx-table tr { border: 1px solid var(--border-color, #e5e7eb); border-radius: 8px; padding: 8px; margin-bottom: 10px; }
+  .rx-table td { padding: 6px 0; }
+  .rx-table td.actions { text-align: right; }
 }
 
 /* Observaciones a ancho completo debajo del título */
@@ -30,14 +30,14 @@
 .rx-footer { margin-top: 60px; }
 .rx-footer .signature { height: 48px; border-bottom: 2px solid #111827; margin: 0 64px 6px; }
 
-.suggestions { position: absolute; z-index: 10; width: 100%; max-height: 180px; overflow: auto; left: 0; top: 100%; margin-top: 2px; }
+.suggestions { position: absolute; z-index: 1000; width: 100%; max-height: 200px; overflow: auto; left: 0; top: 100%; margin-top: 2px; }
 
 /* Dark mode adjustments */
 :host-context([data-theme='dark']) .rx-sheet { background: #0f172a; color: #e2e8f0; border-color: #1f2937; }
 :host-context([data-theme='dark']) .rx-body .divider { border-bottom-color: #334155; }
 :host-context([data-theme='dark']) .rx-footer .signature { border-bottom-color: #e2e8f0; }
 
-/* Responsive row now uses Bootstrap columns; keep a few niceties */
+/* Compat: inputs consistent height dentro de otros contenedores */
 .rx-items .form-control { height: 38px; }
 .rx-items input[type="number"] { text-align: right; }
 .rx-items { display: block; }
