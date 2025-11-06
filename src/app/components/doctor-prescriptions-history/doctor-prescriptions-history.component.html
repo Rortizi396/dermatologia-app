@@ -1,0 +1,81 @@
+<div class="container-xxl py-3">
+  <div class="toolbar d-flex align-items-center justify-content-between p-2 mb-3 flex-wrap gap-2">
+    <h5 class="m-0">Historial de recetas (Doctor)</h5>
+    <div class="d-flex align-items-center gap-2">
+      <a class="btn btn-outline-secondary" [routerLink]="['/doctor/receta']">Nueva receta</a>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-12 col-lg-6">
+      <div class="card p-3">
+        <div class="card-header pb-2"><strong>Mis recetas</strong></div>
+        <div class="card-body pt-2">
+          <div *ngIf="loadingSelf">Cargando...</div>
+          <div *ngIf="!loadingSelf && misRecetas.length === 0" class="text-muted small">No has generado recetas aún.</div>
+          <div class="table-responsive" *ngIf="misRecetas.length > 0">
+            <table class="table table-modern">
+              <thead>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Paciente</th>
+                  <th>Ítems</th>
+                  <th>Observaciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let r of misRecetas">
+                  <td>{{ r.fecha }}</td>
+                  <td>{{ displayPatient(r.paciente_dpi) }}<div class="small text-muted">DPI: {{ r.paciente_dpi }}</div></td>
+                  <td>{{ r.items?.length || 0 }}</td>
+                  <td class="small">{{ r.observaciones || '—' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-lg-6">
+      <div class="card p-3">
+        <div class="card-header pb-2"><strong>Buscar por paciente</strong></div>
+        <div class="card-body pt-2">
+          <div class="row g-2 align-items-end">
+            <div class="col-12 col-md-8">
+              <label class="form-label">Paciente</label>
+              <select class="form-control" [(ngModel)]="selectedDPI" (change)="searchByPaciente()">
+                <option [ngValue]="''" disabled>Seleccione un paciente</option>
+                <option *ngFor="let p of pacientes" [ngValue]="p.DPI">{{ (p.Nombres || p.nombres || '') + ' ' + (p.Apellidos || p.apellidos || '') }} — DPI: {{ p.DPI }}</option>
+              </select>
+            </div>
+            <div class="col-12 col-md-4">
+              <button class="btn btn-primary w-100" (click)="searchByPaciente()">Buscar</button>
+            </div>
+          </div>
+
+          <div class="mt-3" *ngIf="loadingPaciente">Cargando...</div>
+          <div class="mt-3" *ngIf="!loadingPaciente && recetasPorPaciente.length === 0 && selectedDPI" class="text-muted small">Sin recetas para el paciente seleccionado.</div>
+          <div class="table-responsive mt-3" *ngIf="recetasPorPaciente.length > 0">
+            <table class="table table-modern">
+              <thead>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Ítems</th>
+                  <th>Observaciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let r of recetasPorPaciente">
+                  <td>{{ r.fecha }}</td>
+                  <td>{{ r.items?.length || 0 }}</td>
+                  <td class="small">{{ r.observaciones || '—' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

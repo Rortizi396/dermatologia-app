@@ -102,6 +102,18 @@ const routes: Routes = [
     canActivate: [AuthGuard, RoleGuard],
     data: { roles: ['doctor'] }
   },
+  {
+    path: 'doctor/recetas',
+    loadComponent: () => import('./components/doctor-prescriptions-history/doctor-prescriptions-history.component').then(m => m.DoctorPrescriptionsHistoryComponent),
+    canActivate: [AuthGuard, RoleGuard],
+    data: { roles: ['doctor'] }
+  },
+  {
+    path: 'paciente/recetas',
+    loadComponent: () => import('./components/patient-prescriptions-history/patient-prescriptions-history.component').then(m => m.PatientPrescriptionsHistoryComponent),
+    canActivate: [AuthGuard, RoleGuard],
+    data: { roles: ['paciente'] }
+  },
   { 
     path: 'appointments/create', 
     component: AppointmentCreateComponent,

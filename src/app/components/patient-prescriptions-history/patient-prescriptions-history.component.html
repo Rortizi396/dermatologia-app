@@ -1,0 +1,38 @@
+<div class="container-xxl py-3">
+  <div class="toolbar d-flex align-items-center justify-content-between p-2 mb-3 flex-wrap gap-2">
+    <h5 class="m-0">Mi historial de recetas</h5>
+    <div class="d-flex align-items-center gap-2">
+      <a class="btn btn-outline-secondary" [routerLink]="['/dashboard/paciente']">Regresar</a>
+    </div>
+  </div>
+
+  <div *ngIf="message" class="alert alert-warning">{{ message }}</div>
+  <div *ngIf="!message">
+    <div *ngIf="loading">Cargando...</div>
+    <div *ngIf="!loading && recetas.length === 0" class="text-muted small">Aún no tienes recetas registradas.</div>
+    <div class="table-responsive" *ngIf="recetas.length > 0">
+      <table class="table table-modern">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Ítems</th>
+            <th>Observaciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let r of recetas">
+            <td>{{ r.fecha }}</td>
+            <td>
+              <div *ngFor="let it of r.items" class="small">
+                <strong>{{ it.nombre }}</strong>
+                <span class="text-muted">— {{ it.cantidad }} uds.</span>
+                <div>{{ it.dosis }}</div>
+              </div>
+            </td>
+            <td class="small">{{ r.observaciones || '—' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

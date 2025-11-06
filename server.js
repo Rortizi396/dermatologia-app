@@ -2201,6 +2201,69 @@ app.post('/api/medicamentos', (req, res) => {
   });
 });
 
+// Historial de recetas: filtrar por doctor (correo/colegiado) o paciente (DPI)
+app.get('/api/recetas', (req, res) => {
+  try {
+    const q = req.query || {};
+    const doctorCorreo = (q.doctor_correo || q.doctorEmail || '').toString().trim();
+    const doctorColegiado = (q.doctor_colegiado || q.colegiado || '').toString().trim();
+    const pacienteDpi = (q.paciente_dpi || q.pacienteDPI || '').toString().trim();
+    const page = Math.max(1, parseInt((q.page || '1').toString()));
+    const limit = Math.min(100, Math.max(1, parseInt((q.limit || '50').toString())));
+    const offset = (page - 1) * limit;
+
+    const where = [];
+    const params = [];
+    if (doctorCorreo) { where.push('doctor_correo = ?'); params.push(doctorCorreo); }
+    if (doctorColegiado) { where.push('doctor_colegiado = ?'); params.push(doctorColegiado); }
+    if (pacienteDpi) { where.push('paciente_dpi = ?'); params.push(pacienteDpi); }
+    const whereSql = where.length ? (' WHERE ' + where.join(' AND ')) : '';
+
+    const countSql = 'SELECT COUNT(*) AS total FROM recetas' + whereSql;
+    db.query(countSql, params, (errCount, rowsCount) => {
+      if (errCount) return res.status(500).json({ success: false, message: 'Error contando recetas', error: errCount });
+      let total = 0;
+      try { total = Number(rowsCount && rowsCount[0] && (rowsCount[0].total || rowsCount[0].count) || 0); } catch(_) {}
+
+      const dataSql = 'SELECT * FROM recetas' + whereSql + ' ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?';
+      const dataParams = params.slice();
+      dataParams.push(limit, offset);
+      db.query(dataSql, dataParams, (errData, rows) => {
+        if (errData) return res.status(500).json({ success: false, message: 'Error obteniendo recetas', error: errData });
+        const list = rows || [];
+        const ids = list.map(r => r.id).filter(Boolean);
+        if (!ids.length) return res.json({ success: true, data: [], page, limit, total });
+        const placeholders = ids.map(() => '?').join(',');
+        const itemsSql = 'SELECT * FROM recetas_items WHERE receta_id IN (' + placeholders + ') ORDER BY id ASC';
+        db.query(itemsSql, ids, (errItems, itemRows) => {
+          if (errItems) return res.status(500).json({ success: false, message: 'Error obteniendo items de recetas', error: errItems });
+          const grouped = new Map();
+          (itemRows || []).forEach(it => {
+            const rid = it.receta_id;
+            if (!grouped.has(rid)) grouped.set(rid, []);
+            grouped.get(rid).push({ id: it.id, cantidad: Number(it.cantidad), nombre: it.nombre, dosis: it.dosis });
+          });
+          const data = list.map(r => ({
+            id: r.id,
+            fecha: r.fecha,
+            doctor_nombre: r.doctor_nombre,
+            doctor_correo: r.doctor_correo,
+            doctor_colegiado: r.doctor_colegiado,
+            paciente_dpi: r.paciente_dpi,
+            observaciones: r.observaciones,
+            created_at: r.created_at,
+            items: grouped.get(r.id) || []
+          }));
+          return res.json({ success: true, data, page, limit, total });
+        });
+      });
+    });
+  } catch (ex) {
+    console.error('[RECETAS][GET] unexpected error', ex);
+    return res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
 // Crear una receta con items
 app.post('/api/recetas', (req, res) => {
   try {
