@@ -1,3 +1,27 @@
+.rx-head, .rx-row {
+	display: flex;
+	align-items: flex-end;
+	gap: 10px;
+}
+
+/* Proporciones: Cantidad (angosta) | Medicamento (media) | Dosis (ancha) | Acciones (compacta) */
+.rx-head .qty, .rx-row .qty { flex: 0 0 88px; }
+.rx-head .name, .rx-row .name { flex: 1 1 320px; min-width: 220px; }
+.rx-head .dose, .rx-row .dose { flex: 1.4 1 360px; min-width: 240px; }
+.rx-head .actions, .rx-row .actions { flex: 0 0 auto; }
+
+/* Inputs compactos y números alineados a la derecha */
+.rx-row .form-control { height: 38px; }
+.rx-row input[type="number"] { text-align: right; }
+
+/* En pantallas pequeñas, permitir salto limpio */
+@media (max-width: 768px) {
+	.rx-row { flex-wrap: wrap; }
+	.rx-row .qty { flex: 0 0 100px; }
+	.rx-row .name { flex: 1 1 100%; }
+	.rx-row .dose { flex: 1 1 100%; }
+	.rx-row .actions { margin-left: auto; }
+}
 /* Colors: use app palette via CSS vars; fallback neutrals */
 .rx-sheet { background: #fff; color: #222; border: 1px solid var(--border-color, #e5e7eb); border-radius: 8px; padding: 24px; position: relative; overflow: hidden; }
 .rx-header .rx-logo { width: 56px; height: 56px; }
