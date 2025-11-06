@@ -55,11 +55,13 @@
             <td class="qty">
               <input type="number" class="form-control" placeholder="0.00" step="0.01" min="0.01" formControlName="cantidad">
             </td>
-            <td class="name position-relative">
-              <input type="text" class="form-control" placeholder="Nombre del medicamento" formControlName="nombre" (input)="onNameInput(i)" autocomplete="off">
-              <ul class="list-group suggestions" *ngIf="(suggestions[i] || []).length > 0">
-                <li class="list-group-item list-group-item-action" *ngFor="let s of suggestions[i]" (click)="applySuggestion(i, s)">{{ s }}</li>
-              </ul>
+            <td class="name">
+              <div class="input-suggest">
+                <input type="text" class="form-control" placeholder="Nombre del medicamento" formControlName="nombre" (input)="onNameInput(i)" autocomplete="off">
+                <ul class="list-group suggestions" *ngIf="(suggestions[i] || []).length > 0">
+                  <li class="list-group-item list-group-item-action" *ngFor="let s of suggestions[i]" (click)="applySuggestion(i, s)">{{ s }}</li>
+                </ul>
+              </div>
             </td>
             <td class="dose">
               <input type="text" class="form-control" placeholder="Indicaciones / Dosis" formControlName="dosis">
