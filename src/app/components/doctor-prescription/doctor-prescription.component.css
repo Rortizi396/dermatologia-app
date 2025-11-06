@@ -31,10 +31,11 @@
 /* Colors: use app palette via CSS vars; fallback neutrals */
 .rx-sheet { background: #fff; color: #222; border: 1px solid var(--border-color, #e5e7eb); border-radius: 8px; padding: 24px; position: relative; overflow: hidden; }
 .rx-header .rx-logo { width: 56px; height: 56px; }
+.rx-hero-logo { width: 90px; height: 90px; opacity: 0.95; }
 .rx-body .divider { height: 10px; border-bottom: 1px dashed #d0d5dd; margin: 4px 0 10px; }
 .rx-watermark { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 96px; color: rgba(0,0,0,0.05); pointer-events: none; user-select: none; }
-.rx-footer { margin-top: 60px; }
-.rx-footer .signature { height: 48px; border-bottom: 2px solid #111827; margin: 0 64px 6px; }
+.rx-footer { margin-top: 48px; }
+.rx-footer .signature { height: 28px; width: 20%; min-width: 140px; border-bottom: 2px solid #111827; margin: 0 auto 6px; }
 
 .suggestions { position: absolute; z-index: 1000; width: 100%; max-height: 200px; overflow: auto; left: 0; top: 100%; margin-top: 2px; }
 

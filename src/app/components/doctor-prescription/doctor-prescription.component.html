@@ -93,7 +93,7 @@
           <div class="fw-semibold">Centro Dermatológico</div>
           <div class="small">{{ clinicAddress }}</div>
           <div class="small">Teléfono: {{ clinicPhone }}</div>
-          <div class="small">Correo: {{ doctorEmail }}</div>
+          <!-- correo removido del PDF -->
         </div>
       </div>
       <div class="text-end small">
@@ -101,8 +101,11 @@
         <div>Fecha: {{ form.get('fecha')?.value }}</div>
       </div>
     </div>
+    <div class="rx-hero text-center mb-2">
+      <img [src]="logoPath" alt="logo" class="rx-hero-logo">
+    </div>
     <hr>
-    <div class="small"><strong>Paciente</strong> __________________________________________</div>
+    <div class="small"><strong>Paciente:</strong> {{ getSelectedPatientName() }} — DPI: {{ getSelectedPatientDPI() }}</div>
 
     <div class="rx-body mt-3">
       <div class="rx-item" *ngFor="let it of items.controls; let i = index">
@@ -116,10 +119,6 @@
         <div class="small">{{ form.get('observaciones')?.value }}</div>
       </div>
     </div>
-
-  <div class="small mt-2"><strong>Paciente:</strong> {{ (getSelectedPatient()?.Nombres || getSelectedPatient()?.nombres || '') + ' ' + (getSelectedPatient()?.Apellidos || getSelectedPatient()?.apellidos || '') }} — DPI: {{ form.get('pacienteDPI')?.value || '—' }}</div>
-
-    
 
     <div class="rx-footer">
       <div class="signature"></div>

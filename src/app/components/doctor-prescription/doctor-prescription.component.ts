@@ -66,8 +66,8 @@ export class DoctorPrescriptionComponent implements OnInit {
       observaciones: ['']
     });
 
-    // Cargar pacientes para el selector
-    this.patientsSvc.list(false).subscribe(list => { this.patients = list || []; });
+  // Cargar pacientes para el selector (ya normalizados por el servicio)
+  this.patientsSvc.list(false).subscribe(list => { this.patients = list || []; });
   }
 
   get items(): FormArray { return this.form.get('items') as FormArray; }
@@ -180,5 +180,16 @@ export class DoctorPrescriptionComponent implements OnInit {
       const found = this.patients.find(p => String(p.DPI) === String(dpi));
       return found || null;
     } catch { return null; }
+  }
+
+  getSelectedPatientName(): string {
+    const p = this.getSelectedPatient();
+    const name = `${p?.Nombres || p?.nombres || ''} ${p?.Apellidos || p?.apellidos || ''}`.trim();
+    return name || '—';
+  }
+
+  getSelectedPatientDPI(): string {
+    const p = this.getSelectedPatient();
+    return (p?.DPI ? String(p.DPI) : '—');
   }
 }

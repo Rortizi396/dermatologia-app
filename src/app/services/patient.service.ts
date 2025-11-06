@@ -22,7 +22,13 @@ export class PatientService {
     return this.http.get<any>(url).pipe(
       map(res => {
         const data = Array.isArray(res) ? res : (res?.data || []);
-        return data as Patient[];
+        // Normaliza llaves (DPI/Nombres/Apellidos) provenientes del backend
+        const norm: Patient[] = (data || []).map((p: any) => ({
+          DPI: String(p?.DPI ?? p?.dpi ?? p?.Dpi ?? p?.dpi_numero ?? p?.dpiNumero ?? ''),
+          Nombres: p?.Nombres ?? p?.nombres ?? '',
+          Apellidos: p?.Apellidos ?? p?.apellidos ?? ''
+        }));
+        return norm;
       }),
       catchError(() => of([] as Patient[]))
     );
