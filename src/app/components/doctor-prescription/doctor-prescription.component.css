@@ -10,6 +10,10 @@
 .rx-table col.col-dose { width: calc(100% - (88px + 40px + 28%)); }
 .rx-table col.col-actions { width: 44px; }
 .rx-table td.actions { white-space: nowrap; }
+/* reducir padding y tamaño del botón de acciones para que no se recorte */
+.rx-table td.actions { padding-right: 0; }
+.rx-table td.actions .btn { width: 32px; height: 32px; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
+.rx-table td.actions .btn i { font-size: 14px; line-height: 1; }
 /* col-dose toma el resto automáticamente */
 
 /* Responsive: apilar en móviles sin perder legibilidad */
