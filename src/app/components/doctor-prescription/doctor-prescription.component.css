@@ -1,0 +1,14 @@
+/* Colors: use app palette via CSS vars; fallback neutrals */
+.rx-sheet { background: #fff; color: #222; border: 1px solid var(--border-color, #e5e7eb); border-radius: 8px; padding: 24px; position: relative; overflow: hidden; }
+.rx-header .rx-logo { width: 56px; height: 56px; }
+.rx-body .divider { height: 10px; border-bottom: 1px dashed #d0d5dd; margin: 4px 0 10px; }
+.rx-watermark { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 96px; color: rgba(0,0,0,0.05); pointer-events: none; user-select: none; }
+.rx-footer { margin-top: 60px; }
+.rx-footer .signature { height: 48px; border-bottom: 2px solid #111827; margin: 0 64px 6px; }
+
+.suggestions { position: absolute; z-index: 10; width: 100%; max-height: 180px; overflow: auto; }
+
+/* Dark mode adjustments */
+:host-context([data-theme='dark']) .rx-sheet { background: #0f172a; color: #e2e8f0; border-color: #1f2937; }
+:host-context([data-theme='dark']) .rx-body .divider { border-bottom-color: #334155; }
+:host-context([data-theme='dark']) .rx-footer .signature { border-bottom-color: #e2e8f0; }

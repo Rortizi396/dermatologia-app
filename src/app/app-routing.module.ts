@@ -96,6 +96,12 @@ const routes: Routes = [
     canActivate: [AuthGuard, RoleGuard],
     data: { roles: ['doctor'] }
   },
+  {
+    path: 'doctor/receta',
+    loadComponent: () => import('./components/doctor-prescription/doctor-prescription.component').then(m => m.DoctorPrescriptionComponent),
+    canActivate: [AuthGuard, RoleGuard],
+    data: { roles: ['doctor'] }
+  },
   { 
     path: 'appointments/create', 
     component: AppointmentCreateComponent,

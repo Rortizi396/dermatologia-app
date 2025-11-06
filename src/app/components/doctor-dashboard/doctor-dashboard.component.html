@@ -1,6 +1,7 @@
 <div class="doctor-dashboard container py-3">
   <div class="toolbar d-flex align-items-center gap-2 p-2 mb-3 flex-wrap">
     <div class="flex-grow-1"></div>
+    <a class="btn btn-primary" [routerLink]="['/doctor/receta']">Generación de receta</a>
     <button class="btn btn-outline-secondary" (click)="loadTodayAppointments()">Refrescar</button>
     <button class="btn btn-outline-secondary" (click)="toggleClockFormat()">{{ use24Hour ? 'Formato 24h' : 'Formato 12h' }}</button>
   </div>

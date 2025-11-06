@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule, NgIf } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../services/auth.service';
 import { AppointmentService } from '../../services/appointment.service';
@@ -10,7 +10,7 @@ import { ToastService } from '../../services/toast.service';
 @Component({
   selector: 'app-doctor-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule, NgIf],
+  imports: [CommonModule, FormsModule, NgIf, RouterModule],
   templateUrl: './doctor-dashboard.component.html',
   styleUrls: ['./doctor-dashboard.component.css']
 })
