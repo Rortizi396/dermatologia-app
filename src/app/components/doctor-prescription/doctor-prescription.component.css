@@ -1,4 +1,4 @@
-.rx-table { width: 100%; table-layout: fixed; border-collapse: separate; border-spacing: 8px 10px; }
+.rx-table { width: 100%; max-width: 100%; table-layout: fixed; border-collapse: separate; border-spacing: 6px 8px; }
 .rx-table thead th { text-align: left; font-weight: 500; padding: 0 4px; }
 .rx-table td { padding: 0 4px; vertical-align: bottom; }
 .rx-table .form-control { width: 100%; height: 38px; }
@@ -6,8 +6,10 @@
 
 /* Anchos de columnas */
 .rx-table col.col-qty { width: 88px; }
-.rx-table col.col-name { width: 34%; }
-.rx-table col.col-actions { width: 44px; }
+.rx-table col.col-name { width: 30%; }
+.rx-table col.col-dose { width: calc(100% - (88px + 40px + 30%)); }
+.rx-table col.col-actions { width: 40px; }
+.rx-table td.actions { white-space: nowrap; }
 /* col-dose toma el resto automáticamente */
 
 /* Responsive: apilar en móviles sin perder legibilidad */
