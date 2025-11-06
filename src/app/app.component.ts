@@ -170,7 +170,9 @@ export class AppComponent{
   { path: '/users', icon: 'fas fa-users', label: 'Usuarios', roles: ['administrador'] },
       
       // Doctor
-      { path: '/doctor/schedule', icon: 'fas fa-calendar-alt', label: 'Mi Agenda', roles: ['doctor'] },
+  { path: '/doctor/schedule', icon: 'fas fa-calendar-alt', label: 'Mi Agenda', roles: ['doctor'] },
+  { path: '/doctor/receta', icon: 'fas fa-file-prescription', label: 'Generar Receta', roles: ['doctor'] },
+  { path: '/doctor/recetas', icon: 'fas fa-notes-medical', label: 'Historial de Recetas', roles: ['doctor'] },
       
       // Secretaria
       { path: '/appointments/manage', icon: 'fas fa-tasks', label: 'Gestionar Citas', roles: ['secretaria', 'administrador'] },

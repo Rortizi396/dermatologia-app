@@ -12,3 +12,11 @@
 :host-context([data-theme='dark']) .rx-sheet { background: #0f172a; color: #e2e8f0; border-color: #1f2937; }
 :host-context([data-theme='dark']) .rx-body .divider { border-bottom-color: #334155; }
 :host-context([data-theme='dark']) .rx-footer .signature { border-bottom-color: #e2e8f0; }
+
+/* Items grid: keep inputs on a single horizontal row */
+.items-grid { display: grid; grid-template-columns: 120px 1fr 1fr 44px; gap: 8px; align-items: end; }
+.items-grid--header { grid-template-columns: 120px 1fr 1fr 44px; }
+
+/* Hide the PDF template from view but keep it renderable */
+.visually-hidden { position: absolute !important; left: -9999px !important; top: 0 !important; width: 800px; max-width: 1000px; }
+.print-template { background: #fff; }
