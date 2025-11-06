@@ -31,7 +31,10 @@
               </div>
             </td>
             <td class="small">{{ r.observaciones || '—' }}</td>
-            <td class="text-end"><a class="btn btn-sm btn-outline-primary" [routerLink]="['/paciente/recetas', r.id]">Ver</a></td>
+            <td class="text-end">
+              <a class="btn btn-sm btn-outline-secondary me-2" [routerLink]="['/paciente/recetas', r.id]">Ver</a>
+              <a class="btn btn-sm btn-outline-primary" [routerLink]="['/paciente/recetas', r.id]" [queryParams]="{ print: 1 }">Imprimir</a>
+            </td>
           </tr>
         </tbody>
       </table>

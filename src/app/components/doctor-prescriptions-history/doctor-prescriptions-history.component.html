@@ -30,7 +30,10 @@
                   <td>{{ displayPatient(r.paciente_dpi) }}<div class="small text-muted">DPI: {{ r.paciente_dpi }}</div></td>
                   <td>{{ r.items.length || 0 }}</td>
                   <td class="small">{{ r.observaciones || '—' }}</td>
-                  <td class="text-end"><a class="btn btn-sm btn-outline-primary" [routerLink]="['/doctor/recetas', r.id]">Ver</a></td>
+                  <td class="text-end">
+                    <a class="btn btn-sm btn-outline-secondary me-2" [routerLink]="['/doctor/recetas', r.id]">Ver</a>
+                    <a class="btn btn-sm btn-outline-primary" [routerLink]="['/doctor/recetas', r.id]" [queryParams]="{ print: 1 }">Imprimir</a>
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -73,7 +76,10 @@
                   <td>{{ r.fecha }}</td>
                   <td>{{ r.items.length || 0 }}</td>
                   <td class="small">{{ r.observaciones || '—' }}</td>
-                  <td class="text-end"><a class="btn btn-sm btn-outline-primary" [routerLink]="['/doctor/recetas', r.id]">Ver</a></td>
+                  <td class="text-end">
+                    <a class="btn btn-sm btn-outline-secondary me-2" [routerLink]="['/doctor/recetas', r.id]">Ver</a>
+                    <a class="btn btn-sm btn-outline-primary" [routerLink]="['/doctor/recetas', r.id]" [queryParams]="{ print: 1 }">Imprimir</a>
+                  </td>
                 </tr>
               </tbody>
             </table>

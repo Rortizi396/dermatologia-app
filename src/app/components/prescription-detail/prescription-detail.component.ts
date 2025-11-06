@@ -49,6 +49,7 @@ export class PrescriptionDetailComponent implements OnInit {
       this.loading = false;
       return;
     }
+    const shouldPrint = (this.route.snapshot.queryParamMap.get('print') || '').toString() === '1';
     this.rxSvc.getById(this.id).subscribe({
       next: res => {
         this.receta = res?.data || null;
@@ -58,6 +59,11 @@ export class PrescriptionDetailComponent implements OnInit {
             const dpi = String(this.receta!.paciente_dpi);
             this.paciente = (list || []).find(p => String(p.DPI) === dpi) || null;
           });
+        }
+        // Auto-imprimir si viene el query param print=1
+        if (shouldPrint) {
+          // Dar un pequeño tiempo para renderizar el template antes de generar el PDF
+          setTimeout(() => this.reprintPdf(), 200);
         }
       },
       error: _ => {
