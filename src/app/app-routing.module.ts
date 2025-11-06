@@ -109,8 +109,20 @@ const routes: Routes = [
     data: { roles: ['doctor'] }
   },
   {
+    path: 'doctor/recetas/:id',
+    loadComponent: () => import('./components/prescription-detail/prescription-detail.component').then(m => m.PrescriptionDetailComponent),
+    canActivate: [AuthGuard, RoleGuard],
+    data: { roles: ['doctor'] }
+  },
+  {
     path: 'paciente/recetas',
     loadComponent: () => import('./components/patient-prescriptions-history/patient-prescriptions-history.component').then(m => m.PatientPrescriptionsHistoryComponent),
+    canActivate: [AuthGuard, RoleGuard],
+    data: { roles: ['paciente'] }
+  },
+  {
+    path: 'paciente/recetas/:id',
+    loadComponent: () => import('./components/prescription-detail/prescription-detail.component').then(m => m.PrescriptionDetailComponent),
     canActivate: [AuthGuard, RoleGuard],
     data: { roles: ['paciente'] }
   },

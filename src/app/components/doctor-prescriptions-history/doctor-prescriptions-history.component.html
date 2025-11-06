@@ -21,14 +21,16 @@
                   <th>Paciente</th>
                   <th>Ítems</th>
                   <th>Observaciones</th>
+                  <th></th>
                 </tr>
               </thead>
               <tbody>
                 <tr *ngFor="let r of misRecetas">
                   <td>{{ r.fecha }}</td>
                   <td>{{ displayPatient(r.paciente_dpi) }}<div class="small text-muted">DPI: {{ r.paciente_dpi }}</div></td>
-                  <td>{{ r.items?.length || 0 }}</td>
+                  <td>{{ r.items.length || 0 }}</td>
                   <td class="small">{{ r.observaciones || '—' }}</td>
+                  <td class="text-end"><a class="btn btn-sm btn-outline-primary" [routerLink]="['/doctor/recetas', r.id]">Ver</a></td>
                 </tr>
               </tbody>
             </table>
@@ -63,13 +65,15 @@
                   <th>Fecha</th>
                   <th>Ítems</th>
                   <th>Observaciones</th>
+                  <th></th>
                 </tr>
               </thead>
               <tbody>
                 <tr *ngFor="let r of recetasPorPaciente">
                   <td>{{ r.fecha }}</td>
-                  <td>{{ r.items?.length || 0 }}</td>
+                  <td>{{ r.items.length || 0 }}</td>
                   <td class="small">{{ r.observaciones || '—' }}</td>
+                  <td class="text-end"><a class="btn btn-sm btn-outline-primary" [routerLink]="['/doctor/recetas', r.id]">Ver</a></td>
                 </tr>
               </tbody>
             </table>

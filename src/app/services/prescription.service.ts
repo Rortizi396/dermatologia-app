@@ -29,4 +29,8 @@ export class PrescriptionService {
     if (options.limit) params = params.set('limit', String(options.limit));
     return this.http.get<{ success: boolean; data: Receta[]; page: number; limit: number; total: number; }>(`${this.apiUrl}/recetas`, { params });
   }
+
+  getById(id: number): Observable<{ success: boolean; data: Receta }>{
+    return this.http.get<{ success: boolean; data: Receta }>(`${this.apiUrl}/recetas/${id}`);
+  }
 }

@@ -17,6 +17,7 @@
             <th>Fecha</th>
             <th>Ítems</th>
             <th>Observaciones</th>
+            <th></th>
           </tr>
         </thead>
         <tbody>
@@ -30,6 +31,7 @@
               </div>
             </td>
             <td class="small">{{ r.observaciones || '—' }}</td>
+            <td class="text-end"><a class="btn btn-sm btn-outline-primary" [routerLink]="['/paciente/recetas', r.id]">Ver</a></td>
           </tr>
         </tbody>
       </table>

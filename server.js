@@ -2264,6 +2264,38 @@ app.get('/api/recetas', (req, res) => {
   }
 });
 
+// Obtener receta por ID con items anidados
+app.get('/api/recetas/:id', (req, res) => {
+  try {
+    const id = parseInt((req.params.id || '').toString());
+    if (!id || isNaN(id)) return res.status(400).json({ success: false, message: 'ID inválido' });
+
+    db.query('SELECT * FROM recetas WHERE id = ? LIMIT 1', [id], (err, rows) => {
+      if (err) return res.status(500).json({ success: false, message: 'Error obteniendo la receta', error: err });
+      const r = rows && rows[0];
+      if (!r) return res.status(404).json({ success: false, message: 'Receta no encontrada' });
+      db.query('SELECT * FROM recetas_items WHERE receta_id = ? ORDER BY id ASC', [id], (errItems, itemRows) => {
+        if (errItems) return res.status(500).json({ success: false, message: 'Error obteniendo items', error: errItems });
+        const receta = {
+          id: r.id,
+          fecha: r.fecha,
+          doctor_nombre: r.doctor_nombre,
+          doctor_correo: r.doctor_correo,
+          doctor_colegiado: r.doctor_colegiado,
+          paciente_dpi: r.paciente_dpi,
+          observaciones: r.observaciones,
+          created_at: r.created_at,
+          items: (itemRows || []).map(it => ({ id: it.id, cantidad: Number(it.cantidad), nombre: it.nombre, dosis: it.dosis }))
+        };
+        return res.json({ success: true, data: receta });
+      });
+    });
+  } catch (ex) {
+    console.error('[RECETAS][GET BY ID] unexpected error', ex);
+    return res.status(500).json({ success: false, message: 'Error interno' });
+  }
+});
+
 // Crear una receta con items
 app.post('/api/recetas', (req, res) => {
   try {
