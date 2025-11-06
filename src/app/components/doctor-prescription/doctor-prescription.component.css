@@ -13,20 +13,10 @@
 :host-context([data-theme='dark']) .rx-body .divider { border-bottom-color: #334155; }
 :host-context([data-theme='dark']) .rx-footer .signature { border-bottom-color: #e2e8f0; }
 
-/* Items grid: single horizontal row, compact first/last columns */
-.items-grid { 
-	display: grid; 
-	grid-template-columns: 84px minmax(260px, 1.2fr) minmax(260px, 1fr) 40px; 
-	column-gap: 12px; 
-	row-gap: 4px; 
-	align-items: center; 
-}
-.items-grid--header { grid-template-columns: 84px minmax(260px, 1.2fr) minmax(260px, 1fr) 40px; }
-
-.items-grid .form-control { height: 38px; }
-.items-grid input[type="number"] { text-align: right; }
-
-.rx-items { display: grid; row-gap: 8px; }
+/* Responsive row now uses Bootstrap columns; keep a few niceties */
+.rx-items .form-control { height: 38px; }
+.rx-items input[type="number"] { text-align: right; }
+.rx-items { display: block; }
 
 /* Hide the PDF template from view but keep it renderable */
 .visually-hidden { position: absolute !important; left: -9999px !important; top: 0 !important; width: 800px; max-width: 1000px; }
