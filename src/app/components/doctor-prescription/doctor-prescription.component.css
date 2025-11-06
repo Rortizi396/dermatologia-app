@@ -6,7 +6,7 @@
 .rx-footer { margin-top: 60px; }
 .rx-footer .signature { height: 48px; border-bottom: 2px solid #111827; margin: 0 64px 6px; }
 
-.suggestions { position: absolute; z-index: 10; width: 100%; max-height: 180px; overflow: auto; }
+.suggestions { position: absolute; z-index: 10; width: 100%; max-height: 180px; overflow: auto; left: 0; top: 100%; margin-top: 2px; }
 
 /* Dark mode adjustments */
 :host-context([data-theme='dark']) .rx-sheet { background: #0f172a; color: #e2e8f0; border-color: #1f2937; }
