@@ -204,6 +204,41 @@ function connectWithRetry(attempt = 0) {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;`;
       db.query(createUsuarios, (err) => {
         if (err) { console.warn('[DB INIT] could not ensure Usuarios table:', err); return; }
+      // Simple catálogo de medicamentos para sugerencias
+      const createMedicamentos = `
+      CREATE TABLE IF NOT EXISTS medicamentos_catalogo (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        nombre VARCHAR(255) UNIQUE,
+        usage_count INT DEFAULT 0,
+        created_by VARCHAR(255),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;`;
+      db.query(createMedicamentos, (err) => { if (err) console.warn('[DB INIT] could not ensure medicamentos_catalogo table:', err); });
+
+      // Recetas (cabecera) y recetas_items (detalle)
+      const createRecetas = `
+      CREATE TABLE IF NOT EXISTS recetas (
+        id BIGINT AUTO_INCREMENT PRIMARY KEY,
+        fecha DATE NOT NULL,
+        doctor_nombre VARCHAR(255),
+        doctor_correo VARCHAR(255),
+        doctor_colegiado VARCHAR(100),
+        paciente_dpi VARCHAR(50),
+        observaciones TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;`;
+      db.query(createRecetas, (err) => { if (err) console.warn('[DB INIT] could not ensure recetas table:', err); });
+
+      const createRecetasItems = `
+      CREATE TABLE IF NOT EXISTS recetas_items (
+        id BIGINT AUTO_INCREMENT PRIMARY KEY,
+        receta_id BIGINT,
+        cantidad DECIMAL(10,2) NOT NULL,
+        nombre VARCHAR(255) NOT NULL,
+        dosis VARCHAR(255) NOT NULL,
+        CONSTRAINT fk_receta_item FOREIGN KEY (receta_id) REFERENCES recetas(id) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;`;
+      db.query(createRecetasItems, (err) => { if (err) console.warn('[DB INIT] could not ensure recetas_items table:', err); });
         // If table empty, insert a seeded user for testing
         db.query('SELECT COUNT(*) AS cnt FROM Usuarios', (e, rows) => {
           if (e) return console.warn('[DB INIT] count Usuarios failed:', e);
@@ -314,6 +349,41 @@ function connectWithRetry(attempt = 0) {
           }
         });
       });
+
+      // Catálogo de medicamentos para Postgres
+      const createMedicamentosPg = `
+      CREATE TABLE IF NOT EXISTS medicamentos_catalogo (
+        id SERIAL PRIMARY KEY,
+        nombre VARCHAR(255) UNIQUE,
+        usage_count INT DEFAULT 0,
+        created_by VARCHAR(255),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );`;
+      db.query(createMedicamentosPg, (err) => { if (err) console.warn('[DB INIT] could not ensure medicamentos_catalogo table (pg):', err); });
+
+      // Recetas (cabecera) y detalle para Postgres
+      const createRecetasPg = `
+      CREATE TABLE IF NOT EXISTS recetas (
+        id BIGSERIAL PRIMARY KEY,
+        fecha DATE NOT NULL,
+        doctor_nombre VARCHAR(255),
+        doctor_correo VARCHAR(255),
+        doctor_colegiado VARCHAR(100),
+        paciente_dpi VARCHAR(50),
+        observaciones TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );`;
+      db.query(createRecetasPg, (err) => { if (err) console.warn('[DB INIT] could not ensure recetas table (pg):', err); });
+
+      const createRecetasItemsPg = `
+      CREATE TABLE IF NOT EXISTS recetas_items (
+        id BIGSERIAL PRIMARY KEY,
+        receta_id BIGINT REFERENCES recetas(id) ON DELETE CASCADE,
+        cantidad NUMERIC(10,2) NOT NULL,
+        nombre VARCHAR(255) NOT NULL,
+        dosis VARCHAR(255) NOT NULL
+      );`;
+      db.query(createRecetasItemsPg, (err) => { if (err) console.warn('[DB INIT] could not ensure recetas_items table (pg):', err); });
     }
 
     // NOTE: MySQL-specific DDL blocks (AUTO_INCREMENT/ENGINE) were removed here
@@ -2100,6 +2170,114 @@ app.get('/api/doctores', cors({ origin: '*', credentials: false }), (req, res) =
     }
     res.json({ success: true, data: results });
   });
+});
+
+// Medicamentos (sugerencias)
+// Búsqueda con ?q= y ?limit=
+app.get('/api/medicamentos', cors({ origin: '*', credentials: false }), (req, res) => {
+  const q = (req.query.q || req.query.s || '').toString().trim();
+  const limit = Math.min(50, Math.max(1, parseInt((req.query.limit || '10').toString())));
+  const params = [];
+  let sql = 'SELECT nombre, usage_count FROM medicamentos_catalogo';
+  if (q) { sql += ' WHERE nombre LIKE ?'; params.push(`%${q}%`); }
+  sql += ' ORDER BY usage_count DESC, nombre ASC LIMIT ?';
+  params.push(limit);
+  db.query(sql, params, (err, rows) => {
+    if (err) return res.status(500).json({ success: false, message: 'Error buscando medicamentos', error: err });
+    return res.json({ success: true, data: rows || [] });
+  });
+});
+
+// Alta/incremento de medicamento
+app.post('/api/medicamentos', (req, res) => {
+  let nombre = (req.body && (req.body.nombre || req.body.Nombre) || '').toString().trim();
+  if (!nombre) return res.status(400).json({ success: false, message: 'nombre requerido' });
+  // Normalizar: evitar duplicados por casing
+  const norm = nombre;
+  const createdBy = (req.user && (req.user.email || req.user.userId)) || null;
+  db.query('INSERT INTO medicamentos_catalogo (nombre, usage_count, created_by) VALUES (?, 1, ?) ON DUPLICATE KEY UPDATE usage_count = usage_count + 1', [norm, createdBy], (err, _result) => {
+    if (err) return res.status(500).json({ success: false, message: 'Error registrando medicamento', error: err });
+    return res.json({ success: true });
+  });
+});
+
+// Crear una receta con items
+app.post('/api/recetas', (req, res) => {
+  try {
+    const body = req.body || {};
+    const fecha = (body.fecha || body.date || '').toString().slice(0, 10);
+    const paciente_dpi = (body.paciente_dpi || body.pacienteDPI || body.paciente || '').toString().trim();
+    const observaciones = (body.observaciones || '').toString();
+    const doctor_nombre = (body.doctor_nombre || body.doctorNombre || (body.doctor && (body.doctor.nombre || body.doctor.nombres)) || '').toString();
+    const doctor_correo = (body.doctor_correo || body.doctorCorreo || (body.doctor && (body.doctor.correo || body.doctor.email)) || '').toString();
+    const doctor_colegiado = (body.doctor_colegiado || body.doctorColegiado || (body.doctor && (body.doctor.colegiado)) || '').toString();
+    const items = Array.isArray(body.items) ? body.items : [];
+
+    if (!fecha) return res.status(400).json({ success: false, message: 'fecha requerida' });
+    if (!paciente_dpi) return res.status(400).json({ success: false, message: 'paciente_dpi requerido' });
+    if (!items || items.length === 0) return res.status(400).json({ success: false, message: 'Se requiere al menos un item' });
+
+    // Validar cantidades > 0 y strings no vacíos
+    for (const it of items) {
+      const cant = Number(it.cantidad);
+      const nombre = (it.nombre || '').toString().trim();
+      const dosis = (it.dosis || '').toString().trim();
+      if (!(cant > 0)) return res.status(400).json({ success: false, message: 'La cantidad debe ser mayor a 0' });
+      if (!nombre || !dosis) return res.status(400).json({ success: false, message: 'Nombre y dosis son requeridos' });
+    }
+
+    const insertRecetaSql = 'INSERT INTO recetas (fecha, doctor_nombre, doctor_correo, doctor_colegiado, paciente_dpi, observaciones) VALUES (?, ?, ?, ?, ?, ?)';
+    const recetaParams = [fecha, doctor_nombre || null, doctor_correo || null, doctor_colegiado || null, paciente_dpi, observaciones || null];
+
+    // Insert header then items
+    db.query(insertRecetaSql, recetaParams, (err, result) => {
+      if (err) {
+        console.error('[RECETAS] insert header error', err);
+        return res.status(500).json({ success: false, message: 'Error creando receta', error: err });
+      }
+      // Obtain inserted id in both drivers
+      const newId = (result && (result.insertId || result.lastInsertId)) ? (result.insertId || result.lastInsertId) : (result && result[0] && (result[0].id || result[0].ID));
+      const recetaId = newId || null;
+      if (!recetaId && db.dbType === 'postgres') {
+        // For pg when not returning id via rows, try read last inserted id by selecting MAX(id)
+        return db.query('SELECT MAX(id) as id FROM recetas', (e2, rows) => {
+          const fallbackId = rows && rows[0] && rows[0].id ? rows[0].id : null;
+          if (!fallbackId) return res.status(500).json({ success: false, message: 'No se pudo determinar el ID de receta' });
+          return insertItemsAndFinish(fallbackId);
+        });
+      }
+      return insertItemsAndFinish(recetaId);
+
+      function insertItemsAndFinish(recetaIdVal) {
+        const values = [];
+        const placeholders = [];
+        items.forEach(it => {
+          placeholders.push('(?, ?, ?, ?)');
+          values.push(recetaIdVal, Number(it.cantidad), (it.nombre || '').toString().trim(), (it.dosis || '').toString().trim());
+        });
+        const insertItemsSql = 'INSERT INTO recetas_items (receta_id, cantidad, nombre, dosis) VALUES ' + placeholders.join(',');
+        db.query(insertItemsSql, values, (errIns) => {
+          if (errIns) {
+            console.error('[RECETAS] insert items error', errIns);
+            return res.status(500).json({ success: false, message: 'Error creando items de la receta', error: errIns });
+          }
+          // Incrementar catálogo de medicamentos por cada nombre
+          try {
+            const uniq = Array.from(new Set(items.map(it => (it.nombre || '').toString().trim()).filter(Boolean)));
+            uniq.forEach(nm => {
+              db.query('INSERT INTO medicamentos_catalogo (nombre, usage_count) VALUES (?, 1) ON CONFLICT (nombre) DO UPDATE SET usage_count = medicamentos_catalogo.usage_count + 1', [nm], () => {});
+              // Para MySQL el ON CONFLICT no aplica; se reutiliza endpoint POST/SQL de MySQL más abajo si falla
+              db.query('INSERT INTO medicamentos_catalogo (nombre, usage_count) VALUES (?, 1) ON DUPLICATE KEY UPDATE usage_count = usage_count + 1', [nm], () => {});
+            });
+          } catch (_) { /* ignore */ }
+          return res.json({ success: true, id: recetaIdVal });
+        });
+      }
+    });
+  } catch (ex) {
+    console.error('[RECETAS] unexpected error', ex);
+    return res.status(500).json({ success: false, message: 'Error interno creando receta' });
+  }
 });
 
 // Obtener todos los administradores

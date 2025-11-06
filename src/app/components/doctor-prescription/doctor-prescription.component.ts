@@ -4,8 +4,10 @@ import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, FormArray, Va
 import { AuthService } from '../../services/auth.service';
 import { ToastService } from '../../services/toast.service';
 import { MedicationService } from '../../services/medication.service';
+import { PatientService, Patient } from '../../services/patient.service';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import { HttpClient } from '@angular/common/http';
 
 interface PrescriptionItem {
   cantidad: number | null;
@@ -25,6 +27,7 @@ export class DoctorPrescriptionComponent implements OnInit {
   today = new Date();
   doctorName = '';
   doctorEmail = '';
+  doctorColegiado = '';
   maxItems = 15;
   isGenerating = false;
   logoPath = 'assets/favicon.svg';
@@ -34,11 +37,16 @@ export class DoctorPrescriptionComponent implements OnInit {
   // Simple suggestions cache per input index
   suggestions: Record<number, string[]> = {};
 
+  patients: Patient[] = [];
+  selectedPatient: Patient | null = null;
+
   constructor(
     private fb: FormBuilder,
     private auth: AuthService,
     private toast: ToastService,
-    private meds: MedicationService
+    private meds: MedicationService,
+    private patientsSvc: PatientService,
+    private http: HttpClient
   ) {}
 
   ngOnInit(): void {
@@ -48,20 +56,25 @@ export class DoctorPrescriptionComponent implements OnInit {
     }
     this.doctorName = `${user?.nombres || ''} ${user?.apellidos || ''}`.trim();
     this.doctorEmail = user?.correo || '';
+    this.doctorColegiado = (user as any)?.colegiado || '';
 
     this.form = this.fb.group({
       fecha: [this.formatDate(this.today), [Validators.required]],
       doctor: [{ value: this.doctorName, disabled: true }],
+      pacienteDPI: ['', [Validators.required]],
       items: this.fb.array([this.createItem()]),
       observaciones: ['']
     });
+
+    // Cargar pacientes para el selector
+    this.patientsSvc.list(false).subscribe(list => { this.patients = list || []; });
   }
 
   get items(): FormArray { return this.form.get('items') as FormArray; }
 
   createItem(): FormGroup {
     return this.fb.group({
-      cantidad: [null, [Validators.min(0), Validators.required]],
+      cantidad: [null, [Validators.min(0.01), Validators.required]],
       nombre: ['', [Validators.required, Validators.maxLength(255)]],
       dosis: ['', [Validators.required, Validators.maxLength(255)]]
     });
@@ -119,6 +132,11 @@ export class DoctorPrescriptionComponent implements OnInit {
     } catch { /* ignore */ }
 
     try {
+      // Guardar receta en backend antes de generar el PDF
+      const payload = this.buildPayload();
+      try { await this.http.post(((window as any).__env?.apiUrl || '/api') + '/recetas', payload).toPromise(); }
+      catch (e) { console.warn('[RECETAS] error al guardar', e); this.toast.show('No se pudo guardar la receta en el servidor', 'error'); }
+
       // Render the prescription area to canvas using html2canvas and then add to jsPDF
   const el = document.getElementById('rx-sheet');
       if (!el) { this.toast.show('No se encontró la plantilla de la receta', 'error'); this.isGenerating = false; return; }
@@ -142,5 +160,25 @@ export class DoctorPrescriptionComponent implements OnInit {
     } finally {
       this.isGenerating = false;
     }
+  }
+
+  private buildPayload() {
+    const items = (this.items.value as PrescriptionItem[]).map(it => ({ cantidad: Number(it.cantidad), nombre: (it.nombre||'').trim(), dosis: (it.dosis||'').trim() }));
+    const pacienteDPI = this.form.get('pacienteDPI')?.value;
+    return {
+      fecha: this.form.get('fecha')?.value,
+      doctor: { nombre: this.doctorName, correo: this.doctorEmail, colegiado: this.doctorColegiado },
+      paciente_dpi: pacienteDPI,
+      observaciones: this.form.get('observaciones')?.value || '',
+      items
+    };
+  }
+
+  getSelectedPatient(): Patient | null {
+    try {
+      const dpi = this.form.get('pacienteDPI')?.value;
+      const found = this.patients.find(p => String(p.DPI) === String(dpi));
+      return found || null;
+    } catch { return null; }
   }
 }

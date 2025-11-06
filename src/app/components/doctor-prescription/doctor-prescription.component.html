@@ -23,6 +23,18 @@
         </div>
       </div>
 
+      <div class="row g-3 mb-3">
+        <div class="col-12 col-md-8">
+          <label class="form-label">Paciente</label>
+          <select class="form-control" formControlName="pacienteDPI">
+            <option value="" disabled>Seleccione un paciente</option>
+            <option *ngFor="let p of patients" [value]="p.DPI">
+              {{ (p.Nombres || p.nombres || '') + ' ' + (p.Apellidos || p.apellidos || '') }} — DPI: {{ p.DPI }}
+            </option>
+          </select>
+        </div>
+      </div>
+
       <div class="d-flex align-items-center justify-content-between mb-2">
         <h6 class="m-0">Medicamentos</h6>
         <button type="button" class="btn btn-outline-primary btn-sm" (click)="addItem()" [disabled]="items.length >= maxItems">Añadir ítem</button>
@@ -32,7 +44,7 @@
         <div class="row g-2 align-items-end mb-2" *ngFor="let it of items.controls; let i = index" [formGroupName]="i">
           <div class="col-12 col-md-2">
             <label class="form-label">Cantidad</label>
-            <input type="number" class="form-control" step="0.01" formControlName="cantidad">
+            <input type="number" class="form-control" step="0.01" min="0.01" formControlName="cantidad">
           </div>
           <div class="col-12 col-md-4 position-relative">
             <label class="form-label">Medicamento</label>
@@ -91,7 +103,9 @@
       </div>
     </div>
 
-    <div class="rx-watermark">MUESTRA</div>
+  <div class="small mt-2"><strong>Paciente:</strong> {{ (getSelectedPatient()?.Nombres || getSelectedPatient()?.nombres || '') + ' ' + (getSelectedPatient()?.Apellidos || getSelectedPatient()?.apellidos || '') }} — DPI: {{ form.get('pacienteDPI')?.value || '—' }}</div>
+
+  <div class="rx-watermark">MUESTRA</div>
 
     <div class="rx-footer">
       <div class="signature"></div>
