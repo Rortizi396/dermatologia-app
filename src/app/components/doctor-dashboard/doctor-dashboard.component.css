@@ -31,3 +31,26 @@
   .summary-card .summary-count { font-size: 2.2rem; }
   .summary-card { padding: 1rem; }
 }
+
+/* Context menu (modern) */
+.menu-container { position: relative; }
+.menu-trigger { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 10px; }
+.menu-panel {
+  position: absolute; right: 0; top: calc(100% + 8px);
+  min-width: 220px; padding: 6px; margin: 0; list-style: none;
+  background: var(--surface-1, #fff); color: var(--text-dark, #111827);
+  border: 1px solid var(--border-color, #e5e7eb); border-radius: 12px;
+  box-shadow: 0 10px 24px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.06);
+  z-index: 1050; display: block;
+}
+.menu-panel::before {
+  content: ""; position: absolute; right: 14px; top: -8px; width: 14px; height: 14px;
+  background: inherit; border-left: 1px solid var(--border-color, #e5e7eb); border-top: 1px solid var(--border-color, #e5e7eb);
+  transform: rotate(45deg);
+}
+.menu-item {
+  width: 100%; text-align: left; border: 0; background: transparent;
+  padding: 10px 12px; border-radius: 8px; color: inherit; font-size: 0.95rem;
+}
+.menu-item:hover { background: var(--surface-2, #f8fafc); }
+.menu-item:active { background: var(--surface-3, #eef2f7); }
