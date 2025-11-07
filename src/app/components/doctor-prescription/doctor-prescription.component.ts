@@ -36,6 +36,9 @@ export class DoctorPrescriptionComponent implements OnInit {
 
   // Simple suggestions cache per input index
   suggestions: Record<number, string[]> = {};
+  // UI state for suggestions dropdown per row
+  showSuggestions: Record<number, boolean> = {};
+  activeSuggestionIndex: Record<number, number> = {};
 
   patients: Patient[] = [];
   selectedPatient: Patient | null = null;
@@ -93,9 +96,15 @@ export class DoctorPrescriptionComponent implements OnInit {
   onNameInput(i: number): void {
     const group = this.items.at(i) as FormGroup;
     const value = (group.get('nombre')?.value || '').toString().trim();
-    if (!value) { this.suggestions[i] = []; return; }
+    if (!value) { this.suggestions[i] = []; this.showSuggestions[i] = false; return; }
     this.meds.search(value).subscribe({
-      next: (res: any) => { this.suggestions[i] = (res?.data || res || []).map((r: any) => r.nombre || r.Nombre || r); },
+      next: (res: any) => {
+        this.suggestions[i] = (res?.data || res || []).map((r: any) => r.nombre || r.Nombre || r);
+        this.showSuggestions[i] = (this.suggestions[i]?.length || 0) > 0;
+        if ((this.activeSuggestionIndex[i] ?? -1) >= (this.suggestions[i]?.length || 0)) {
+          this.activeSuggestionIndex[i] = -1;
+        }
+      },
       error: (_: any) => { this.suggestions[i] = []; }
     });
   }
@@ -104,6 +113,44 @@ export class DoctorPrescriptionComponent implements OnInit {
     const group = this.items.at(i) as FormGroup;
     group.get('nombre')?.setValue(text);
     this.suggestions[i] = [];
+    this.showSuggestions[i] = false;
+    this.activeSuggestionIndex[i] = -1;
+  }
+
+  onNameFocus(i: number): void {
+    this.showSuggestions[i] = (this.suggestions[i]?.length || 0) > 0;
+  }
+
+  onNameBlur(i: number): void {
+    // Retrasa el cierre para permitir click en un item
+    setTimeout(() => { this.showSuggestions[i] = false; }, 120);
+  }
+
+  onNameKeydown(i: number, ev: KeyboardEvent): void {
+    const list = this.suggestions[i] || [];
+    if (!list.length) { return; }
+    if (ev.key === 'ArrowDown') {
+      ev.preventDefault();
+      const next = ((this.activeSuggestionIndex[i] ?? -1) + 1) % list.length;
+      this.activeSuggestionIndex[i] = next;
+      this.showSuggestions[i] = true;
+    } else if (ev.key === 'ArrowUp') {
+      ev.preventDefault();
+      const curr = (this.activeSuggestionIndex[i] ?? -1);
+      const next = curr <= 0 ? list.length - 1 : curr - 1;
+      this.activeSuggestionIndex[i] = next;
+      this.showSuggestions[i] = true;
+    } else if (ev.key === 'Enter') {
+      const idx = this.activeSuggestionIndex[i] ?? -1;
+      if (idx >= 0 && idx < list.length) {
+        ev.preventDefault();
+        this.applySuggestion(i, list[idx]);
+      }
+    } else if (ev.key === 'Escape') {
+      ev.preventDefault();
+      this.showSuggestions[i] = false;
+      this.activeSuggestionIndex[i] = -1;
+    }
   }
 
   canGenerate(): boolean {

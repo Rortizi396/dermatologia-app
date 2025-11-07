@@ -57,9 +57,9 @@
             </td>
             <td class="name">
               <div class="input-suggest">
-                <input type="text" class="form-control" placeholder="Nombre del medicamento" formControlName="nombre" (input)="onNameInput(i)" autocomplete="off">
-                <ul class="list-group suggestions" *ngIf="(suggestions[i] || []).length > 0">
-                  <li class="list-group-item list-group-item-action" *ngFor="let s of suggestions[i]" (click)="applySuggestion(i, s)">{{ s }}</li>
+                <input type="text" class="form-control" placeholder="Nombre del medicamento" formControlName="nombre" (input)="onNameInput(i)" (focus)="onNameFocus(i)" (blur)="onNameBlur(i)" (keydown)="onNameKeydown(i, $event)" autocomplete="off">
+                <ul class="list-group suggestions" *ngIf="showSuggestions[i] && (suggestions[i] || []).length > 0">
+                  <li class="list-group-item list-group-item-action" *ngFor="let s of suggestions[i]; let j = index" [class.active]="activeSuggestionIndex[i] === j" (mousedown)="$event.preventDefault()" (click)="applySuggestion(i, s)">{{ s }}</li>
                 </ul>
               </div>
             </td>
