@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ElementRef, HostListener } from '@angular/core';
 import { CommonModule, NgIf } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
@@ -18,6 +18,7 @@ export class DoctorDashboardComponent implements OnInit, OnDestroy {
   timeString = '';
   dateString = '';
   use24Hour = true;
+  menuOpen = false;
   private _clockInterval: any = null;
   private _refreshInterval: any = null;
 
@@ -34,7 +35,8 @@ export class DoctorDashboardComponent implements OnInit, OnDestroy {
     private appointmentService: AppointmentService,
     private toast: ToastService,
     private router: Router,
-    private http: HttpClient
+    private http: HttpClient,
+    private el: ElementRef
   ) {}
 
   ngOnInit(): void {
@@ -78,6 +80,15 @@ export class DoctorDashboardComponent implements OnInit, OnDestroy {
     this.saveClockPreference();
     if (this._clockInterval) { clearInterval(this._clockInterval); this._clockInterval = null; }
     this.startClock();
+  }
+
+  toggleMenu(): void { this.menuOpen = !this.menuOpen; }
+  closeMenu(): void { this.menuOpen = false; }
+  @HostListener('document:click', ['$event'])
+  onDocClick(e: MouseEvent): void {
+    if (!this.el.nativeElement.contains(e.target)) {
+      this.menuOpen = false;
+    }
   }
 
   private loadUser(): void {

@@ -1,8 +1,15 @@
 <div class="doctor-dashboard container py-3">
   <div class="toolbar d-flex align-items-center gap-2 p-2 mb-3 flex-wrap">
     <div class="flex-grow-1"></div>
-    <button class="btn btn-outline-secondary" (click)="loadTodayAppointments()">Refrescar</button>
-    <button class="btn btn-outline-secondary" (click)="toggleClockFormat()">{{ use24Hour ? 'Formato 24h' : 'Formato 12h' }}</button>
+    <div class="position-relative">
+      <button type="button" class="btn btn-outline-secondary" (click)="toggleMenu()" aria-haspopup="true" [attr.aria-expanded]="menuOpen">
+        <i class="fas fa-ellipsis-v"></i>
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end show" *ngIf="menuOpen" style="display:block; position:absolute; right:0; top:100%;">
+        <li><button class="dropdown-item" type="button" (click)="loadTodayAppointments(); closeMenu()">Refrescar</button></li>
+        <li><button class="dropdown-item" type="button" (click)="toggleClockFormat(); closeMenu()">Formato {{ use24Hour ? '12h' : '24h' }}</button></li>
+      </ul>
+    </div>
   </div>
   <div class="hero d-flex justify-content-center mb-3">
     <div class="clock-large text-center">
