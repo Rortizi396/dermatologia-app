@@ -57,11 +57,15 @@
 .rx-watermark-img { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; opacity: 0.06; pointer-events: none; }
 .rx-watermark-img img { width: 300px; height: 300px; object-fit: contain; }
 
-.rx-bottom { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 48px; }
+.rx-bottom { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 84px; }
 .rx-bottom .slot { width: 40%; text-align: center; }
 .rx-bottom .slot .line { border-bottom: 2px solid #111827; height: 26px; margin: 0 24px 6px; }
 .rx-bottom .slot .label { font-size: 12px; color: #111827; letter-spacing: 0.06em; }
 .rx-footer-meta { margin-top: 10px; }
+
+/* Variante con solo firma al centro */
+.rx-bottom.only-signature { justify-content: center; }
+.rx-bottom.only-signature .slot { width: 30%; min-width: 180px; }
 
 .input-suggest { position: relative; }
 .suggestions { position: absolute; z-index: 1000; width: 100%; max-height: 220px; overflow: auto; left: 0; top: calc(100% + 2px); margin-top: 0; background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; box-shadow: 0 6px 18px rgba(0,0,0,0.08); }

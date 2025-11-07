@@ -102,7 +102,6 @@
         <div class="text-end">
           <div class="rx-doctor-name">Dr(a). {{ doctorName }}</div>
           <div class="small">Colegiado: {{ doctorColegiado || '—' }}</div>
-          <div class="small">Fecha: {{ form.get('fecha')?.value }}</div>
         </div>
       </div>
       <!-- Curva superior -->
@@ -116,15 +115,14 @@
     <!-- Datos del paciente, en líneas -->
     <div class="rx-fields">
       <div class="row-line"><span>Nombre Paciente:</span><span class="fill-line">{{ getSelectedPatientName() }}</span></div>
-      <div class="row-line"><span>Dirección:</span><span class="fill-line">&nbsp;</span></div>
-      <div class="row-line two-cols">
+      <div class="row-line"><span>Dirección:</span><span class="fill-line">Ciudad</span></div>
+      <div class="row-line">
         <div><span>DPI:</span><span class="fill-line">{{ getSelectedPatientDPI() }}</span></div>
-        <div><span>Edad:</span><span class="fill-line">&nbsp;</span></div>
       </div>
       <div class="row-line"><span>Diagnóstico:</span><span class="fill-line">{{ (form.get('observaciones')?.value || '') }}</span></div>
     </div>
 
-    <div class="rx-rp">Rp.</div>
+    <div class="rx-rp">Medicación y dosis</div>
 
     <!-- Marca de agua -->
     <div class="rx-watermark-img">
@@ -142,16 +140,11 @@
     </div>
 
     <!-- Pie con fecha y firma -->
-    <div class="rx-bottom">
-      <div class="slot">
-        <div class="line"></div>
-        <div class="label">FECHA</div>
-      </div>
+    <div class="rx-bottom only-signature">
       <div class="slot">
         <div class="line"></div>
         <div class="label">FIRMA</div>
       </div>
     </div>
-    <div class="rx-footer-meta small text-center">{{ clinicAddress }} — Tel. {{ clinicPhone }}</div>
   </div>
 </div>

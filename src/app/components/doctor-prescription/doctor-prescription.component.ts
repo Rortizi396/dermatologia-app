@@ -8,6 +8,7 @@ import { PatientService, Patient } from '../../services/patient.service';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { HttpClient } from '@angular/common/http';
+import { DoctorService } from '../../services/doctor.service';
 
 interface PrescriptionItem {
   cantidad: number | null;
@@ -49,7 +50,8 @@ export class DoctorPrescriptionComponent implements OnInit {
     private toast: ToastService,
     private meds: MedicationService,
     private patientsSvc: PatientService,
-    private http: HttpClient
+    private http: HttpClient,
+    private doctors: DoctorService
   ) {}
 
   ngOnInit(): void {
@@ -60,6 +62,15 @@ export class DoctorPrescriptionComponent implements OnInit {
     this.doctorName = `${user?.nombres || ''} ${user?.apellidos || ''}`.trim();
     this.doctorEmail = user?.correo || '';
     this.doctorColegiado = (user as any)?.colegiado || '';
+
+    // Intentar obtener colegiado desde la tabla Doctores por correo o nombre completo
+    const fullName = `${user?.nombres || ''} ${user?.apellidos || ''}`.trim();
+    this.doctors.findByEmailOrName(user?.correo, fullName).subscribe(doc => {
+      try {
+        const fromDb = (doc?.Colegiado || (doc as any)?.colegiado || '').toString().trim();
+        if (fromDb) this.doctorColegiado = fromDb;
+      } catch { /* ignore */ }
+    });
 
     this.form = this.fb.group({
       fecha: [this.formatDate(this.today), [Validators.required]],

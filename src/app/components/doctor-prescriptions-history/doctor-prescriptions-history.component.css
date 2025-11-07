@@ -1,2 +1,11 @@
-.table-modern { width: 100%; }
-.table-modern th, .table-modern td { vertical-align: top; }
+.table-modern { width: 100%; border-collapse: separate; border-spacing: 0; }
+.table-modern thead th { position: sticky; top: 0; background: #fff; z-index: 1; font-weight: 600; border-bottom: 1px solid #e5e7eb; }
+.table-modern tbody tr { transition: background-color .15s ease; }
+.table-modern tbody tr:hover { background: #f8fafc; }
+.table-modern td, .table-modern th { padding: 10px 12px; vertical-align: top; }
+.table-modern tbody tr + tr td { border-top: 1px solid #f1f5f9; }
+.table-modern .btn { padding: 4px 10px; }
+
+/* Card polish */
+.card { border-radius: 12px; box-shadow: 0 6px 18px rgba(0,0,0,.06); border: 1px solid #eef2f7; }
+.card-header { background: transparent; border-bottom: 1px solid #eef2f7; }
