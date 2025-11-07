@@ -88,43 +88,70 @@
 
   <!-- Plantilla para PDF fuera de vista (necesaria para render con html2canvas) -->
   <div id="rx-sheet" class="rx-sheet print-template visually-hidden">
-    <div class="rx-header d-flex align-items-start justify-content-between">
-      <div class="d-flex align-items-center gap-3">
-        <img [src]="logoPath" alt="logo" class="rx-logo">
-        <div>
-          <div class="fw-semibold">Centro Dermatológico</div>
-          <div class="small">{{ clinicAddress }}</div>
-          <div class="small">Teléfono: {{ clinicPhone }}</div>
-          <!-- correo removido del PDF -->
+    <!-- Encabezado estilo receta -->
+    <div class="rx-top">
+      <div class="rx-topbar d-flex align-items-start justify-content-between">
+        <div class="d-flex align-items-center gap-2">
+          <img [src]="logoPath" alt="logo" class="rx-logo-sm">
+          <div class="clinic-meta small">
+            <div class="fw-semibold">Centro Dermatológico</div>
+            <div>{{ clinicAddress }}</div>
+            <div>Tel. {{ clinicPhone }}</div>
+          </div>
+        </div>
+        <div class="text-end">
+          <div class="rx-doctor-name">Dr(a). {{ doctorName }}</div>
+          <div class="small">Colegiado: {{ doctorColegiado || '—' }}</div>
+          <div class="small">Fecha: {{ form.get('fecha')?.value }}</div>
         </div>
       </div>
-      <div class="text-end small">
-        <div><strong>Dr(a). {{ doctorName }}</strong></div>
-        <div>Fecha: {{ form.get('fecha')?.value }}</div>
+      <!-- Curva superior -->
+      <div class="rx-curve">
+        <svg viewBox="0 0 800 90" preserveAspectRatio="none">
+          <path d="M0,70 C220,10 420,110 800,20" fill="none" stroke="#1e40af" stroke-width="3"/>
+        </svg>
       </div>
     </div>
-    <div class="rx-hero text-center mb-2">
-      <img [src]="logoPath" alt="logo" class="rx-hero-logo">
-    </div>
-    <hr>
-    <div class="small"><strong>Paciente:</strong> {{ getSelectedPatientName() }} — DPI: {{ getSelectedPatientDPI() }}</div>
 
-    <div class="rx-body mt-3">
+    <!-- Datos del paciente, en líneas -->
+    <div class="rx-fields">
+      <div class="row-line"><span>Nombre Paciente:</span><span class="fill-line">{{ getSelectedPatientName() }}</span></div>
+      <div class="row-line"><span>Dirección:</span><span class="fill-line">&nbsp;</span></div>
+      <div class="row-line two-cols">
+        <div><span>DPI:</span><span class="fill-line">{{ getSelectedPatientDPI() }}</span></div>
+        <div><span>Edad:</span><span class="fill-line">&nbsp;</span></div>
+      </div>
+      <div class="row-line"><span>Diagnóstico:</span><span class="fill-line">{{ (form.get('observaciones')?.value || '') }}</span></div>
+    </div>
+
+    <div class="rx-rp">Rp.</div>
+
+    <!-- Marca de agua -->
+    <div class="rx-watermark-img">
+      <img [src]="logoPath" alt="logo">
+    </div>
+
+    <!-- Cuerpo de receta -->
+    <div class="rx-body mt-2">
       <div class="rx-item" *ngFor="let it of items.controls; let i = index">
         <div><strong>{{ it.get('nombre')?.value || '—' }}</strong></div>
         <div class="small">{{ it.get('cantidad')?.value || '—' }} unidades</div>
         <div class="small">{{ it.get('dosis')?.value || '—' }}</div>
         <div class="divider"></div>
       </div>
-      <div class="mt-3" *ngIf="form.get('observaciones')?.value">
-        <div class="fw-semibold mb-1">Otras indicaciones</div>
-        <div class="small">{{ form.get('observaciones')?.value }}</div>
-      </div>
     </div>
 
-    <div class="rx-footer">
-      <div class="signature"></div>
-      <div class="small text-center">Firma Dr(a). {{ doctorName }}</div>
+    <!-- Pie con fecha y firma -->
+    <div class="rx-bottom">
+      <div class="slot">
+        <div class="line"></div>
+        <div class="label">FECHA</div>
+      </div>
+      <div class="slot">
+        <div class="line"></div>
+        <div class="label">FIRMA</div>
+      </div>
     </div>
+    <div class="rx-footer-meta small text-center">{{ clinicAddress }} — Tel. {{ clinicPhone }}</div>
   </div>
 </div>
